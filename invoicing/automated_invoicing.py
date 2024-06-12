@@ -80,21 +80,23 @@ def get_batch_data(order_id):
         response_data_2 = {}
 
     # Extract batch data
-    batches = response_data_2.get('m_Item3', [])
+    batches = response_data_2.get('BatchLines', [])
     batch_list = []
 
     for batch_data in batches:
-        batch_info = batch_data.get('batch', {})
-        title = batch_info.get('title', None)  # Als 'title' ontbreekt, zal title None zijn
-        batch_list.append(title)
+        sku = batch_data.get('Sku', None)
+        batch_info = batch_data.get('BatchContent', {})
+        title = batch_info.get('Title') if batch_info else None
+        if title:
+            batch_list.append(title)
 
     # Create an SKU dictionairy
     batch_sku_dict = {}
 
-    for batch_data in response_data_2.get('m_Item3', []):
-        sku = batch_data.get('sku', None)
-        batch_info = batch_data.get('batch', {})
-        title = batch_info.get('title', None)
+    for batch_data in response_data_2.get('BatchLines', []):
+        sku = batch_data.get('Sku', None)
+        batch_info = batch_data.get('BatchContent')
+        title = batch_info.get('Title') if batch_info else None
 
         if sku and title:
             endpoint = f"product/{sku}"
