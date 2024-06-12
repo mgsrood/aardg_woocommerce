@@ -3,7 +3,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib.units import mm
-import json
 from woocommerce import API
 from datetime import datetime
 import requests
@@ -15,9 +14,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import smtplib
-from datetime import datetime, timedelta
-from io import BytesIO
-import io
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 
@@ -25,7 +22,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Define a list of order IDs to process
-order_ids_str = os.environ.get('ORDER_IDS', '95195, 94137, 92949, 91994')
+order_ids_str = os.environ.get('ORDER_IDS', '')
 order_ids_list = order_ids_str.split(',')
 order_ids = [int(order_id) for order_id in order_ids_list if order_id.strip()]
 
@@ -34,20 +31,21 @@ recipient_mail = os.environ.get('MAIL', 'mgsrood@gmail.com')
 
 # Define the Monta API variables
 api_url = os.environ.get('MONTA_API_URL')
-username = os.environ.get('MONTA_API_USERNAME')
-password = os.environ.get('MONTA_API_PASSWORD')
+username = os.environ.get('MONTA_USERNAME')
+password = os.environ.get('MONTA_PASSWORD')
 
 # Define the WooCommerce API variables
-url = os.environ.get('AARDG_WOOCOMMERCE_URL')
-consumer_key = os.environ.get('AARDG_WOOCOMMERCE_CONSUMER_KEY')
-consumer_secret = os.environ.get('AARDG_WOOCOMMERCE_CONSUMER_SECRET')
+url = os.environ.get('WOOCOMMERCE_URL')
+consumer_key = os.environ.get('WOOCOMMERCE_CONSUMER_KEY')
+consumer_secret = os.environ.get('WOOCOMMERCE_CONSUMER_SECRET')
 
 # Define the Woocommerce API
 wcapi = API(
     url=url,
     consumer_key=consumer_key,
     consumer_secret=consumer_secret,
-    version="wc/v3"
+    version="wc/v3",
+    timeout=10
 )
 
 # Function to transform hex to rgb
@@ -79,21 +77,23 @@ def get_batch_data(order_id):
         response_data_2 = {}
 
     # Extract batch data
-    batches = response_data_2.get('m_Item3', [])
+    batches = response_data_2.get('BatchLines', [])
     batch_list = []
 
     for batch_data in batches:
-        batch_info = batch_data.get('batch', {})
-        title = batch_info.get('title', None)  # Als 'title' ontbreekt, zal title None zijn
-        batch_list.append(title)
+        sku = batch_data.get('Sku', None)
+        batch_info = batch_data.get('BatchContent', {})
+        title = batch_info.get('Title') if batch_info else None
+        if title:
+            batch_list.append(title)
 
     # Create an SKU dictionairy
     batch_sku_dict = {}
 
-    for batch_data in response_data_2.get('m_Item3', []):
-        sku = batch_data.get('sku', None)
-        batch_info = batch_data.get('batch', {})
-        title = batch_info.get('title', None)
+    for batch_data in response_data_2.get('BatchLines', []):
+        sku = batch_data.get('Sku', None)
+        batch_info = batch_data.get('BatchContent')
+        title = batch_info.get('Title') if batch_info else None
 
         if sku and title:
             endpoint = f"product/{sku}"

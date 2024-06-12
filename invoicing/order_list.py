@@ -56,29 +56,35 @@ def order_ids(customer_email, start_date, end_date):
         "status": "completed",
         "customer": {customer_id},
         "after": f"{start_date}T00:00:00",
-        "before": f"{end_date}T23:59:59"
+        "before": f"{end_date}T23:59:59",
+        "per_page": 100
     }
 
-    # Get order response
-    order_response = wcapi.get("orders", params=params_orders)
-    data = order_response.json()
+    # Get orders using pagination
+    all_order_ids = []
+    page = 1
 
-    # Fallback if there is no data
-    if not data:
-            # If no orders found, print a message
-            print(f"Geen orders gevonden voor {customer_email} in de specifieke periode.")
-            return []
+    while True:
+        # Get order response
+        params_orders["page"] = page
+        order_response = wcapi.get("orders", params=params_orders)
+        data = order_response.json()
 
-    # Create order id list
-    order_ids = [item['id'] for item in data]
+        # Fallback if there is no data
+        if not data:
+            break
 
-    return order_ids
+        order_ids = [item['id'] for item in data]
+        all_order_ids.extend(order_ids)
+        page += 1
+
+    return all_order_ids
 
 if __name__ == "__main__":
     # Get the environment variabels
-    customer_email = os.getenv('MAIL', 'kvloeberghs@gmail.com')
-    start_date = os.getenv('START', '2024-01-01')
-    end_date = os.getenv('END', '2024-05-01')
+    customer_email = os.getenv('MAIL', '')
+    start_date = os.getenv('START', '')
+    end_date = os.getenv('END', '')
 
     # Use the function to get the order ids
     orders = order_ids(customer_email, start_date, end_date)
