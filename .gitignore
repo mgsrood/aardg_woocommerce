@@ -2,3 +2,5 @@
 push_to_git.sh
 pull_from_git.sh
 .pdf
+invoicing_venv
+subscription_venv
