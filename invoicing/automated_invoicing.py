@@ -25,18 +25,100 @@ from dotenv import load_dotenv
 # Load .env
 load_dotenv()
 
+# Function to get the first and last day of last month
+def get_first_and_last_day_of_last_month():
+    today = datetime.now()
+    first_day_of_current_month = today.replace(day=1)
+    last_day_of_last_month = first_day_of_current_month - timedelta(days=1) 
+    first_day_of_last_month = last_day_of_last_month.replace(day=1)
+    return first_day_of_last_month.strftime('%Y-%m-%d'), last_day_of_last_month.strftime('%Y-%m-%d')
+
+first_day_of_last_month, last_day_of_last_month = get_first_and_last_day_of_last_month()
+
+def order_ids(customer_email, start_date, end_date):
+
+    # Define the WooCommerce API variables
+    wcapi = API(
+        url = os.environ.get('WOOCOMMERCE_URL'),
+        consumer_key=os.environ.get('WOOCOMMERCE_CONSUMER_KEY'),
+        consumer_secret=os.environ.get('WOOCOMMERCE_CONSUMER_SECRET'),
+        version="wc/v3",
+        timeout=10
+    )
+
+    # Define params if email is linked to a customer
+    params_customer = {
+        f"role": "customer",
+        "email": {customer_email}
+    }
+
+    # Get customer response
+    customer_response = wcapi.get("customers", params=params_customer)
+
+    # Check if response resulted in information
+    if customer_response.json() == []:
+        
+        # Define params if email is linked to a subscriber
+        params_subscriber = {
+        f"role": "subscriber",
+        "email": {customer_email}
+        }   
+
+        # Get subscriber response
+        subscriber_response = wcapi.get("customers", params=params_subscriber)
+        subscriber_data = subscriber_response.json()
+        
+        # Get customer id (from subscriber)
+        customer_id = subscriber_data[0]['id']
+
+    # Use customer response
+    else: 
+        customer_data = customer_response.json()
+        
+        # Get customer id 
+        customer_id = customer_data[0]['id']
+
+    # Define order params
+    params_orders = {
+        "status": "completed",
+        "customer": {customer_id},
+        "after": f"{start_date}T00:00:00",
+        "before": f"{end_date}T23:59:59",
+        "per_page": 100
+    }
+
+    # Get orders using pagination
+    all_order_ids = []
+    page = 1
+
+    while True:
+        # Get order response
+        params_orders["page"] = page
+        order_response = wcapi.get("orders", params=params_orders)
+        data = order_response.json()
+
+        # Fallback if there is no data
+        if not data:
+            break
+
+        order_ids = [item['id'] for item in data]
+        all_order_ids.extend(order_ids)
+        page += 1
+
+    return all_order_ids
+
 # Define variables
 customer_email = os.environ.get('MAIL', '')
-start_date = os.environ.get('START', '')
-end_date = os.environ.get('END', '')
+start_date = first_day_of_last_month
+end_date = last_day_of_last_month
 
 # Run the function
 order_id_list = order_ids(customer_email, start_date, end_date)
 
 # Define the Monta API variables
 api_url = os.environ.get('MONTA_API_URL')
-username = os.environ.get('MONTA_API_USERNAME')
-password = os.environ.get('MONTA_API_PASSWORD')
+username = os.environ.get('MONTA_USERNAME')
+password = os.environ.get('MONTA_PASSWORD')
 
 # Define the WooCommerce API variables
 url = os.environ.get('WOOCOMMERCE_URL')
