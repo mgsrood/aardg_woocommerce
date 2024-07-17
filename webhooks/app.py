@@ -10,6 +10,8 @@ from subscription_utils import change_first_name
 
 load_dotenv()
 
+#Test text
+
 # Load environment variables
 woocommerce_url = os.getenv('WOOCOMMERCE_URL')
 consumer_key = os.getenv('WOOCOMMERCE_CONSUMER_KEY')
