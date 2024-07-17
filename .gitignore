@@ -5,3 +5,4 @@ pull_from_git.sh
 invoicing_venv
 subscription_venv
 webhook_venv
+.key

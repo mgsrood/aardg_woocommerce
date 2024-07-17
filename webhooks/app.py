@@ -34,6 +34,10 @@ def validate_signature(request, secret):
     computed_signature = base64.b64encode(hmac.new(secret.encode(), payload, hashlib.sha256).digest()).decode()
     return hmac.compare_digest(signature, computed_signature)
 
+@app.route('/')
+def hello_world():
+    return "hello world"
+
 @app.route('/webhook/change_first_name', methods=['POST'])
 def webhook():
     content_type = request.headers.get('Content-Type')
@@ -68,4 +72,4 @@ def webhook():
     return jsonify({'status': 'success'}), 200
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(port=8443)
