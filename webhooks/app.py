@@ -6,11 +6,9 @@ import json
 import hmac
 import hashlib
 import base64
-from subscription_utils import change_first_name
+from subscription_utils import move_next_payment_date
 
 load_dotenv()
-
-#Test text
 
 # Load environment variables
 woocommerce_url = os.getenv('WOOCOMMERCE_URL')
@@ -38,7 +36,7 @@ def validate_signature(request, secret):
 def hello_world():
     return "hello world"
 
-@app.route('/webhook/change_first_name', methods=['POST'])
+@app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def webhook():
     content_type = request.headers.get('Content-Type')
 
@@ -67,7 +65,7 @@ def webhook():
         response = wcapi.get(f"subscriptions/{subscription_id}")
         if response.status_code == 200:
             subscription_data = response.json()
-            change_first_name(subscription_data, wcapi)
+            move_next_payment_date(subscription_data, wcapi)
 
     return jsonify({'status': 'success'}), 200
 
