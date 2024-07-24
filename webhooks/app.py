@@ -40,7 +40,7 @@ def hello_world():
     return "hello world"
 
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
-def webhook():
+def payment_date_mover():
     content_type = request.headers.get('Content-Type')
 
     data = None
@@ -73,7 +73,7 @@ def webhook():
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/update_ac_abo_field', methods=['POST'])
-def webhook():
+def ac_abo_field_update():
     content_type = request.headers.get('Content-Type')
 
     data = None
