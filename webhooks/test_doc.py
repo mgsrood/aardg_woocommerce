@@ -12,6 +12,32 @@ load_dotenv()
 woocommerce_url = os.getenv('WOOCOMMERCE_URL')
 consumer_key = os.getenv('WOOCOMMERCE_CONSUMER_KEY')
 consumer_secret = os.getenv('WOOCOMMERCE_CONSUMER_SECRET')
+active_campaign_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
+active_campaign_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
+
+# ActiveCampaign fields
+fields = {
+    '9': 'W4 quantity', 
+    '1': 'Bedrijfsnaam', 
+    '8': 'K4 quantity', 
+    '2': 'In welke producten ben je geïnteresseerd?', 
+    '10': 'M4 quantity', 
+    '3': 'Waar is het bedrijf gevestigd?', 
+    '11': 'Quantity From Sales', 
+    '4': 'In welk(e) product(en) ben je geïnteresseerd?', 
+    '12': 'Quantity From Orderbump', 
+    '5': 'Je bericht', 
+    '14': 'B12 quantity', 
+    '6': 'Beschrijf je ideale samenwerking*', 
+    '15': 'C12 quantity', 
+    '7': 'Website', 
+    '17': 'F12 quantity', 
+    '18': 'P28 quantity', 
+    '19': 'S quantity', 
+    '20': 'G12 quantity', 
+    '13': 'Last Ordered Item(s)', 
+    '21': 'Abo'
+    }
 
 # Configure WooCommerce API client
 wcapi = API(
@@ -24,12 +50,73 @@ wcapi = API(
 # Create response and print
 subscription_id = '4889'
 initial_response = wcapi.get(f"subscriptions/{subscription_id}")
-data = initial_response.json()
+woocommerce_data = initial_response.json()
 
-# Extract payment method
-payment_method = data.get('payment_method_title')
+# Retrieve email
+email = woocommerce_data.get('billing', {}).get('email')
+
+# Retrieve ActiveCampaign contact
+url = active_campaign_api_url + "contacts/"
+headers = {
+    "accept": "application/json",
+    "Api-Token": active_campaign_api_token
+    }
+params = {
+        'email': email
+    }
+response = requests.get(url, headers=headers, params=params)
+active_campaign_data = response.json()
+
+# Retrieve ActiveCampaign ID
+active_campaign_id = active_campaign_data['contacts'][0]['id']
+
+# Retrieve field values
+url = active_campaign_api_url + f"contacts/{active_campaign_id}/fieldValues"
+headers = {
+    "accept": "application/json",
+    "Api-Token": active_campaign_api_token
+    }
+response = requests.get(url, headers=headers, params=params)
+field_values = response.json()
+
+# Extract current values
+desired_field = 21
+contact_id = None
+current_abo_value = None
+specific_abo_field_id = None
+
+for item in field_values['fieldValues']:
+    if int(item['field']) == desired_field:
+        contact_id = item['contact']
+        current_abo_value = item['value']
+        specific_abo_field_id = item['id']
+
+# Turn abo value into integer
+current_abo_value = int(current_abo_value)
+
+# Update abo value
+new_abo_value = current_abo_value + 1
+
+# Update field values
+url = active_campaign_api_url + f"fieldValues/{specific_abo_field_id}"
+headers = {
+    "accept": "application/json",
+    "Api-Token": active_campaign_api_token
+    }
+payload = {
+    "fieldValue": {
+        "contact": f"{contact_id}",
+        "field": "21",
+        "value": f"{new_abo_value}"
+    },
+    "useDefaults": False
+}
+requests.put(url, json=payload, headers=headers)
+
+''' Extract payment method
+payment_method = woocommerce_data.get('payment_method_title')
 if payment_method in ['iDEAL', 'Bancontact']:
-    next_payment_date_str = data.get('next_payment_date_gmt')
+    next_payment_date_str = woocommerce_data.get('next_payment_date_gmt')
     if next_payment_date_str:
         try:
             # Converteer de datum string naar een datetime object
@@ -61,4 +148,4 @@ if payment_method in ['iDEAL', 'Bancontact']:
         print("Fout: next_payment_date_gmt ontbreekt in de data.")
 
 else:
-    print("No payment date movement needed")
+    print("No payment date movement needed")'''
