@@ -1,3 +1,9 @@
 flask 
 python-dotenv 
 woocommerce
+requests
+flask-monitoringdashboard
+flask_sqlalchemy
+flask_migrate
+sqlalchemy
+werkzeug

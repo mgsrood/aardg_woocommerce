@@ -8,6 +8,10 @@ import hmac
 import hashlib
 import base64
 from subscription_utils import move_next_payment_date, update_ac_abo_field
+import flask_monitoringdashboard as dashboard
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 load_dotenv()
 
@@ -18,10 +22,12 @@ consumer_secret = os.getenv('WOOCOMMERCE_CONSUMER_SECRET')
 secret_key = os.getenv('SECRET_KEY')
 ac_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
 ac_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
+database_uri = os.getenv('DATABASE_URI')
 
+# Configuring the app
 app = Flask(__name__)
 
-# Configure WooCommerce API client
+# Configuring the WooCommerce API
 wcapi = API(
     url=woocommerce_url,
     consumer_key=consumer_key,
@@ -37,6 +43,7 @@ def validate_signature(request, secret):
 
 @app.route('/')
 def hello_world():
+    logging.info("hello_world endpoint was called.")	
     return "hello world"
 
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
@@ -105,5 +112,9 @@ def ac_abo_field_update():
 
     return jsonify({'status': 'success'}), 200
 
+# Configure Flask Monitoring Dashboard
+dashboard.config.init_from(file='/home/maxrood/codering/aardg/projecten/woocommerce/webhooks/config.cfg')
+dashboard.bind(app)
+
 if __name__ == '__main__':
-    app.run(port=8443)
+    app.run(host='0.0.0.0', port=8443)
