@@ -63,7 +63,7 @@ def update_ac_abo_field(data, ac_api_url, ac_api_token):
     current_abo_value = int(current_abo_value)
 
     # Update abo value
-    new_abo_value = current_abo_value - 1
+    new_abo_value = current_abo_value + 1
 
     # Update field values
     url = ac_api_url + f"fieldValues/{specific_abo_field_id}"
