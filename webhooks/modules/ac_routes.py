@@ -1,5 +1,4 @@
 from modules.product_utils import get_discount_dict, get_category_one_dict, get_base_unit_values, get_sku_dict, get_key_from_product_id
-from modules.product_utils import get_category_one_dict, get_sku_dict, get_discount_dict, get_base_unit_values, get_key_from_product_id
 from modules.ac_utils import get_active_campaign_data, get_active_campaign_fields, update_active_campaign_fields, category_to_field_map, product_to_field_map, add_tag_to_contact
 from modules.utils import update_field_values, add_or_update_last_ordered_item
 
@@ -9,9 +8,9 @@ def update_active_campaign_product_fields(order_data, active_campaign_api_url, a
     email = order_data.get('billing', {}).get('email')
 
     # Get the appropriate dictionaries
-    sku_dict = get_sku_dict(wcapi)
-    discount_dict = get_discount_dict(wcapi)
-    base_unit_values_dict = get_base_unit_values(wcapi)
+    sku_dict = get_sku_dict()
+    discount_dict = get_discount_dict()
+    base_unit_values_dict = get_base_unit_values()
 
     # Process lineitems to get product and category fields, plus last ordered items
     product_line_fields = [
@@ -145,7 +144,7 @@ def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaig
     }
 
     # Categories
-    categories = get_category_one_dict(wcapi)
+    categories = get_category_one_dict()
 
     # All product categories
     category_list = []

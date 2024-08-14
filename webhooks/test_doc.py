@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import json
 import requests
-from modules.woocommerce_utils import get_woocommerce_order_data, retrieve_all_products
+from modules.woocommerce_utils import get_woocommerce_order_data
 from modules.ac_utils import get_active_campaign_data, update_active_campaign_fields, product_to_field_map, get_active_campaign_fields, category_to_field_map
 from modules.utils import update_field_values, add_or_update_last_ordered_item
 from modules.product_utils import get_discount_dict, get_sku_dict, get_key_from_product_id, get_base_unit_values
@@ -33,9 +33,9 @@ line_items = woocommerce_data['line_items']
 email = 'mgsrood@gmail.com'
 
 # Get the appropriate dictionaries
-sku_dict = get_sku_dict(wcapi)
-discount_dict = get_discount_dict(wcapi)
-base_unit_values_dict = get_base_unit_values(wcapi)
+sku_dict = get_sku_dict()
+discount_dict = get_discount_dict()
+base_unit_values_dict = get_base_unit_values()
 
 # Process lineitems to get product and category fields, plus last ordered items
 product_line_fields = [
@@ -77,7 +77,4 @@ current_fields = sorted(current_fields, key=lambda x: int(x['field']))
 updated_fields, new_fields = update_field_values(current_fields, product_line_fields + discount_line_fields + orderbump_line_fields + fkcart_upsell_line_fields)
 updated_fields, new_fields = add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_item)
 
-# Push updates to ActiveCampaign
-update_active_campaign_fields(active_campaign_id, active_campaign_api_url, active_campaign_api_token, updated_fields, new_fields)
-
-
+print(updated_fields, new_fields)
