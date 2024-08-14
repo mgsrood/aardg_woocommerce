@@ -29,7 +29,8 @@ wcapi = API(
     url=woocommerce_url,
     consumer_key=consumer_key,
     consumer_secret=consumer_secret,
-    version="wc/v3"
+    version="wc/v3",
+    timeout=60
 )
 
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
