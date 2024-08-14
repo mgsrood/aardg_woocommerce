@@ -1,5 +1,4 @@
-from modules.utils import sku_dict, get_sku_from_product_id, get_category_from_product_id, category_one_dict, update_field_values
-from modules.woocommerce_utils import get_woocommerce_order_data
+from modules.product_utils import get_discount_dict, get_category_one_dict, get_base_unit_values, get_sku_dict, get_key_from_product_id
 from modules.product_utils import get_category_one_dict, get_sku_dict, get_discount_dict, get_base_unit_values, get_key_from_product_id
 from modules.ac_utils import get_active_campaign_data, get_active_campaign_fields, update_active_campaign_fields, category_to_field_map, product_to_field_map, add_tag_to_contact
 from modules.utils import update_field_values, add_or_update_last_ordered_item
@@ -151,7 +150,7 @@ def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaig
     # All product categories
     category_list = []
     for item in line_items: 
-        first_category = get_category_from_product_id(item['product_id'], categories)
+        first_category = get_key_from_product_id(item['product_id'], categories)
         if first_category is not None:
             category_list.append(first_category)
 
