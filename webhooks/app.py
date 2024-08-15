@@ -119,7 +119,7 @@ def ac_product_tag_update():
         response = wcapi.get(f"orders/{order_id}")
         if response.status_code == 200:
             order_data = response.json()
-            add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token, wcapi)
+            add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token)
 
     return jsonify({'status': 'success'}), 200
 
