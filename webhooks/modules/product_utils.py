@@ -8,7 +8,7 @@ def load_catalogue_from_json(file_path):
 def get_file_path():
     # Vind het absolute pad van het JSON-bestand
     base_path = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(base_path, 'data', 'product_catalog.json')
+    file_path = os.path.join(base_path, '..', 'data', 'product_catalog.json')
     return file_path
 
 def get_category_one_dict():
