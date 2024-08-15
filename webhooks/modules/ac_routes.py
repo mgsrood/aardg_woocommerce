@@ -3,7 +3,7 @@ from modules.ac_utils import get_active_campaign_data, get_active_campaign_field
 from modules.utils import update_field_values, add_or_update_last_ordered_item
 
 # Actief
-def update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token, wcapi):
+def update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token):
     line_items = order_data['line_items']
     email = order_data.get('billing', {}).get('email')
 
@@ -122,7 +122,7 @@ def update_ac_abo_tag(woocommerce_data, active_campaign_api_url, active_campaign
     add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
 
 # Actief
-def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaign_api_token, wcapi):
+def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaign_api_token):
     line_items = woocommerce_data['line_items']
     email = woocommerce_data.get('billing', {}).get('email')
 
