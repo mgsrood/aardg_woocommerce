@@ -5,9 +5,15 @@ def load_catalogue_from_json(file_path):
     with open(file_path, 'r') as json_file:
         return json.load(json_file)
 
+def get_file_path():
+    # Vind het absolute pad van het JSON-bestand
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_path, '..', 'data', 'product_catalog.json')
+    return file_path
+
 def get_category_one_dict():
     # File path
-    file_path = '/home/maxrood/codering/aardg/projecten/woocommerce/webhooks/data/product_catalog.json'
+    file_path = get_file_path()
 
     # Catalogus laden
     product_catalogue = load_catalogue_from_json(file_path)
@@ -39,7 +45,7 @@ def get_category_one_dict():
 
 def get_discount_dict():
     # File path
-    file_path = 'webhooks/data/product_catalog.json'
+    file_path = get_file_path()
 
     # Catalogus laden
     product_catalogue = load_catalogue_from_json(file_path)
@@ -61,7 +67,7 @@ def get_discount_dict():
 
 def get_base_unit_values():
     # File path
-    file_path = 'webhooks/data/product_catalog.json'
+    file_path = get_file_path()
 
     # Catalogus laden
     product_catalogue = load_catalogue_from_json(file_path)
@@ -99,7 +105,7 @@ def get_base_unit_values():
 
 def get_sku_dict():
     # File path
-    file_path = 'webhooks/data/product_catalog.json'
+    file_path = get_file_path()
 
     # Catalogus laden
     product_catalogue = load_catalogue_from_json(file_path)
