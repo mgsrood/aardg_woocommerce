@@ -3,11 +3,17 @@ import hashlib
 import base64
 import json
 from flask import request
+import logging
 
 def validate_signature(request, secret):
     payload = request.get_data()
     signature = request.headers.get('X-WC-Webhook-Signature')
     computed_signature = base64.b64encode(hmac.new(secret.encode(), payload, hashlib.sha256).digest()).decode()
+    
+    # Logging voor debugging
+    logging.debug(f"Received signature: {signature}")
+    logging.debug(f"Computed signature: {computed_signature}")
+    
     return hmac.compare_digest(signature, computed_signature)
 
 def parse_request_data():
