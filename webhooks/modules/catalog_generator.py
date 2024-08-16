@@ -81,7 +81,7 @@ def save_catalogue_to_dataframe(products):
     df_selected = df[selected_columns]
 
     # De categorie namen extraheren
-    df_selected['category_names'] = df_selected['categories'].apply(lambda x: [category['name'] for category in x] if x else [])
+    df_selected['category_names'] = df_selected['categories'].apply(lambda x: ', '.join([category['name'] for category in x]) if x else '')
 
     # Verwijder de originele 'categories' kolom, aangezien je nu de 'category_name' kolom hebt
     df_selected = df_selected.drop(columns=['categories'])
@@ -117,6 +117,8 @@ def column_mapping(df):
         'regular_price': 'Prijs Algemeen',
         'sale_price': 'Prijs Korting',
         'purchasable': 'Verkoopbaar',
+        'category_names': 'Categorieen',
+        'base_product': 'Product'
     }
 
     return df.rename(columns=mapping)
