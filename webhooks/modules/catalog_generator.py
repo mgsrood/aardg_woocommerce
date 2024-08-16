@@ -131,7 +131,7 @@ if __name__ == '__main__':
     credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
     sheet_name = os.getenv('SHEET_NAME')
     spreadsheet_name = os.getenv('SPREADSHEET_NAME')
-    spreadsheet_id = os.getenv()
+    spreadsheet_id = os.getenv('SPREADSHEET_ID')
 
     # Write dataframe to Google Sheet
     write_dataframe_to_google_sheet(credentials_path, spreadsheet_id, sheet_name, spreadsheet_name, df)
