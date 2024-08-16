@@ -160,3 +160,26 @@ def get_key_from_product_id(product_id, dict):
         if product_id in product_ids:
             return key
     return None
+
+def determine_base_product(sku):
+    # Base product op basis van SKU
+    if any(substring in sku for substring in ['Starter', 'S-', '8719327215111', 'S-XL']):
+        return 'Starter'
+    elif any(substring in sku for substring in ['P28', 'P56', 'P-', '8719327215180', 'X2', 'C2']):
+        return 'Probiotica'
+    elif any(substring in sku for substring in ['W4', 'W8','W-', '8719326399393']):
+        return 'Waterkefir'
+    elif any(substring in sku for substring in ['K4', 'K8', 'K-', '8719326399386']):
+        return 'Kombucha'
+    elif any(substring in sku for substring in ['M4', 'M8', 'M-', '8719327215135', 'MP-XL']):
+        return 'Mix Originals'
+    elif any(substring in sku for substring in ['G12', 'G-', '8719326399379']):
+        return 'Gember'
+    elif any(substring in sku for substring in ['C12', 'C-', '8719326399355']):
+        return 'Citroen'
+    elif any(substring in sku for substring in ['B12', 'B-', '8719326399362']):
+        return 'Bloem'
+    elif any(substring in sku for substring in ['F12', 'F-', '8719327215128', 'F-X2', 'F-XL']):
+        return 'Frisdrank Mix'
+    else:
+        return 'Onbekend' 
