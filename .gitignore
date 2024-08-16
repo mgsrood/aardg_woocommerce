@@ -9,3 +9,4 @@ webhook_venv
 __pycache__/
 config.cfg       
 flask_monitoringdashboard.db
+sub_venv
