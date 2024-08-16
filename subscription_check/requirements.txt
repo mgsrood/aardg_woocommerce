@@ -1,3 +1,4 @@
 woocommerce
 python-dotenv
 pandas
+openpyxl
