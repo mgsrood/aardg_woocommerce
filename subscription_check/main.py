@@ -29,7 +29,6 @@ if __name__ == "__main__":
     smtp_password = os.getenv("MAIL_SENDER_PASSWORD")
     recipient_email = sender_email
 
-
     # Haal alle actieve abonnementen op
     subscriptions = get_active_subscriptions(wcapi)
     filtered_subscriptions = filter_subscriptions_with_price_difference(subscriptions)
@@ -38,7 +37,7 @@ if __name__ == "__main__":
     df = pd.DataFrame(filtered_subscriptions)
 
     # Exclude specific id's from DataFrame
-    df = df[~df['id'].isin([4889, 7074, 34540])] # Maria Rood, Annemiek Bakker, Mirjam van der Meer
+    df = df[~df['Abonnement ID'].isin([4889, 7074, 34540])] # Maria Rood, Annemiek Bakker, Mirjam van der Meer
 
     # Optioneel: Exporteer naar een Excel-bestand
     file_path = "afwijkende_abonnementen.xlsx"
