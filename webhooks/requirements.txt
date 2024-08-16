@@ -9,3 +9,6 @@ sqlalchemy
 werkzeug
 oauth2client
 gspread_dataframe
+gspread
+pandas
+datetime

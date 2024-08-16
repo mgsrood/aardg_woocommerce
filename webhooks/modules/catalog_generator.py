@@ -7,6 +7,7 @@ from product_utils import determine_base_product
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from gspread_dataframe import set_with_dataframe
+from datetime import datetime
 
 load_dotenv()
 
@@ -105,6 +106,30 @@ def write_dataframe_to_google_sheet(credentials_path, spreadsheet_id, sheet_name
 
     print(f"Data succesvol toegevoegd aan de Google Sheet: {sheet_name}")
 
+def column_mapping(df):
+    mapping = {
+        'id': 'Product ID',
+        'name': 'Product Naam',
+        'date_created': 'Datum Aangemaakt',
+        'date_modified': 'Datum Gewijzigd',
+        'sku': 'SKU',
+        'price': 'Prijs',
+        'regular_price': 'Prijs Algemeen',
+        'sale_price': 'Prijs Korting',
+        'purchasable': 'Verkoopbaar',
+    }
+
+    return df.rename(columns=mapping)
+
+def change_boolean_values(df):
+    # Ja als True, Nee als False
+    df['Verkoopbaar'] = df['Verkoopbaar'].apply(lambda x: 'Ja' if x else 'Nee')
+    return df
+
+def add_sync_column(df):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    df['Laatste Sync'] = now
+
 if __name__ == '__main__':
     # Change directory
     os.chdir('/home/maxrood/codering/aardg/projecten/woocommerce/webhooks/modules')
@@ -121,11 +146,14 @@ if __name__ == '__main__':
     # Add baseproduct column
     df['base_product'] = df['sku'].apply(determine_base_product)
 
-    # Show all columns DataFrame
-    pd.set_option('display.max_columns', None)
+    # Kolom mapping
+    df = column_mapping(df)
 
-    # Print DataFrame
-    print(df)
+    # Verander Boolean waarden
+    df = change_boolean_values(df)
+
+    # Laatste sync column toevoegen
+    add_sync_column(df)
 
     # Google Sheets variabelen
     credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
