@@ -49,8 +49,8 @@ def get_active_subscriptions(wcapi):
     subscriptions = []
     page = 1
 
-    while page < 2:
-        response = wcapi.get(f"subscriptions?status=active&page={page}&per_page=1").json()
+    while True:
+        response = wcapi.get(f"subscriptions?status=active&page={page}&per_page=100").json()
         if not response:
             break
         subscriptions.extend(response)

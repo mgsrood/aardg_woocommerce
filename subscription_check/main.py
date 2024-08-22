@@ -33,17 +33,22 @@ if __name__ == "__main__":
     subscriptions = get_active_subscriptions(wcapi)
 
     # Filter de abonnementen met afwijkende prijs
-    filtered_subscriptions = filter_subscriptions_with_price_difference(subscriptions)
+    filtered_subscriptions_price_diff = filter_subscriptions_with_price_difference(subscriptions)
 
-    # Creëer een DataFrame
-    df = pd.DataFrame(filtered_subscriptions)
+    # Creëer een DataFrame voor abonnementen met afwijkende prijs
+    df_price_diff = pd.DataFrame(filtered_subscriptions_price_diff)
 
     # Filter de abonnementen met een mismatch tussen line items en totaal prijs
     mismatch_subscriptions = filter_subscriptions_with_price_mismatch(subscriptions)
-    df = pd.concat([df, pd.DataFrame(mismatch_subscriptions)])
+
+    # Creëer een DataFrame voor abonnementen met prijs mismatch
+    df_mismatch = pd.DataFrame(mismatch_subscriptions)
+
+    # Combineer beide DataFrames
+    df_combined = pd.concat([df_price_diff, df_mismatch], ignore_index=True)
 
     # Exclude specific id's from DataFrame
-    df = df[~df['Abonnement ID'].isin([4889, 7074, 34540])] # Maria Rood, Annemiek Bakker, Mirjam van der Meer
+    df = df_combined[~df_combined['Abonnement ID'].isin([4889, 7074, 34540])] # Maria Rood, Annemiek Bakker, Mirjam van der Meer
 
     # Optioneel: Exporteer naar een Excel-bestand
     file_path = "afwijkende_abonnementen.xlsx"
