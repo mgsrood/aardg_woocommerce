@@ -2,7 +2,7 @@ from woocommerce import API
 from dotenv import load_dotenv
 import os
 import pandas as pd
-from modules.utils import filter_subscriptions_with_price_difference, get_active_subscriptions, send_email_with_attachment
+from modules.utils import filter_subscriptions_with_price_difference, get_active_subscriptions, send_email_with_attachment, filter_subscriptions_with_price_mismatch
 
 if __name__ == "__main__":
     load_dotenv()
@@ -31,10 +31,16 @@ if __name__ == "__main__":
 
     # Haal alle actieve abonnementen op
     subscriptions = get_active_subscriptions(wcapi)
+
+    # Filter de abonnementen met afwijkende prijs
     filtered_subscriptions = filter_subscriptions_with_price_difference(subscriptions)
 
     # Creëer een DataFrame
     df = pd.DataFrame(filtered_subscriptions)
+
+    # Filter de abonnementen met een mismatch tussen line items en totaal prijs
+    mismatch_subscriptions = filter_subscriptions_with_price_mismatch(subscriptions)
+    df = pd.concat([df, pd.DataFrame(mismatch_subscriptions)])
 
     # Exclude specific id's from DataFrame
     df = df[~df['Abonnement ID'].isin([4889, 7074, 34540])] # Maria Rood, Annemiek Bakker, Mirjam van der Meer

@@ -20,6 +20,27 @@ def filter_subscriptions_with_price_difference(subscriptions, target_price=29.99
 
     return data
 
+def filter_subscriptions_with_price_mismatch(subscriptions):
+    data = []
+
+    for subscription in subscriptions:
+        # Sum the line item prices
+        total_price = sum(float(item['price']) for item in subscription.get('line_items', []))
+
+        # Add shipment
+        total_price += float(subscription['shipping']['total'])
+
+        # Look up total price on the subscription
+        if float(subscription['total']) != total_price:
+            data.append({
+                'Abonnement ID': subscription['id'],
+                'Klant Naam': f"{subscription['billing']['first_name']} {subscription['billing']['last_name']}",
+                'Product': 'Totaal',
+                'Prijs': float(subscription['total'])
+            })
+
+    return data
+
 def get_active_subscriptions(wcapi):
     subscriptions = []
     page = 1
