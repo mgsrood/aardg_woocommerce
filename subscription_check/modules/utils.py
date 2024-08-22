@@ -24,6 +24,9 @@ def filter_subscriptions_with_price_mismatch(subscriptions):
     data = []
 
     for subscription in subscriptions:
+	# Print data
+	print(subscription)
+
         # Sum the line item prices
         total_price = sum(float(item['price']) for item in subscription.get('line_items', []))
 
@@ -45,8 +48,8 @@ def get_active_subscriptions(wcapi):
     subscriptions = []
     page = 1
 
-    while True:
-        response = wcapi.get(f"subscriptions?status=active&page={page}&per_page=100").json()
+    while page < 2:
+        response = wcapi.get(f"subscriptions?status=active&page={page}&per_page=1").json()
         if not response:
             break
         subscriptions.extend(response)
