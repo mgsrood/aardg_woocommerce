@@ -24,8 +24,8 @@ def filter_subscriptions_with_price_mismatch(subscriptions):
     data = []
 
     for subscription in subscriptions:
-	# Print data
-	print(subscription)
+        # Print data
+        print(json.dumps(subscription, indent=4))
 
         # Sum the line item prices
         total_price = sum(float(item['price']) for item in subscription.get('line_items', []))
