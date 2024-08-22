@@ -29,7 +29,7 @@ def filter_subscriptions_with_price_mismatch(subscriptions):
         print(json.dumps(subscription, indent=4))
 
         # Sum the line item prices
-        total_price = sum(float(item['price']) for item in subscription.get('line_items', []))
+        total_price = sum(float(item['subtotal']) for item in subscription.get('line_items', []))
 
         # Add shipment
         total_price += float(subscription['shipping_total'])
