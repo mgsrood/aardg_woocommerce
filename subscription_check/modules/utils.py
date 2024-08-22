@@ -4,6 +4,7 @@ from email import encoders
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 import smtplib
+import json
 
 def filter_subscriptions_with_price_difference(subscriptions, target_price=29.99):
     data = []
@@ -31,7 +32,7 @@ def filter_subscriptions_with_price_mismatch(subscriptions):
         total_price = sum(float(item['price']) for item in subscription.get('line_items', []))
 
         # Add shipment
-        total_price += float(subscription['shipping']['total'])
+        total_price += float(subscription['shipping_total'])
 
         # Look up total price on the subscription
         if float(subscription['total']) != total_price:
