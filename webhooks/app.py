@@ -22,7 +22,7 @@ secret_key = os.getenv('SECRET_KEY')
 active_campaign_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
 active_campaign_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
 database_uri = os.getenv('DATABASE_URI')
-credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 
 # Configuring the app
