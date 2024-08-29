@@ -40,8 +40,8 @@ wcapi = API(
 # Initializing BigQuery Client
 client = bigquery.Client()
 client._http.timeout = 30
-dataset_id = 'your_project_id.your_dataset_id'
-table_id = 'your_table_id'
+dataset_id = os.getenv('DATASET_ID')
+table_id = os.getenv('TABLE_ID')
 table_ref = client.dataset(dataset_id).table(table_id)
 table = client.get_table(table_ref)
 
