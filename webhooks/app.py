@@ -22,6 +22,8 @@ active_campaign_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
 database_uri = os.getenv('DATABASE_URI')
 credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
+dataset_id = os.getenv('DATASET_ID')
+table_id = os.getenv('TABLE_ID')
 
 # Configuring the app
 app = Flask(__name__)
@@ -38,17 +40,11 @@ wcapi = API(
 # Initializing BigQuery Client
 client = bigquery.Client()
 client._http.timeout = 30
-dataset_id = os.getenv('DATASET_ID')
-table_id = os.getenv('TABLE_ID')
 table_ref = client.dataset(dataset_id).table(table_id)
 table = client.get_table(table_ref)
 
 # Custom logging handler
 class BigQueryLoggingHandler(logging.Handler):
-    def __init__(self):
-        super().__init__()
-        self.log_buffer = []
-
     def emit(self, record):
         log_entry = self.format(record)
         try:
@@ -56,15 +52,20 @@ class BigQueryLoggingHandler(logging.Handler):
             errors = client.insert_rows_json(table, [json.loads(log_entry)])
             if errors:
                 self.handleError(record)
+        except json.JSONDecodeError as e:
+            # Specifiek loggen als het JSON-formaat fout is
+            print(f"JSON formatting error: {e} for record: {record}")
         except Exception as e:
-            self.handleError(record)
+            # Algemeen fout afhandelen
+            print(f"Failed to log to BigQuery: {e}")
 
     def handleError(self, record):
         # Log het probleem met loggen naar BigQuery
         print(f"Failed to log to BigQuery: {record}")
 
+
 # Set up logging
-formatter = logging.Formatter('{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s"}')
+formatter = logging.Formatter('{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s", "pathname": "%(pathname)s", "lineno": %(lineno)d}')
 bigquery_handler = BigQueryLoggingHandler()
 bigquery_handler.setFormatter(formatter)
 logger = logging.getLogger()
