@@ -50,8 +50,10 @@ class BigQueryLoggingHandler(logging.Handler):
             # Skip these specific logs or handle them differently
             return
 
+        self.format(record)
+
         log_entry = {
-            "timestamp": record.asctime,
+            "timestamp": record.created,
             "log_level": record.levelname,
             "message": record.msg
         }
