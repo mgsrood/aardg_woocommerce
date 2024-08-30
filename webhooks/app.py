@@ -46,26 +46,34 @@ table = client.get_table(table_ref)
 # Custom logging handler
 class BigQueryLoggingHandler(logging.Handler):
     def emit(self, record):
+        if record.name in ["urllib3.connectionpool", "apscheduler.scheduler", "werkzeug"]:
+            # Skip these specific logs or handle them differently
+            return
+
         log_entry = self.format(record)
         try:
-            # Probeer de logs direct naar BigQuery te sturen
-            errors = client.insert_rows_json(table, [json.loads(log_entry)])
+            # Ensure that the log entry is JSON-serializable
+            log_entry = json.loads(log_entry)
+            errors = client.insert_rows_json(table, [log_entry])
             if errors:
                 self.handleError(record)
-        except json.JSONDecodeError as e:
-            # Specifiek loggen als het JSON-formaat fout is
-            print(f"JSON formatting error: {e} for record: {record}")
+        except (json.JSONDecodeError, TypeError) as e:
+            # Log JSON formatting errors
+            print(f"JSON formatting error: {e} for record: {log_entry}")
         except Exception as e:
-            # Algemeen fout afhandelen
+            # General error handling for logging
             print(f"Failed to log to BigQuery: {e}")
 
     def handleError(self, record):
-        # Log het probleem met loggen naar BigQuery
+        # Log the problem with logging to BigQuery
         print(f"Failed to log to BigQuery: {record}")
 
 
 # Set up logging
-formatter = logging.Formatter('{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s", "pathname": "%(pathname)s", "lineno": %(lineno)d}')
+formatter = logging.Formatter(
+    '{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s", "pathname": "%(pathname)s", "lineno": %(lineno)d}',
+    escape=False
+)
 bigquery_handler = BigQueryLoggingHandler()
 bigquery_handler.setFormatter(formatter)
 logger = logging.getLogger()
