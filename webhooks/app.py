@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from woocommerce import API
 from dotenv import load_dotenv
 import os
@@ -7,8 +7,8 @@ from modules.ac_routes import update_ac_abo_field, update_ac_abo_tag, update_act
 from modules.request_utils import parse_request_data, validate_signature
 import flask_monitoringdashboard as dashboard
 import logging
-
-logging.basicConfig(level=logging.DEBUG)
+from google.cloud import bigquery
+import json
 
 load_dotenv()
 
@@ -20,6 +20,8 @@ secret_key = os.getenv('SECRET_KEY')
 active_campaign_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
 active_campaign_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
 database_uri = os.getenv('DATABASE_URI')
+credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 
 # Configuring the app
 app = Flask(__name__)
@@ -33,13 +35,55 @@ wcapi = API(
     timeout=60
 )
 
+# Initializing BigQuery Client
+client = bigquery.Client()
+client._http.timeout = 30
+dataset_id = os.getenv('DATASET_ID')
+table_id = os.getenv('TABLE_ID')
+table_ref = client.dataset(dataset_id).table(table_id)
+table = client.get_table(table_ref)
+
+# Custom logging handler
+class BigQueryLoggingHandler(logging.Handler):
+    def emit(self, record):
+        if not hasattr(g, 'log_buffer'):
+            g.log_buffer = []
+        log_entry = self.format(record)
+        g.log_buffer.append(json.loads(log_entry))
+
+# Set up logging
+formatter = logging.Formatter('{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s"}')
+bigquery_handler = BigQueryLoggingHandler()
+bigquery_handler.setFormatter(formatter)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+logger.addHandler(bigquery_handler)
+
+@app.before_request
+def start_request():
+    g.log_buffer = []
+
+@app.after_request
+def end_request(response):
+    if g.log_buffer:
+        try:
+            errors = client.insert_rows_json(table, g.log_buffer)
+            if errors:
+                logger.error(f"Error inserting logs to BigQuery: {errors}")
+        except Exception as e:
+            logger.error(f"Exception during logging: {e}")
+    return response
+
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def payment_date_mover():
+    logger.info("Processing move_next_payment_date")
     data = parse_request_data()
     if not data:
+        logger.warning("No payload found")
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
+        logger.warning("Invalid signature")
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -66,16 +110,20 @@ def ac_abo_field_update():
         if response.status_code == 200:
             subscription_data = response.json()
             update_ac_abo_field(subscription_data, active_campaign_api_url, active_campaign_api_token)
+            logger.info(f"Processed subscription {subscription_id}")
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_abo_tag', methods=['POST'])
 def ac_abo_tag_update():
+    logger.info("Processing add_abo_tag")
     data = parse_request_data()
     if not data:
+        logger.warning("No payload found")
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
+        logger.warning("Invalid signature")
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -84,16 +132,20 @@ def ac_abo_tag_update():
         if response.status_code == 200:
             subscription_data = response.json()
             update_ac_abo_tag(subscription_data, active_campaign_api_url, active_campaign_api_token)
+            logger.info(f"Processed subscription {subscription_id}")
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/update_ac_product_fields', methods=['POST'])
 def ac_product_field_update():
     data = parse_request_data()
+    logger.info("Processing update_ac_product_fields")
     if not data:
+        logger.warning("No payload found")
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
+        logger.warning("Invalid signature")
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -102,16 +154,20 @@ def ac_product_field_update():
         if response.status_code == 200:
             order_data = response.json()
             update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token)
+            logger.info(f"Processed order {order_id}")
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_ac_product_tag', methods=['POST'])
 def ac_product_tag_update():
+    logger.info("Processing add_ac_product_tag")
     data = parse_request_data()
     if not data:
+        logger.warning("No payload found")
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
+        logger.warning("Invalid signature")
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -120,6 +176,7 @@ def ac_product_tag_update():
         if response.status_code == 200:
             order_data = response.json()
             add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token)
+            logger.info(f"Processed order {order_id}")
 
     return jsonify({'status': 'success'}), 200
 
