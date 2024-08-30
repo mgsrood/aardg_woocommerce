@@ -81,18 +81,24 @@ def update_active_campaign_product_fields(order_data, active_campaign_api_url, a
 
 # Actief
 def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token):
+    logger.debug(f"Starting update_ac_abo_field for: {data['billing']['email']}")
     # Retrieve email
     email = data.get('billing', {}).get('email')
 
     # Retrieve ActiveCampaign contact
-    ac_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
+    logger.debug(f"Retrieving ActiveCampaign contact for: {email}")
+    try:
+        ac_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
 
-    # Retrieve ActiveCampaign ID
-    ac_id = ac_data['contacts'][0]['id']
+        # Retrieve ActiveCampaign ID
+        ac_id = ac_data['contacts'][0]['id']
 
-    # Retrieve field values
-    field_values = get_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token)
+        # Retrieve field values
+        field_values = get_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token)
+    except Exception as e:
+        logger.error(f"Failed to retrieve ActiveCampaign data: {e}")
 
+    logger.debug(f"Determine is subscription tag is set: {email}")
     # Extract current values
     desired_field = 21
     contact_id = None
@@ -106,6 +112,8 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
             specific_abo_field_id = item['id']
             break  # stop de loop zodra het gewenste veld is gevonden
 
+    # Check if field exists
+    logging.debug(f"Updated or apply new subscription field for: {email}")
     if specific_abo_field_id:
         # Veld bestaat al, update het
         if current_abo_value and current_abo_value.isdigit():
@@ -120,7 +128,10 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
             "field": str(desired_field),
             "value": str(new_abo_value)
         }
-        update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=[updated_field])
+        try:
+            update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=[updated_field])
+        except Exception as e:
+            logger.error(f"Failed to update ActiveCampaign field: {e}")
 
     else:
         # Veld bestaat niet, voeg het toe
@@ -129,13 +140,18 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
             "field": str(desired_field),
             "value": '1'
         }
-        update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, new_fields=[new_field])
+        try:
+            update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, new_fields=[new_field])
+        except Exception as e:
+            logger.error(f"Failed to add ActiveCampaign field: {e}")
 
 # Actief
 def update_ac_abo_tag(woocommerce_data, active_campaign_api_url, active_campaign_api_token):
+    logging.debug(f"Starting update_ac_abo_tag for: {woocommerce_data['billing']['email']}")
     email = woocommerce_data.get('billing', {}).get('email')
 
     # Get ActiveCampaign ID
+    logging.debug(f"Retrieving ActiveCampaign contact for: {email}")
     active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
     active_campaign_id = active_campaign_data['contacts'][0]['id']
 
@@ -143,17 +159,24 @@ def update_ac_abo_tag(woocommerce_data, active_campaign_api_url, active_campaign
     abo_tag_id = 115
     tags = [{"contact": active_campaign_id, "tag": abo_tag_id}]
 
-    add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
+    logging.debug(f"Adding Abo tag to contact for: {email}")
+    try:
+        add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
+    except Exception as e:
+        logger.error(f"Failed to add Abo tag to contact: {e}")
 
 # Actief
 def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaign_api_token):
+    logging.debug(f"Starting add_product_tag_ac for: {woocommerce_data['billing']['email']}")
     line_items = woocommerce_data['line_items']
     email = woocommerce_data.get('billing', {}).get('email')
 
     # Get ActiveCampaign ID
+    logging.debug(f"Retrieving ActiveCampaign contact for: {email}")
     active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
     active_campaign_id = active_campaign_data['contacts'][0]['id']
 
+    logging.debug("Retrieving desired tags and categories")
     # Desired tags
     desired_tags = {
         "Frisdrank": 112,
@@ -207,9 +230,13 @@ def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaig
     # Again remove duplicates
     category_list = list(set(category_list))
 
+    logging.debug(f"Adding tags to contact for: {email}")
     # Return desired tags for each category
     for category in category_list:
         if category in desired_tags:
             abo_tag_id = desired_tags[category]
         tags = [{"contact": active_campaign_id, "tag": abo_tag_id}]
-        add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
+        try:
+            add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
+        except Exception as e:
+            logger.error(f"Failed to add tag to contact: {e}")
