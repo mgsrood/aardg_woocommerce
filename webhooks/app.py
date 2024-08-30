@@ -50,7 +50,12 @@ class BigQueryLoggingHandler(logging.Handler):
             # Skip these specific logs or handle them differently
             return
 
-        log_entry = self.format(record)
+        log_entry = {
+            "timestamp": record.asctime,
+            "log_level": record.levelname,
+            "message": record.msg
+        }
+
         try:
             errors = client.insert_rows_json(table, [log_entry])
             if errors:
