@@ -9,6 +9,8 @@ import flask_monitoringdashboard as dashboard
 import logging
 from google.cloud import bigquery
 import json
+import pytz
+from datetime import datetime
 
 load_dotenv()
 
@@ -50,10 +52,16 @@ class BigQueryLoggingHandler(logging.Handler):
             # Skip these specific logs or handle them differently
             return
 
+        # Voeg timestamp toe aan record
         self.format(record)
 
+        # Converteer timestamp naar Amsterdamse tijd
+        utc_dt = datetime.fromtimestamp(record.created, tz=pytz.utc)
+        amsterdam_tz = pytz.timezone('Europe/Amsterdam')
+        amsterdam_dt = utc_dt.astimezone(amsterdam_tz)
+
         log_entry = {
-            "timestamp": record.created,
+            "timestamp": amsterdam_dt.strftime('%Y-%m-%d %H:%M:%S.%f %Z%z'),
             "log_level": record.levelname,
             "message": record.msg
         }
