@@ -78,6 +78,10 @@ bigquery_handler.setFormatter(formatter)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 logger.addHandler(bigquery_handler)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def payment_date_mover():
