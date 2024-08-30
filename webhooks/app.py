@@ -54,7 +54,7 @@ class BigQueryLoggingHandler(logging.Handler):
         self.format(record)
 
         log_entry = {
-            "timestamp": record.asctime,
+            "timestamp": record.created,
             "log_level": record.levelname,
             "message": record.msg
         }
