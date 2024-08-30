@@ -9,13 +9,6 @@ import flask_monitoringdashboard as dashboard
 import logging
 from google.cloud import bigquery
 import json
-import pytz
-import time
-from datetime import datetime
-
-# Instellen van de tijdzone naar Europe/Amsterdam
-amsterdam_tz = pytz.timezone('Europe/Amsterdam')
-time.tzset()
 
 load_dotenv()
 
@@ -57,11 +50,11 @@ class BigQueryLoggingHandler(logging.Handler):
             # Skip these specific logs or handle them differently
             return
 
-        # Zet de tijdstempel om naar de Amsterdamse tijd
-        local_dt = datetime.fromtimestamp(record.created, amsterdam_tz)
+        # Gebruik de formatter om de tijdstempel toe te voegen aan het logbericht
+        self.format(record)
 
         log_entry = {
-            "timestamp": local_dt.strftime('%Y-%m-%d %H:%M:%S.%f %Z%z'),
+            "timestamp": record.asctime,
             "log_level": record.levelname,
             "message": record.msg
         }
