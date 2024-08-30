@@ -52,8 +52,6 @@ class BigQueryLoggingHandler(logging.Handler):
 
         log_entry = self.format(record)
         try:
-            # Ensure that the log entry is JSON-serializable
-            log_entry = json.loads(log_entry)
             errors = client.insert_rows_json(table, [log_entry])
             if errors:
                 self.handleError(record)
