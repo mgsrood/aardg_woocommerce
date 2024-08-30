@@ -71,7 +71,7 @@ class BigQueryLoggingHandler(logging.Handler):
 
 # Set up logging
 formatter = logging.Formatter(
-    '{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s", "pathname": "%(pathname)s", "lineno": %(lineno)d}'
+    '{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s"}'
 )
 bigquery_handler = BigQueryLoggingHandler()
 bigquery_handler.setFormatter(formatter)
