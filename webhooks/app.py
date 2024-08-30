@@ -45,11 +45,23 @@ table = client.get_table(table_ref)
 
 # Custom logging handler
 class BigQueryLoggingHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.log_buffer = []
+
     def emit(self, record):
-        if not hasattr(g, 'log_buffer'):
-            g.log_buffer = []
         log_entry = self.format(record)
-        g.log_buffer.append(json.loads(log_entry))
+        try:
+            # Probeer de logs direct naar BigQuery te sturen
+            errors = client.insert_rows_json(table, [json.loads(log_entry)])
+            if errors:
+                self.handleError(record)
+        except Exception as e:
+            self.handleError(record)
+
+    def handleError(self, record):
+        # Log het probleem met loggen naar BigQuery
+        print(f"Failed to log to BigQuery: {record}")
 
 # Set up logging
 formatter = logging.Formatter('{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s"}')
@@ -58,21 +70,6 @@ bigquery_handler.setFormatter(formatter)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 logger.addHandler(bigquery_handler)
-
-@app.before_request
-def start_request():
-    g.log_buffer = []
-
-@app.after_request
-def end_request(response):
-    if g.log_buffer:
-        try:
-            errors = client.insert_rows_json(table, g.log_buffer)
-            if errors:
-                logger.error(f"Error inserting logs to BigQuery: {errors}")
-        except Exception as e:
-            logger.error(f"Exception during logging: {e}")
-    return response
 
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def payment_date_mover():
