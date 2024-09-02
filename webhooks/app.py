@@ -92,7 +92,7 @@ formatter = logging.Formatter(
 bigquery_handler = BigQueryLoggingHandler()
 bigquery_handler.setFormatter(formatter)
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.addHandler(bigquery_handler)
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
