@@ -6,7 +6,6 @@ from modules.woocommerce_routes import move_next_payment_date
 from modules.ac_routes import update_ac_abo_field, update_ac_abo_tag, update_active_campaign_product_fields, add_product_tag_ac
 from modules.request_utils import parse_request_data, validate_signature
 from modules.facebook_routes import add_new_customers_to_facebook_audience
-import flask_monitoringdashboard as dashboard
 import logging
 from google.cloud import bigquery
 import json
@@ -222,10 +221,6 @@ def new_customers_to_facebook_audience():
             logger.info(f"Processed customer {customer_data['billing']['first_name'] + ' ' + customer_data['billing']['last_name']}")
 
     return jsonify({'status': 'success'}), 200
-
-# Configure Flask Monitoring Dashboard
-dashboard.config.init_from(file='/home/maxrood/codering/aardg/projecten/woocommerce/webhooks/config.cfg')
-dashboard.bind(app)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8443)
