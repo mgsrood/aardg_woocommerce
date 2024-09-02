@@ -58,9 +58,9 @@ class BigQueryLoggingHandler(logging.Handler):
             return
 
         # Converteer de timestamp naar Europe/Amsterdam
-        utc_dt = datetime.utcfromtimestamp(record.created)
+        utc_dt = datetime.fromtimestamp(record.created, tz=pytz.utc)
         amsterdam_tz = pytz.timezone('Europe/Amsterdam')
-        amsterdam_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(amsterdam_tz)
+        amsterdam_dt = utc_dt.astimezone(amsterdam_tz)  
         formatted_timestamp = amsterdam_dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] 
 
         log_entry = {
