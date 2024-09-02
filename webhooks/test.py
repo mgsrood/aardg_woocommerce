@@ -29,10 +29,7 @@ wcapi = API(
     timeout=60
 )
 
-customer_id = '75'
-
-# User GET Request
-customer_data = wcapi.get(f'customers/{customer_id}').json()
+customer_data = wcapi.get(f"customers/75").json()
 
 # Account to add
 users = [

@@ -24,6 +24,11 @@ credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 dataset_id = os.getenv('DATASET_ID')
 table_id = os.getenv('TABLE_ID')
+app_id = os.getenv('FACEBOOK_APP_ID')
+app_secret = os.getenv('FACEBOOK_APP_SECRET')
+long_term_token = os.getenv('FACEBOOK_LONG_TERM_ACCESS_TOKEN')
+ad_account_id = os.getenv('FACEBOOK_AD_ACCOUNT_ID')
+custom_audience_id = os.getenv('FACEBOOK_CUSTOM_AUDIENCE_ID')
 
 # Configuring the app
 app = Flask(__name__)
@@ -192,6 +197,28 @@ def ac_product_tag_update():
             order_data = response.json()
             add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token)
             logger.info(f"Processed order {order_id}")
+
+    return jsonify({'status': 'success'}), 200
+
+@app.route('/woocommerce/add_new_customers_to_facebook_audience', methods=['POST'])
+def add_new_customers_to_facebook_audience():
+    logger.info("Processing add_new_customers_to_facebook_audience")
+    data = parse_request_data()
+    if not data:
+        logger.warning("No payload found")
+        return jsonify({'status': 'no payload'}), 200
+
+    if not validate_signature(request, secret_key):
+        logger.warning("Invalid signature")
+        return "Invalid signature", 401
+
+    if 'id' in data:
+        customer_id = data['id']
+        response = wcapi.get(f"customers/{customer_id}")
+        if response.status_code == 200:
+            customer_data = response.json()
+            add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id)
+            logger.info(f"Processed customer {customer_data['billing']['first_name'] + ' ' + customer_data['billing']['last_name']}")
 
     return jsonify({'status': 'success'}), 200
 
