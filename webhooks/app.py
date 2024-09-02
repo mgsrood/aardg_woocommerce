@@ -46,7 +46,7 @@ table = client.get_table(table_ref)
 # Custom logging handler
 class BigQueryLoggingHandler(logging.Handler):
     def emit(self, record):
-        if record.name in ["urllib3.connectionpool", "apscheduler.scheduler", "werkzeug"]:
+        if record.name in ["urllib3.connectionpool", "apscheduler.scheduler", "werkzeug", "requests"]:
             # Skip these specific logs or handle them differently
             return
 
