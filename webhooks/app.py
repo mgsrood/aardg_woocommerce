@@ -57,11 +57,14 @@ class BigQueryLoggingHandler(logging.Handler):
             # Skip these specific logs or handle them differently
             return
 
-        # Gebruik de formatter om de tijdstempel toe te voegen aan het logbericht
-        self.format(record)
+        # Converteer de timestamp naar Europe/Amsterdam
+        utc_dt = datetime.utcfromtimestamp(record.created)
+        amsterdam_tz = pytz.timezone('Europe/Amsterdam')
+        amsterdam_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(amsterdam_tz)
+        formatted_timestamp = amsterdam_dt.strftime('%Y-%m-%d %H:%M:%S')
 
         log_entry = {
-            "timestamp": record.created,
+            "timestamp": formatted_timestamp,
             "log_level": record.levelname,
             "message": record.msg
         }
