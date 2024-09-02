@@ -61,7 +61,7 @@ class BigQueryLoggingHandler(logging.Handler):
         utc_dt = datetime.utcfromtimestamp(record.created)
         amsterdam_tz = pytz.timezone('Europe/Amsterdam')
         amsterdam_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(amsterdam_tz)
-        formatted_timestamp = amsterdam_dt.strftime('%Y-%m-%d %H:%M:%S')
+        formatted_timestamp = amsterdam_dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] 
 
         log_entry = {
             "timestamp": formatted_timestamp,
