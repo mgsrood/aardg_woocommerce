@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from woocommerce import API
 from dotenv import load_dotenv
 import os
-from modules.woocommerce_routes import move_next_payment_date
+from modules.woocommerce_routes import move_next_payment_date, add_abo_to_bigquery
 from modules.ac_routes import update_ac_abo_field, update_ac_abo_tag, update_active_campaign_product_fields, add_product_tag_ac
 from modules.request_utils import parse_request_data, validate_signature
 from modules.facebook_routes import add_new_customers_to_facebook_audience
@@ -117,6 +117,27 @@ def payment_date_mover():
         if response.status_code == 200:
             subscription_data = response.json()
             move_next_payment_date(subscription_data, wcapi)
+    
+    return jsonify({'status': 'success'}), 200
+
+@app.route('/woocommerce/add_subscription_to_bigquery', methods=['POST'])
+def subscription_adder():
+    logger.info("Processing add_subscription_to_bigquery")
+    data = parse_request_data()
+    if not data:
+        logger.warning("No payload found")
+        return jsonify({'status': 'no payload'}), 200
+
+    if not validate_signature(request, secret_key):
+        logger.warning("Invalid signature")
+        return "Invalid signature", 401
+
+    if 'id' in data:
+        subscription_id = data['id']
+        response = wcapi.get(f"subscriptions/{subscription_id}")
+        if response.status_code == 200:
+            subscription_data = response.json()
+            add_abo_to_bigquery(subscription_data, wcapi)
     
     return jsonify({'status': 'success'}), 200
 
