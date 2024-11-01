@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import logging
+from google.cloud import bigquery
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,12 @@ def move_next_payment_date(data, wcapi):
             except Exception as e:
                 logging.error(f"Failed to update subscription: {e}")
 
-def add_abo_to_bigquery(customer_data, client):
+def add_abo_to_bigquery(customer_data, credentials_path):
     logging.debug(f"Adding new subscription to BigQuery Subscriptions: {customer_data['id']}")
     logging.debug(f"Initializing BigQuery")
+
+    # Initialiseer de BigQuery client
+    client = bigquery.Client()
 
     # Verwijs naar de dataset en tabel waarin je de gegevens wilt invoegen
     dataset_id = "woocommerce_data"
