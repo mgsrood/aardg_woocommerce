@@ -13,7 +13,7 @@ def generate_wc_signature(secret, payload):
     return base64.b64encode(hmac_hash).decode()
 
 secret = os.getenv('SECRET_KEY')  
-payload = '{"id": 75}'
+payload = '{"id": 103656}'
 
 signature = generate_wc_signature(secret, payload)
 print(signature)

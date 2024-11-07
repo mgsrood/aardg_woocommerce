@@ -6,11 +6,9 @@ from modules.woocommerce_routes import move_next_payment_date, add_abo_to_bigque
 from modules.ac_routes import update_ac_abo_field, update_ac_abo_tag, update_active_campaign_product_fields, add_product_tag_ac
 from modules.request_utils import parse_request_data, validate_signature
 from modules.facebook_routes import add_new_customers_to_facebook_audience
-import logging
-from google.cloud import bigquery
-import json
-import pytz
-from datetime import datetime
+from modules.database import connect_to_database
+from modules.config import fetch_script_id
+from modules.log import log
 
 load_dotenv()
 
@@ -24,13 +22,30 @@ active_campaign_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
 database_uri = os.getenv('DATABASE_URI')
 credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
-dataset_id = os.getenv('DATASET_ID')
-table_id = os.getenv('TABLE_ID')
 app_id = os.getenv('FACEBOOK_APP_ID')
 app_secret = os.getenv('FACEBOOK_APP_SECRET')
 long_term_token = os.getenv('FACEBOOK_LONG_TERM_ACCESS_TOKEN')
 ad_account_id = os.getenv('FACEBOOK_AD_ACCOUNT_ID')
 custom_audience_id = os.getenv('FACEBOOK_CUSTOM_AUDIENCE_ID')
+bron = "Backend Applicatie"
+klant = "Aard'g"
+script_id = 1
+server = os.getenv('SERVER')
+database = os.getenv('DATABASE')
+username = os.getenv('GEBRUIKERSNAAM')
+password = os.getenv('PASSWORD')
+driver = '{ODBC Driver 18 for SQL Server}'
+
+# Verbinding met database
+greit_connection_string = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
+database_conn = connect_to_database(greit_connection_string)
+if database_conn:
+    cursor = database_conn.cursor()
+    latest_script_id = fetch_script_id(cursor)
+    if latest_script_id is not None:
+        script_id = latest_script_id + 1
+    cursor.close()
+    database_conn.close()
 
 # Configuring the app
 app = Flask(__name__)
@@ -44,71 +59,16 @@ wcapi = API(
     timeout=60
 )
 
-# Initializing BigQuery Client
-client = bigquery.Client()
-client._http.timeout = 30
-table_ref = client.dataset(dataset_id).table(table_id)
-table = client.get_table(table_ref)
-
-# Custom logging handler
-class BigQueryLoggingHandler(logging.Handler):
-    def emit(self, record):
-        if record.name in ["urllib3.connectionpool", "apscheduler.scheduler", "werkzeug", "requests"]:
-            # Skip these specific logs or handle them differently
-            return
-
-        # Converteer de timestamp naar Europe/Amsterdam
-        utc_dt = datetime.fromtimestamp(record.created, tz=pytz.utc)
-        amsterdam_tz = pytz.timezone('Europe/Amsterdam')
-        amsterdam_dt = utc_dt.astimezone(amsterdam_tz)  
-        formatted_timestamp = amsterdam_dt.strftime('%Y-%m-%d %H:%M:%S.%f')
-
-        log_entry = {
-            "timestamp": formatted_timestamp,
-            "log_level": record.levelname,
-            "message": record.getMessage()
-        }
-
-        try:
-            errors = client.insert_rows_json(table, [log_entry])
-            if errors:
-                self.handleError(record)
-        except (json.JSONDecodeError, TypeError) as e:
-            # Log JSON formatting errors
-            print(f"JSON formatting error: {e} for record: {log_entry}")
-        except Exception as e:
-            # General error handling for logging
-            print(f"Failed to log to BigQuery: {e}")
-
-    def handleError(self, record):
-        # Log the problem with logging to BigQuery
-        print(f"Failed to log to BigQuery: {record}")
-
-
-# Set up logging
-formatter = logging.Formatter(
-    '{"timestamp": "%(asctime)s", "log_level": "%(levelname)s", "message": "%(message)s"}'
-)
-bigquery_handler = BigQueryLoggingHandler()
-bigquery_handler.setFormatter(formatter)
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(bigquery_handler)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def payment_date_mover():
-    logger.info("Processing move_next_payment_date")
+    log(greit_connection_string, klant, bron, "Start move_next_payment_date", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
     data = parse_request_data()
     if not data:
-        logger.warning("No payload found")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij move_next_payment_date", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
-        logger.warning("Invalid signature")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij move_next_payment_date", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -116,20 +76,21 @@ def payment_date_mover():
         response = wcapi.get(f"subscriptions/{subscription_id}")
         if response.status_code == 200:
             subscription_data = response.json()
-            move_next_payment_date(subscription_data, wcapi)
+            move_next_payment_date(subscription_data, wcapi, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_subscription_to_bigquery', methods=['POST'])
 def subscription_adder():
-    logger.info("Processing add_subscription_to_bigquery")
+    log(greit_connection_string, klant, bron, "Start add_subscription_to_bigquery", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
     data = parse_request_data()
     if not data:
-        logger.warning("No payload found")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij add_subscription_to_bigquery", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
-        logger.warning("Invalid signature")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_subscription_to_bigquery", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -137,17 +98,21 @@ def subscription_adder():
         response = wcapi.get(f"subscriptions/{subscription_id}")
         if response.status_code == 200:
             subscription_data = response.json()
-            add_abo_to_bigquery(subscription_data, wcapi)
+            add_abo_to_bigquery(subscription_data, credentials_path, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/update_ac_abo_field', methods=['POST'])
 def ac_abo_field_update():
+    log(greit_connection_string, klant, bron, "Start update_ac_abo_field", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
     data = parse_request_data()
     if not data:
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij update_ac_abo_field", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij update_ac_abo_field", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -155,21 +120,21 @@ def ac_abo_field_update():
         response = wcapi.get(f"subscriptions/{subscription_id}")
         if response.status_code == 200:
             subscription_data = response.json()
-            update_ac_abo_field(subscription_data, active_campaign_api_url, active_campaign_api_token)
-            logger.info(f"Processed subscription {subscription_id}")
+            update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_abo_tag', methods=['POST'])
 def ac_abo_tag_update():
-    logger.info("Processing add_abo_tag")
+    log(greit_connection_string, klant, bron, "Start add_abo_tag", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
     data = parse_request_data()
     if not data:
-        logger.warning("No payload found")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij add_abo_tag", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
-        logger.warning("Invalid signature")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_abo_tag", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -177,21 +142,21 @@ def ac_abo_tag_update():
         response = wcapi.get(f"subscriptions/{subscription_id}")
         if response.status_code == 200:
             subscription_data = response.json()
-            update_ac_abo_tag(subscription_data, active_campaign_api_url, active_campaign_api_token)
-            logger.info(f"Processed subscription {subscription_id}")
+            update_ac_abo_tag(subscription_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/update_ac_product_fields', methods=['POST'])
 def ac_product_field_update():
     data = parse_request_data()
-    logger.info("Processing update_ac_product_fields")
+    log(greit_connection_string, klant, bron, "Start update_ac_product_fields", "Active Campaign product velden bijwerken", script_id, tabel=None)
     if not data:
-        logger.warning("No payload found")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij update_ac_product_fields", "Active Campaign product velden bijwerken", script_id, tabel=None)
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
-        logger.warning("Invalid signature")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij update_ac_product_fields", "Active Campaign product velden bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -199,21 +164,21 @@ def ac_product_field_update():
         response = wcapi.get(f"orders/{order_id}")
         if response.status_code == 200:
             order_data = response.json()
-            update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token)
-            logger.info(f"Processed order {order_id}")
+            update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Order {order_id} verwerkt", "Active Campaign product velden bijwerken", script_id, tabel=None)
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_ac_product_tag', methods=['POST'])
 def ac_product_tag_update():
-    logger.info("Processing add_ac_product_tag")
+    log(greit_connection_string, klant, bron, "Start add_ac_product_tag", "Active Campaign product tag bijwerken", script_id, tabel=None)
     data = parse_request_data()
     if not data:
-        logger.warning("No payload found")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij add_ac_product_tag", "Active Campaign product tag bijwerken", script_id, tabel=None)
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
-        logger.warning("Invalid signature")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_ac_product_tag", "Active Campaign product tag bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -221,21 +186,21 @@ def ac_product_tag_update():
         response = wcapi.get(f"orders/{order_id}")
         if response.status_code == 200:
             order_data = response.json()
-            add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token)
-            logger.info(f"Processed order {order_id}")
+            add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Order {order_id} verwerkt", "Active Campaign product tag bijwerken", script_id, tabel=None)
 
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_new_customers_to_facebook_audience', methods=['POST'])
 def new_customers_to_facebook_audience():
-    logger.info("Processing add_new_customers_to_facebook_audience")
+    log(greit_connection_string, klant, bron, "Start add_new_customers_to_facebook_audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
     data = parse_request_data()
     if not data:
-        logger.warning("No payload found")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij add_new_customers_to_facebook_audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         return jsonify({'status': 'no payload'}), 200
 
     if not validate_signature(request, secret_key):
-        logger.warning("Invalid signature")
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_new_customers_to_facebook_audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         return "Invalid signature", 401
 
     if 'id' in data:
@@ -243,8 +208,8 @@ def new_customers_to_facebook_audience():
         response = wcapi.get(f"customers/{customer_id}")
         if response.status_code == 200:
             customer_data = response.json()
-            add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id)
-            logger.info(f"Processed customer {customer_data['billing']['first_name'] + ' ' + customer_data['billing']['last_name']}")
+            add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Klant {customer_data['billing']['first_name'] + ' ' + customer_data['billing']['last_name']} verwerkt", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
 
     return jsonify({'status': 'success'}), 200
 

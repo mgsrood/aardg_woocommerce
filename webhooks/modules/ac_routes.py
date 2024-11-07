@@ -1,27 +1,23 @@
 from modules.product_utils import get_discount_dict, get_category_one_dict, get_base_unit_values, get_sku_dict, get_key_from_product_id
 from modules.ac_utils import get_active_campaign_data, get_active_campaign_fields, update_active_campaign_fields, category_to_field_map, product_to_field_map, add_tag_to_contact
 from modules.utils import update_field_values, add_or_update_last_ordered_item
-import logging
+from modules.log import log
 
-logger = logging.getLogger(__name__)
-
-# Actief
-def update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token):
-    logger.debug(f"Starting update_active_campaign_product_fields for: {order_data['billing']['email']}")
+def update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id):
     line_items = order_data['line_items']
     email = order_data.get('billing', {}).get('email')
 
     # Get the appropriate dictionaries
-    logger.debug(f"Getting the appropriate dictionaries")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", "Start update_active_campaign_product_fields", "Active Campaign product velden bijwerken", script_id, tabel=None)
     try:
         sku_dict = get_sku_dict()
         discount_dict = get_discount_dict()
         base_unit_values_dict = get_base_unit_values()
     except Exception as e:
-        logger.error(f"Failed to get dictionaries: {e}")
+        log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign product velden bijwerken", script_id, tabel=None)
 
     # Process lineitems to get product and category fields, plus last ordered items
-    logger.debug(f"Retrieving order information for: {email} / order_id {order_data['id']}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Ophalen order informatie voor: {email} / order_id {order_data['id']}", "Active Campaign product velden bijwerken", script_id, tabel=None)
     try:
         product_line_fields = [
             {"field": product_to_field_map[get_key_from_product_id(item['product_id'], sku_dict)], "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
@@ -48,10 +44,10 @@ def update_active_campaign_product_fields(order_data, active_campaign_api_url, a
         last_ordered_item = ["P_" + get_key_from_product_id(item['product_id'], sku_dict) for item in line_items]
         last_ordered_item = ','.join(last_ordered_item)
     except Exception as e:
-        logger.error(f"Failed to retrieve order data: {e}")
+        log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign product velden bijwerken", script_id, tabel=None)
 
     # Retrieve ActiveCampaign data
-    logger.debug(f"Retrieving ActiveCampaign data for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Ophalen ActiveCampaign data voor: {email}", "Active Campaign product velden bijwerken", script_id, tabel=None)
     try:
         active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
         active_campaign_id = active_campaign_data['contacts'][0]['id']
@@ -62,31 +58,30 @@ def update_active_campaign_product_fields(order_data, active_campaign_api_url, a
         ]
         current_fields = sorted(current_fields, key=lambda x: int(x['field']))
     except Exception as e:
-        logger.error(f"Failed to retrieve ActiveCampaign data: {e}")
+        log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign product velden bijwerken", script_id, tabel=None)
 
     # Update fields
-    logger.debug(f"Updating fields for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Update fields voor: {email}", "Active Campaign product velden bijwerken", script_id, tabel=None)
     try:
         updated_fields, new_fields = update_field_values(current_fields, product_line_fields + discount_line_fields + orderbump_line_fields + fkcart_upsell_line_fields)
         updated_fields, new_fields = add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_item)
     except Exception as e:
-        logger.error(f"Failed to update fields: {e}")
+        log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign product velden bijwerken", script_id, tabel=None)
 
     # Push updates to ActiveCampaign
-    logger.debug(f"Pushing updates to ActiveCampaign for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Push updates naar ActiveCampaign voor: {email}", "Active Campaign product velden bijwerken", script_id, tabel=None)
     try:
         update_active_campaign_fields(active_campaign_id, active_campaign_api_url, active_campaign_api_token, updated_fields, new_fields)
     except Exception as e:
-        logger.error(f"Failed to push updates to ActiveCampaign: {e}")
+        log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign product velden bijwerken", script_id, tabel=None)
 
 # Actief
-def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token):
-    logger.debug(f"Starting update_ac_abo_field for: {data['billing']['email']}")
+def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id):
     # Retrieve email
     email = data.get('billing', {}).get('email')
 
     # Retrieve ActiveCampaign contact
-    logger.debug(f"Retrieving ActiveCampaign contact for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Retrieving ActiveCampaign contact for: {email}", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
     try:
         ac_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
 
@@ -96,9 +91,9 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
         # Retrieve field values
         field_values = get_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token)
     except Exception as e:
-        logger.error(f"Failed to retrieve ActiveCampaign data: {e}")
+        log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
 
-    logger.debug(f"Determine is subscription tag is set: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Bepalen of abonnementstag is ingesteld voor: {email}", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
     # Extract current values
     desired_field = 21
     contact_id = None
@@ -113,7 +108,7 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
             break  # stop de loop zodra het gewenste veld is gevonden
 
     # Check if field exists
-    logging.debug(f"Updated or apply new subscription field for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Abonnementsveld updaten of toepassen voor: {email}", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
     if specific_abo_field_id:
         # Veld bestaat al, update het
         if current_abo_value and current_abo_value.isdigit():
@@ -131,7 +126,7 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
         try:
             update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=[updated_field])
         except Exception as e:
-            logger.error(f"Failed to update ActiveCampaign field: {e}")
+            log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
 
     else:
         # Veld bestaat niet, voeg het toe
@@ -143,15 +138,14 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
         try:
             update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, new_fields=[new_field])
         except Exception as e:
-            logger.error(f"Failed to add ActiveCampaign field: {e}")
+            log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
 
 # Actief
-def update_ac_abo_tag(woocommerce_data, active_campaign_api_url, active_campaign_api_token):
-    logging.debug(f"Starting update_ac_abo_tag for: {woocommerce_data['billing']['email']}")
+def update_ac_abo_tag(woocommerce_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id):
     email = woocommerce_data.get('billing', {}).get('email')
 
     # Get ActiveCampaign ID
-    logging.debug(f"Retrieving ActiveCampaign contact for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Active Campaign contact ophalen voor {email}", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
     active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
     active_campaign_id = active_campaign_data['contacts'][0]['id']
 
@@ -159,24 +153,23 @@ def update_ac_abo_tag(woocommerce_data, active_campaign_api_url, active_campaign
     abo_tag_id = 115
     tags = [{"contact": active_campaign_id, "tag": abo_tag_id}]
 
-    logging.debug(f"Adding Abo tag to contact for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Tag toevoegen aan contact voor {email}", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
     try:
         add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
     except Exception as e:
-        logger.error(f"Failed to add Abo tag to contact: {e}")
+        log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
 
 # Actief
-def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaign_api_token):
-    logging.debug(f"Starting add_product_tag_ac for: {woocommerce_data['billing']['email']}")
+def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id):
     line_items = woocommerce_data['line_items']
     email = woocommerce_data.get('billing', {}).get('email')
 
     # Get ActiveCampaign ID
-    logging.debug(f"Retrieving ActiveCampaign contact for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Active Campaign contact ophalen voor {email}", "Active Campaign product tag bijwerken", script_id, tabel=None)
     active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
     active_campaign_id = active_campaign_data['contacts'][0]['id']
 
-    logging.debug("Retrieving desired tags and categories")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Ophalen gewenste tags en categoriën", "Active Campaign product tag bijwerken", script_id, tabel=None)
     # Desired tags
     desired_tags = {
         "Frisdrank": 112,
@@ -230,7 +223,7 @@ def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaig
     # Again remove duplicates
     category_list = list(set(category_list))
 
-    logging.debug(f"Adding tags to contact for: {email}")
+    log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"Tags toevoegen aan contact voor {email}", "Active Campaign product tag bijwerken", script_id, tabel=None)
     # Return desired tags for each category
     for category in category_list:
         if category in desired_tags:
@@ -239,4 +232,4 @@ def add_product_tag_ac(woocommerce_data, active_campaign_api_url, active_campaig
         try:
             add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
         except Exception as e:
-            logger.error(f"Failed to add tag to contact: {e}")
+            log(greit_connection_string, klant, "WooCommerce | ActiveCampaign", f"FOUTMELDING: {e}", "Active Campaign product tag bijwerken", script_id, tabel=None)

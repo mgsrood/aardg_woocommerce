@@ -1,16 +1,14 @@
 from datetime import datetime, timedelta
 import logging
 from google.cloud import bigquery
+from modules.log import log
 
-logger = logging.getLogger(__name__)
-
-def move_next_payment_date(data, wcapi):
-    logging.debug(f"Starting move_next_payment_date for: {data['billing']['email']}")
-    logging.debug(f"Determining payment method")
+def move_next_payment_date(data, wcapi, greit_connection_string, klant, script_id):
+    log(greit_connection_string, klant, "WooCommerce | WooCommerce", f"Verkoopmethode bepalen", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
     payment_method = data.get('payment_method_title')
     if payment_method in ['iDEAL', 'Bancontact']:
         next_payment_date_str = data.get('next_payment_date_gmt')
-        logging.debug(f"Moving payment date to: {next_payment_date_str}")
+        log(greit_connection_string, klant, "WooCommerce | WooCommerce", f"Betaaldatum verplaatsen naar {next_payment_date_str}", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
         if next_payment_date_str:
             # Converteer de datum string naar een datetime object
             next_payment_date = datetime.strptime(next_payment_date_str, '%Y-%m-%dT%H:%M:%S')
@@ -25,11 +23,10 @@ def move_next_payment_date(data, wcapi):
             try:
                 wcapi.put(f"subscriptions/{data['id']}", update_data)
             except Exception as e:
-                logging.error(f"Failed to update subscription: {e}")
+                log(greit_connection_string, klant, "WooCommerce | WooCommerce", f"FOUTMELDING: {e}", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
 
-def add_abo_to_bigquery(customer_data, credentials_path):
-    logging.debug(f"Adding new subscription to BigQuery Subscriptions: {customer_data['id']}")
-    logging.debug(f"Initializing BigQuery")
+def add_abo_to_bigquery(customer_data, credentials_path, greit_connection_string, klant, script_id):
+    log(greit_connection_string, klant, "WooCommerce | BigQuery", "Initialiseren van BigQuery", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
 
     # Initialiseer de BigQuery client
     client = bigquery.Client()
@@ -45,11 +42,10 @@ def add_abo_to_bigquery(customer_data, credentials_path):
     try:
         table = client.get_table(table_ref)
         print(f"Table {table_id} in dataset {dataset_id} accessed successfully.")
-        logging.debug(f"Table {table_id} in dataset {dataset_id} accessed successfully.")
+        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"Tabel {table_id} in dataset {dataset_id} gevonden.", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
     except Exception as e:
         print(f"Error accessing table: {e}")
-        logging.error(f"Error accessing table: {e}")
-        exit(1)
+        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
 
     tabel_input = {
         "subscription_id": customer_data["id"],
@@ -110,10 +106,10 @@ def add_abo_to_bigquery(customer_data, credentials_path):
         errors = client.insert_rows_json(table, rows_to_insert)
         if errors:
             print(f"Errors occurred while inserting: {errors}")
-            logging.error(f"Errors occurred while inserting: {errors}")
+            log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {errors}", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
         else:
             print("Insert successful")
-            logging.debug(f"Insert successful")
+            log(greit_connection_string, klant, "WooCommerce | BigQuery", "Geen foutmeldingen", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
     except Exception as e:
         print(f"An error occurred during the insert operation: {e}")
-        logging.error(f"An error occurred during the insert operation: {e}")
+        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)

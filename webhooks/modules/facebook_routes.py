@@ -2,12 +2,9 @@ from facebook_business.adobjects.customaudience import CustomAudience
 from facebook_business.api import FacebookAdsApi
 from modules.facebook_utils import renew_access_token
 import hashlib
-import logging
+from modules.log import log
 
-logger = logging.getLogger(__name__)
-
-def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id):
-    logger.debug(f"Starting add_new_customers_to_facebook_audience for: {customer_data['billing']['first_name'] + ' ' + customer_data['billing']['last_name']}")
+def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id, greit_connection_string, klant, script_id):
     # Account to add
     users = [
         {
@@ -22,19 +19,19 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
         }    ]
 
     # Initialiseer de Facebook Ads API
-    logger.debug("Initializing the Facebook Ads API")
+    log(greit_connection_string, klant, "WooCommerce | Facebook", "Facebook Ads API initialiseren", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
     try:
         FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=long_term_token)
     except Exception as e:
-        logger.error(f"Error initializing the Facebook Ads API: {e}")
+        log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         if 'Error validating access token' in str(e):
             print("Access token expired, renewing token...")
-            logger.debug("Access token expired, renewing token...")
+            log(greit_connection_string, klant, "WooCommerce | Facebook", "Access token verlopen, token vernieuwen", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
             try:
                 new_token = renew_access_token()
                 FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=new_token)
             except Exception as e:
-                logger.error(f"Error renewing the access token: {e}")
+                log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         else:
             raise
 
@@ -55,7 +52,7 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
     # Normaliseer en hash de gegevens
     hashed_users = []
     try:
-        logging.debug("Adding users to the Custom Audience")
+        log(greit_connection_string, klant, "WooCommerce | Facebook", "Gegevens normaliseren en hashen", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         for user in users:
             hashed_user = []
             hashed_user.append(normalize_and_hash(user.get('email')))
@@ -68,7 +65,7 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
             hashed_user.append(normalize_and_hash(user.get('country')))
             hashed_users.append(hashed_user)
     except Exception as e:
-        logger.error(f"Error adding users to the Custom Audience: {e}")
+        log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         raise
 
     # Bepaal het schema dat overeenkomt met de volgorde van de gegevens in hashed_users
@@ -78,12 +75,12 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
 
     # Voeg gebruikers toe aan de Custom Audience
     try:
-        logging.debug("Adding users to the Custom Audience")
+        log(greit_connection_string, klant, "WooCommerce | Facebook", "Gebruikers toevoegen aan Facebook audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         response = custom_audience.add_users(
             schema=schema,
             users=hashed_users,
             is_raw=True  # Geeft aan dat de gegevens al gehasht zijn
         )
     except Exception as e:
-        logger.error(f"Error adding users to the Custom Audience: {e}")
+        log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         raise
