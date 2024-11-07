@@ -35,17 +35,7 @@ database = os.getenv('DATABASE')
 username = os.getenv('GEBRUIKERSNAAM')
 password = os.getenv('PASSWORD')
 driver = '{ODBC Driver 18 for SQL Server}'
-
-# Verbinding met database
 greit_connection_string = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
-database_conn = connect_to_database(greit_connection_string)
-if database_conn:
-    cursor = database_conn.cursor()
-    latest_script_id = fetch_script_id(cursor)
-    if latest_script_id is not None:
-        script_id = latest_script_id + 1
-    cursor.close()
-    database_conn.close()
 
 # Configuring the app
 app = Flask(__name__)
@@ -61,6 +51,8 @@ wcapi = API(
 
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def payment_date_mover():
+    script_id = fetch_script_id(greit_connection_string)
+    
     log(greit_connection_string, klant, bron, "Start move_next_payment_date", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
     data = parse_request_data()
     if not data:
@@ -83,6 +75,8 @@ def payment_date_mover():
 
 @app.route('/woocommerce/add_subscription_to_bigquery', methods=['POST'])
 def subscription_adder():
+    script_id = fetch_script_id(greit_connection_string)
+    
     log(greit_connection_string, klant, bron, "Start add_subscription_to_bigquery", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
     data = parse_request_data()
     if not data:
@@ -105,6 +99,8 @@ def subscription_adder():
 
 @app.route('/woocommerce/update_ac_abo_field', methods=['POST'])
 def ac_abo_field_update():
+    script_id = fetch_script_id(greit_connection_string)
+    
     log(greit_connection_string, klant, bron, "Start update_ac_abo_field", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
     data = parse_request_data()
     if not data:
@@ -127,6 +123,8 @@ def ac_abo_field_update():
 
 @app.route('/woocommerce/add_abo_tag', methods=['POST'])
 def ac_abo_tag_update():
+    script_id = fetch_script_id(greit_connection_string)
+    
     log(greit_connection_string, klant, bron, "Start add_abo_tag", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
     data = parse_request_data()
     if not data:
@@ -149,6 +147,8 @@ def ac_abo_tag_update():
 
 @app.route('/woocommerce/update_ac_product_fields', methods=['POST'])
 def ac_product_field_update():
+    script_id = fetch_script_id(greit_connection_string)
+    
     data = parse_request_data()
     log(greit_connection_string, klant, bron, "Start update_ac_product_fields", "Active Campaign product velden bijwerken", script_id, tabel=None)
     if not data:
@@ -171,6 +171,8 @@ def ac_product_field_update():
 
 @app.route('/woocommerce/add_ac_product_tag', methods=['POST'])
 def ac_product_tag_update():
+    script_id = fetch_script_id(greit_connection_string)
+    
     log(greit_connection_string, klant, bron, "Start add_ac_product_tag", "Active Campaign product tag bijwerken", script_id, tabel=None)
     data = parse_request_data()
     if not data:
@@ -193,6 +195,8 @@ def ac_product_tag_update():
 
 @app.route('/woocommerce/add_new_customers_to_facebook_audience', methods=['POST'])
 def new_customers_to_facebook_audience():
+    script_id = fetch_script_id(greit_connection_string)
+    
     log(greit_connection_string, klant, bron, "Start add_new_customers_to_facebook_audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
     data = parse_request_data()
     if not data:
