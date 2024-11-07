@@ -9,6 +9,8 @@ from modules.facebook_routes import add_new_customers_to_facebook_audience
 from modules.database import connect_to_database
 from modules.config import fetch_script_id
 from modules.log import log
+import time
+from datetime import timedelta
 
 load_dotenv()
 
@@ -51,6 +53,7 @@ wcapi = API(
 
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def payment_date_mover():
+    start_time = time.time()
     script_id = fetch_script_id(greit_connection_string)
     
     log(greit_connection_string, klant, bron, "Start move_next_payment_date", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
@@ -70,11 +73,16 @@ def payment_date_mover():
             subscription_data = response.json()
             move_next_payment_date(subscription_data, wcapi, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
-    
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Volgende betaaldatum verplaatsen", script_id)
+
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_subscription_to_bigquery', methods=['POST'])
 def subscription_adder():
+    start_time = time.time()
     script_id = fetch_script_id(greit_connection_string)
     
     log(greit_connection_string, klant, bron, "Start add_subscription_to_bigquery", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
@@ -94,11 +102,16 @@ def subscription_adder():
             subscription_data = response.json()
             add_abo_to_bigquery(subscription_data, credentials_path, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Abonnement toevoegen aan BigQuery", script_id)
     
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/update_ac_abo_field', methods=['POST'])
 def ac_abo_field_update():
+    start_time = time.time()
     script_id = fetch_script_id(greit_connection_string)
     
     log(greit_connection_string, klant, bron, "Start update_ac_abo_field", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
@@ -118,11 +131,16 @@ def ac_abo_field_update():
             subscription_data = response.json()
             update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
-    
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Active Campaign abonnement veld bijwerken", script_id)
+
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_abo_tag', methods=['POST'])
 def ac_abo_tag_update():
+    start_time = time.time()
     script_id = fetch_script_id(greit_connection_string)
     
     log(greit_connection_string, klant, bron, "Start add_abo_tag", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
@@ -142,11 +160,16 @@ def ac_abo_tag_update():
             subscription_data = response.json()
             update_ac_abo_tag(subscription_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
-    
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Active Campaign abonnement tag bijwerken", script_id)
+
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/update_ac_product_fields', methods=['POST'])
 def ac_product_field_update():
+    start_time = time.time()
     script_id = fetch_script_id(greit_connection_string)
     
     data = parse_request_data()
@@ -166,11 +189,16 @@ def ac_product_field_update():
             order_data = response.json()
             update_active_campaign_product_fields(order_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Order {order_id} verwerkt", "Active Campaign product velden bijwerken", script_id, tabel=None)
-    
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Active Campaign product velden bijwerken", script_id)
+
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_ac_product_tag', methods=['POST'])
 def ac_product_tag_update():
+    start_time = time.time()
     script_id = fetch_script_id(greit_connection_string)
     
     log(greit_connection_string, klant, bron, "Start add_ac_product_tag", "Active Campaign product tag bijwerken", script_id, tabel=None)
@@ -190,11 +218,17 @@ def ac_product_tag_update():
             order_data = response.json()
             add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Order {order_id} verwerkt", "Active Campaign product tag bijwerken", script_id, tabel=None)
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Active Campaign product tag bijwerken", script_id)
+
 
     return jsonify({'status': 'success'}), 200
 
 @app.route('/woocommerce/add_new_customers_to_facebook_audience', methods=['POST'])
 def new_customers_to_facebook_audience():
+    start_time = time.time()
     script_id = fetch_script_id(greit_connection_string)
     
     log(greit_connection_string, klant, bron, "Start add_new_customers_to_facebook_audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
@@ -214,6 +248,10 @@ def new_customers_to_facebook_audience():
             customer_data = response.json()
             add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Klant {customer_data['billing']['first_name'] + ' ' + customer_data['billing']['last_name']} verwerkt", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Nieuwe klanten toevoegen aan Facebook audience", script_id)
 
     return jsonify({'status': 'success'}), 200
 
