@@ -109,7 +109,6 @@ def add_abo_to_bigquery(customer_data, credentials_path, greit_connection_string
             log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {errors}", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
         else:
             print("Insert successful")
-            log(greit_connection_string, klant, "WooCommerce | BigQuery", "Geen foutmeldingen", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
     except Exception as e:
         print(f"An error occurred during the insert operation: {e}")
         log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
