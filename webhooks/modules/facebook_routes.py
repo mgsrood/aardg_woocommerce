@@ -8,18 +8,18 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
     # Account to add
     users = [
         {
-            'email': f'{customer_data['email']}',
-            'phone_number': f'{customer_data['billing']['phone']}',
-            'first_name': f'{customer_data['billing']['first_name']}',
-            'last_name': f'{customer_data['billing']['last_name']}',
-            'city': f'{customer_data['billing']['city']}',
-            'state': f'{customer_data['billing']['state']}',
-            'country': f'{customer_data['billing']['country']}',
-            'zip': f'{customer_data['billing']['postcode']}'
-        }    ]
+            'email': f"{customer_data['email']}",
+            'phone_number': f"{customer_data['billing']['phone']}",
+            'first_name': f"{customer_data['billing']['first_name']}",
+            'last_name': f"{customer_data['billing']['last_name']}",
+            'city': f"{customer_data['billing']['city']}",
+            'state': f"{customer_data['billing']['state']}",
+            'country': f"{customer_data['billing']['country']}",
+            'zip': f"{customer_data['billing']['postcode']}"
+        }
+    ]
 
-    # Initialiseer de Facebook Ads API
-    log(greit_connection_string, klant, "WooCommerce | Facebook", "Facebook Ads API initialiseren", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+    # Probeer de Facebook API te initialiseren
     try:
         FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=long_term_token)
     except Exception as e:
@@ -29,9 +29,15 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
             log(greit_connection_string, klant, "WooCommerce | Facebook", "Access token verlopen, token vernieuwen", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
             try:
                 new_token = renew_access_token()
-                FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=new_token)
+                if new_token:
+                    FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=new_token)
+                    log(greit_connection_string, klant, "WooCommerce | Facebook", "Token vernieuwd", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+                else:
+                    log(greit_connection_string, klant, "WooCommerce | Facebook", "Token vernieuwen mislukt", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+                    raise ValueError("Unable to renew access token")
             except Exception as e:
                 log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+                raise
         else:
             raise
 

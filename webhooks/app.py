@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from woocommerce import API
 from dotenv import load_dotenv
 import os
-from modules.woocommerce_routes import move_next_payment_date, add_abo_to_bigquery
+from modules.woocommerce_routes import move_next_payment_date, add_abo_to_bigquery, update_abo_in_bigquery
 from modules.ac_routes import update_ac_abo_field, update_ac_abo_tag, update_active_campaign_product_fields, add_product_tag_ac
 from modules.request_utils import parse_request_data, validate_signature
 from modules.facebook_routes import add_new_customers_to_facebook_audience
@@ -274,6 +274,38 @@ def new_customers_to_facebook_audience():
             tijdsduur_str = str(tijdsduur).split('.')[0]
             log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Nieuwe klanten toevoegen aan Facebook audience", script_id)
 
+    return jsonify({'status': 'success'}), 200
+
+@app.route('/woocommerce/update_subscription_in_bigquery', methods=['POST'])
+def subscription_updater():
+    start_time = time.time()
+    script_id = fetch_script_id(greit_connection_string)
+    
+    log(greit_connection_string, klant, bron, "Start update_subscription_in_bigquery", "Abonnement updaten in BigQuery", script_id, tabel=None)
+    data = parse_request_data()
+    if not data:
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Geen payload gevonden bij add_subscription_to_bigquery", "Abonnement updaten in BigQuery", script_id, tabel=None)
+        return jsonify({'status': 'no payload'}), 200
+
+    if not validate_signature(request, secret_key):
+        log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_subscription_to_bigquery", "Abonnement updaten in BigQuery", script_id, tabel=None)
+        return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
+
+    if 'id' in data:
+        subscription_id = data['id']
+        response = wcapi.get(f"subscriptions/{subscription_id}")
+        if response.status_code == 200:
+            subscription_data = response.json()
+            update_abo_in_bigquery(subscription_data, credentials_path, greit_connection_string, klant, script_id)
+            log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", "Abonnement updaten in BigQuery", script_id, tabel=None)
+            eindtijd = time.time()
+            tijdsduur = timedelta(seconds=(eindtijd - start_time))
+            tijdsduur_str = str(tijdsduur).split('.')[0]
+            log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", "Abonnement updaten in BigQuery", script_id)
+    
     return jsonify({'status': 'success'}), 200
 
 if __name__ == '__main__':
