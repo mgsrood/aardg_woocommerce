@@ -24,6 +24,8 @@ def initialize_facebook_api(app_id, app_secret, access_token):
             print("Access token expired, renewing token...")
             new_token = renew_access_token(app_id, app_secret, access_token)
             if new_token:
+                update_env_file(new_token)
+                load_dotenv()  # Zorg ervoor dat de bijgewerkte waarde in je script wordt geladen
                 FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=new_token)
                 return new_token
         else:
@@ -56,7 +58,7 @@ def get_facebook_custom_audiences():
     except Exception as e:
         if 'Error validating access token' in str(e):
             print("Access token expired, renewing token...")
-            new_token = renew_access_token()
+            new_token = renew_access_token(app_id, app_secret, long_term_token)
             FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=new_token)
         else:
             raise
