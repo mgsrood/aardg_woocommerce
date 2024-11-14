@@ -16,6 +16,20 @@ def update_env_file(new_token):
             else:
                 file.write(line)
 
+def initialize_facebook_api(app_id, app_secret, access_token):
+    try:
+        FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=access_token)
+    except Exception as e:
+        if 'Error validating access token' in str(e):
+            print("Access token expired, renewing token...")
+            new_token = renew_access_token(app_id, app_secret, access_token)
+            if new_token:
+                FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=new_token)
+                return new_token
+        else:
+            raise
+    return access_token
+
 def renew_access_token(app_id, app_secret, long_term_token):
     url = f"https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id={app_id}&client_secret={app_secret}&fb_exchange_token={long_term_token}"
     response = requests.get(url)

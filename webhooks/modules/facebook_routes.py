@@ -1,6 +1,6 @@
 from facebook_business.adobjects.customaudience import CustomAudience
 from facebook_business.api import FacebookAdsApi
-from modules.facebook_utils import renew_access_token
+from modules.facebook_utils import initialize_facebook_api
 import hashlib
 from modules.log import log
 
@@ -19,27 +19,11 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
         }
     ]
 
-    # Probeer de Facebook API te initialiseren
+    # Initialiseer de Facebook API (en vernieuw token indien nodig)
     try:
-        FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=long_term_token)
+        long_term_token = initialize_facebook_api(app_id, app_secret, long_term_token)
     except Exception as e:
         log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
-        if 'Error validating access token' in str(e):
-            print("Access token expired, renewing token...")
-            log(greit_connection_string, klant, "WooCommerce | Facebook", "Access token verlopen, token vernieuwen", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
-            try:
-                new_token = renew_access_token()
-                if new_token:
-                    FacebookAdsApi.init(app_id=app_id, app_secret=app_secret, access_token=new_token)
-                    log(greit_connection_string, klant, "WooCommerce | Facebook", "Token vernieuwd", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
-                else:
-                    log(greit_connection_string, klant, "WooCommerce | Facebook", "Token vernieuwen mislukt", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
-                    raise ValueError("Unable to renew access token")
-            except Exception as e:
-                log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
-                raise
-        else:
-            raise
 
     # Definieer de Custom Audience
     custom_audience = CustomAudience(custom_audience_id)
