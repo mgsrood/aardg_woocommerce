@@ -193,9 +193,6 @@ def ac_product_field_update():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij update_ac_product_fields", "Active Campaign product velden bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
-    
-    # Voeg een vertraging van 20 seconden in
-    time.sleep(20)
 
     if 'id' in data:
         order_id = data['id']
