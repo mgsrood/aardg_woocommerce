@@ -65,6 +65,9 @@ def payment_date_mover():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij move_next_payment_date", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
         return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
 
     if 'id' in data:
         subscription_id = data['id']
@@ -94,6 +97,9 @@ def subscription_adder():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_subscription_to_bigquery", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
         return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
 
     if 'id' in data:
         subscription_id = data['id']
@@ -123,6 +129,9 @@ def ac_abo_field_update():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij update_ac_abo_field", "Active Campaign abonnement veld bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
 
     if 'id' in data:
         subscription_id = data['id']
@@ -152,6 +161,9 @@ def ac_abo_tag_update():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_abo_tag", "Active Campaign abonnement tag bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
 
     if 'id' in data:
         subscription_id = data['id']
@@ -181,6 +193,9 @@ def ac_product_field_update():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij update_ac_product_fields", "Active Campaign product velden bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
 
     if 'id' in data:
         order_id = data['id']
@@ -210,6 +225,9 @@ def ac_product_tag_update():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_ac_product_tag", "Active Campaign product tag bijwerken", script_id, tabel=None)
         return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
 
     if 'id' in data:
         order_id = data['id']
@@ -240,6 +258,9 @@ def new_customers_to_facebook_audience():
     if not validate_signature(request, secret_key):
         log(greit_connection_string, klant, bron, "FOUTMELDING: Ongeldige handtekening bij add_new_customers_to_facebook_audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
         return "Invalid signature", 401
+    
+    # Voeg een vertraging van 20 seconden in
+    time.sleep(20)
 
     if 'id' in data:
         customer_id = data['id']
