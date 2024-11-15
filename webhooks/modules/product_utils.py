@@ -29,7 +29,7 @@ def get_category_one_dict():
     challenge = ['CHAL']
     originals = ['P28', 'P56', 'K4', 'K8', 'W4', 'W8', 'M4', 'M8', 'P-', 'K-', 'W-', 'M-', '8719327215180', '8719326399386', '8719326399393', '8719327215135']
     frisdrank = ['F12', 'B12', 'C12', 'G12', 'F-', 'B-', 'C-', 'G-', '8719326399355', '8719326399362', '8719326399379', '8719327215128']
-    starter = ['Starter', 'S-', '8719327215111']
+    starter = ['Starter', 'S-', '8719327215111', 'S-ACTIE_X']
 
     for sku, id in product_catalogue.items():
         if any(sub in sku for sub in challenge):
@@ -55,7 +55,7 @@ def get_discount_dict():
         'Discount': [],
         }
 
-    discount = ['ACTIE', 'X2', 'XL', 'korting', '-A', '-B', 'K8', 'M8', 'W8', '56', 'halfjaar', 'jaar', 'X2']
+    discount = ['ACTIE', 'X2', 'XL', 'korting', '-A', '-B', 'K8', 'M8', 'W8', '56', 'halfjaar', 'jaar', 'X2', 'S-ACTIE_X']
 
     for sku, id in product_catalogue.items():
         if any(sub in sku for sub in discount):
@@ -83,7 +83,7 @@ def get_base_unit_values():
         '12': [],
     }
 
-    one = ['K4', 'K-', 'W4', 'W-', 'M4', 'M-', 'P28', 'S', 'F12', 'B12', 'C12', 'G12', 'Starter', '8719327215111', '8719327215180', '8719326399386', '8719326399393', '8719327215135', '8719326399355', '8719326399362', '8719326399379', '8719327215128'   ]
+    one = ['K4', 'K-', 'W4', 'W-', 'M4', 'M-', 'P28', 'S', 'F12', 'B12', 'C12', 'G12', 'Starter', '8719327215111', '8719327215180', '8719326399386', '8719326399393', '8719327215135', '8719326399355', '8719326399362', '8719326399379', '8719327215128', 'S-ACTIE_X']
     two = ['W8', 'K8','M8', 'P56', 'M-XL', 'X2', 'C2', 'S-XL']
     three = ['MP-XL', 'F-XL']
     six = ['halfjaar']
@@ -127,7 +127,7 @@ def get_sku_dict():
     w4 = ['W4', 'W8','W-', '8719326399393']
     m4 = ['M4', 'M8', 'M-', '8719327215135', 'MP-XL']
     p28 = ['P28', 'P56', 'P-', '8719327215180', 'X2', 'C2']
-    s = ['Starter', 'S-', '8719327215111', 'S-XL']
+    s = ['Starter', 'S-', '8719327215111', 'S-XL', 'S-ACTIE_X']
     f12 = ['F12', 'F-', '8719327215128', 'F-X2', 'F-XL']
     b12 = ['B12', 'B-', '8719326399362']
     c12 = ['C12', 'C-', '8719326399355']
@@ -163,7 +163,7 @@ def get_key_from_product_id(product_id, dict):
 
 def determine_base_product(sku):
     # Base product op basis van SKU
-    if any(substring in sku for substring in ['Starter', 'S-', '8719327215111', 'S-XL']):
+    if any(substring in sku for substring in ['Starter', 'S-', '8719327215111', 'S-XL', 'S-ACTIE_X']):
         return 'Starter'
     elif any(substring in sku for substring in ['P28', 'P56', 'P-', '8719327215180', 'X2', 'C2']):
         return 'Probiotica'
