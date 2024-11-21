@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import logging
 from google.cloud import bigquery
 from modules.log import log
+from modules.woocommerce_utils import wait_for_buffer_to_clear
 
 def move_next_payment_date(data, wcapi, greit_connection_string, klant, script_id):
     log(greit_connection_string, klant, "WooCommerce | WooCommerce", f"Verkoopmethode bepalen", "Volgende betaaldatum verplaatsen", script_id, tabel=None)
@@ -189,92 +190,94 @@ def update_abo_in_bigquery(customer_data, credentials_path, greit_connection_str
         "shipping_total": customer_data["shipping_total"]
     }
 
-    # Bouw de update statement
-    try:
-        # Controleer of de subscription_id al bestaat in de tabel
-        subscription_id = tabel_input["subscription_id"]
-        check_query = f"""
-        SELECT COUNT(*) AS cnt
-        FROM `{dataset_id}.{table_id}`
-        WHERE subscription_id = {subscription_id}
-        """
+    # Controleer eerst of er gewacht moet worden voordat de update wordt uitgevoerd
+    subscription_id = tabel_input["subscription_id"]
+    if wait_for_buffer_to_clear(client, dataset_id, table_id, subscription_id):
+        # Als de buffer leeg is, voer dan de update uit
+        try:
+            # Controleer of de subscription_id al bestaat in de tabel
+            check_query = f"""
+            SELECT COUNT(*) AS cnt
+            FROM `{dataset_id}.{table_id}`
+            WHERE subscription_id = {subscription_id}
+            """
 
-        check_job = client.query(check_query)
-        results = check_job.result()
+            check_job = client.query(check_query)
+            results = check_job.result()
 
-        # Extract het aantal rijen met de gegeven subscription_id
-        row_count = 0
-        for row in results:
-            row_count = row.cnt
+            # Extract het aantal rijen met de gegeven subscription_id
+            row_count = 0
+            for row in results:
+                row_count = row.cnt
 
-        # Als de subscription_id niet bestaat, geef een foutmelding
-        if row_count == 0:
-            log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: Subscription_id {subscription_id} niet gevonden in BigQuery", "Abonnement updaten in BigQuery", script_id, tabel=None)
+            # Als de subscription_id niet bestaat, geef een foutmelding
+            if row_count == 0:
+                log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: Subscription_id {subscription_id} niet gevonden in BigQuery", "Abonnement updaten in BigQuery", script_id, tabel=None)
 
-        # Als de subscription_id bestaat, voer dan de MERGE (UPDATE) uit
-        query = f"""
-        MERGE `{dataset_id}.{table_id}` T
-        USING (
-            SELECT {subscription_id} AS subscription_id
-        ) S
-        ON T.subscription_id = S.subscription_id
-        WHEN MATCHED THEN
-            UPDATE SET
-            parent_id = {tabel_input["parent_id"]},
-            status = '{tabel_input["status"]}',
-            number = {tabel_input["number"]},
-            currency = '{tabel_input["currency"]}',
-            date_created = '{tabel_input["date_created"]}',
-            date_modified = '{tabel_input["date_modified"]}',
-            customer_id = {tabel_input["customer_id"]},
-            discount_total = {tabel_input["discount_total"]},
-            total = {tabel_input["total"]},
-            billing_company = '{tabel_input["billing_company"]}',
-            billing_city = '{tabel_input["billing_city"]}',
-            billing_state = '{tabel_input["billing_state"]}',
-            billing_postcode = '{tabel_input["billing_postcode"]}',
-            billing_country = '{tabel_input["billing_country"]}',
-            billing_email = '{tabel_input["billing_email"]}',
-            billing_first_name = '{tabel_input["billing_first_name"]}',
-            billing_last_name = '{tabel_input["billing_last_name"]}',
-            billing_address_1 = '{tabel_input["billing_address_1"]}',
-            billing_address_2 = '{tabel_input["billing_address_2"]}',
-            shipping_company = '{tabel_input["shipping_company"]}',
-            shipping_city = '{tabel_input["shipping_city"]}',
-            shipping_state = '{tabel_input["shipping_state"]}',
-            shipping_postcode = '{tabel_input["shipping_postcode"]}',
-            shipping_country = '{tabel_input["shipping_country"]}',
-            shipping_first_name = '{tabel_input["shipping_first_name"]}',
-            shipping_last_name = '{tabel_input["shipping_last_name"]}',
-            shipping_address_1 = '{tabel_input["shipping_address_1"]}',
-            shipping_address_2 = '{tabel_input["shipping_address_2"]}',
-            payment_method = '{tabel_input["payment_method"]}',
-            payment_method_title = '{tabel_input["payment_method_title"]}',
-            transaction_id = {tabel_input["transaction_id"] if tabel_input["transaction_id"] is not None else 'NULL'},
-            customer_ip_address = '{tabel_input["customer_ip_address"]}',
-            customer_user_agent = '{tabel_input["customer_user_agent"]}',
-            created_via = '{tabel_input["created_via"]}',
-            customer_note = '{tabel_input["customer_note"]}',
-            date_completed = '{tabel_input["date_completed"]}',
-            date_paid = '{tabel_input["date_paid"]}',
-            cart_hash = '{tabel_input["cart_hash"]}',
-            lineitems_quantity = {tabel_input["lineitems_quantity"]},
-            lineitems_subtotal = [{', '.join(map(str, [float(x) for x in tabel_input["lineitems_subtotal"]]))}],
-            lineitems_total = [{', '.join(map(str, [float(x) for x in tabel_input["lineitems_total"]]))}],
-            lineitems_price = [{', '.join(map(str, [float(x) for x in tabel_input["lineitems_price"]]))}],
-            lineitems_product_id = [{', '.join(map(str, [int(x) for x in tabel_input["lineitems_product_id"]]))}],
-            billing_period = '{tabel_input["billing_period"]}',
-            billing_interval = {tabel_input["billing_interval"]},
-            start_date = '{tabel_input["start_date"]}',
-            next_payment_date = '{tabel_input["next_payment_date"]}',
-            end_date = '{tabel_input["end_date"]}',
-            shipping_total = {tabel_input["shipping_total"]}
-        """
+            # Als de subscription_id bestaat, voer dan de MERGE (UPDATE) uit
+            query = f"""
+            MERGE `{dataset_id}.{table_id}` T
+            USING (
+                SELECT {subscription_id} AS subscription_id
+            ) S
+            ON T.subscription_id = S.subscription_id
+            WHEN MATCHED THEN
+                UPDATE SET
+                parent_id = {tabel_input["parent_id"]},
+                status = '{tabel_input["status"]}',
+                number = {tabel_input["number"]},
+                currency = '{tabel_input["currency"]}',
+                date_created = '{tabel_input["date_created"]}',
+                date_modified = '{tabel_input["date_modified"]}',
+                customer_id = {tabel_input["customer_id"]},
+                discount_total = {tabel_input["discount_total"]},
+                total = {tabel_input["total"]},
+                billing_company = '{tabel_input["billing_company"]}',
+                billing_city = '{tabel_input["billing_city"]}',
+                billing_state = '{tabel_input["billing_state"]}',
+                billing_postcode = '{tabel_input["billing_postcode"]}',
+                billing_country = '{tabel_input["billing_country"]}',
+                billing_email = '{tabel_input["billing_email"]}',
+                billing_first_name = '{tabel_input["billing_first_name"]}',
+                billing_last_name = '{tabel_input["billing_last_name"]}',
+                billing_address_1 = '{tabel_input["billing_address_1"]}',
+                billing_address_2 = '{tabel_input["billing_address_2"]}',
+                shipping_company = '{tabel_input["shipping_company"]}',
+                shipping_city = '{tabel_input["shipping_city"]}',
+                shipping_state = '{tabel_input["shipping_state"]}',
+                shipping_postcode = '{tabel_input["shipping_postcode"]}',
+                shipping_country = '{tabel_input["shipping_country"]}',
+                shipping_first_name = '{tabel_input["shipping_first_name"]}',
+                shipping_last_name = '{tabel_input["shipping_last_name"]}',
+                shipping_address_1 = '{tabel_input["shipping_address_1"]}',
+                shipping_address_2 = '{tabel_input["shipping_address_2"]}',
+                payment_method = '{tabel_input["payment_method"]}',
+                payment_method_title = '{tabel_input["payment_method_title"]}',
+                transaction_id = {tabel_input["transaction_id"] if tabel_input["transaction_id"] is not None else 'NULL'},
+                customer_ip_address = '{tabel_input["customer_ip_address"]}',
+                customer_user_agent = '{tabel_input["customer_user_agent"]}',
+                created_via = '{tabel_input["created_via"]}',
+                customer_note = '{tabel_input["customer_note"]}',
+                date_completed = '{tabel_input["date_completed"]}',
+                date_paid = '{tabel_input["date_paid"]}',
+                cart_hash = '{tabel_input["cart_hash"]}',
+                lineitems_quantity = {tabel_input["lineitems_quantity"]},
+                lineitems_subtotal = [{', '.join(map(str, [float(x) for x in tabel_input["lineitems_subtotal"]]))}],
+                lineitems_total = [{', '.join(map(str, [float(x) for x in tabel_input["lineitems_total"]]))}],
+                lineitems_price = [{', '.join(map(str, [float(x) for x in tabel_input["lineitems_price"]]))}],
+                lineitems_product_id = [{', '.join(map(str, [int(x) for x in tabel_input["lineitems_product_id"]]))}],
+                billing_period = '{tabel_input["billing_period"]}',
+                billing_interval = {tabel_input["billing_interval"]},
+                start_date = '{tabel_input["start_date"]}',
+                next_payment_date = '{tabel_input["next_payment_date"]}',
+                end_date = '{tabel_input["end_date"]}',
+                shipping_total = {tabel_input["shipping_total"]}
+            """
 
-        query_job = client.query(query)
-        query_job.result()  # Wacht tot de query is voltooid
-        print("Update succesvol uitgevoerd.")
-        log(greit_connection_string, klant, "WooCommerce | BigQuery", "Update succesvol uitgevoerd.", "Abonnement updaten in BigQuery", script_id, tabel=None)
-    except Exception as e:
-        print(f"An error occurred during the update operation: {e}")
-        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement updaten in BigQuery", script_id, tabel=None)
+            query_job = client.query(query)
+            query_job.result()  # Wacht tot de query is voltooid
+            print("Update succesvol uitgevoerd.")
+            log(greit_connection_string, klant, "WooCommerce | BigQuery", "Update succesvol uitgevoerd.", "Abonnement updaten in BigQuery", script_id, tabel=None)
+        except Exception as e:
+            print(f"An error occurred during the update operation: {e}")
+            log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement updaten in BigQuery", script_id, tabel=None)
