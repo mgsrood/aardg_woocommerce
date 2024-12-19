@@ -231,7 +231,7 @@ def update_or_insert_order_to_bigquery(greit_connection_string, klant, script_id
 
     # Verwijs naar de dataset en tabel waarin je de gegevens wilt invoegen
     dataset_id = "woocommerce_data"
-    table_id = "subscriptions"
+    table_id = "orders"
 
     # Bouw de volledige tabelreferentie
     table_ref = client.dataset(dataset_id).table(table_id)
