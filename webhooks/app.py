@@ -64,7 +64,8 @@ def move_next_payment_date_route():
 
 @app.route('/woocommerce/update_or_add_order_to_bigquery', methods=['POST'])
 def order_addition_route():
-    return bigquery_order_processor(greit_connection_string, klant, bron, wcapi, secret_key, credentials_path)
+    return bigquery_order_processor(greit_connection_string, klant, bron, wcapi, secret_key)
+
 
 @app.route('/woocommerce/update_or_add_subscription_to_bigquery', methods=['POST'])
 def subscription_addition_route():
@@ -77,7 +78,6 @@ def update_ac_abo_field_route():
     return ac_abo_field_updater(greit_connection_string, klant, bron, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token)
 # Gecontroleerd
 
-
 @app.route('/woocommerce/add_abo_tag', methods=['POST'])
 def add_abo_tag_route():
     return ac_abo_tag_adder(greit_connection_string, klant, bron, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token)
@@ -89,11 +89,13 @@ def update_ac_product_fields_route():
 @app.route('/woocommerce/add_ac_product_tag', methods=['POST'])
 def add_ac_product_tag_route():
     return ac_product_tag_adder(greit_connection_string, klant, bron, wcapi, active_campaign_api_url, active_campaign_api_token, secret_key)
+# Gecontroleerd
 
 # Facebook Routes
 @app.route('/woocommerce/add_new_customers_to_facebook_audience', methods=['POST'])
 def new_customers_to_facebook_audience_route():
     return facebook_audience_customer_adder(greit_connection_string, klant, bron, wcapi, secret_key, long_term_token, custom_audience_id, ad_account_id, app_secret, app_id)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8443)
