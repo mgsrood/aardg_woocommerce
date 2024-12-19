@@ -1,8 +1,7 @@
+from modules.woocommerce_utils import get_woocommerce_order_data, get_woocommerce_subscription_data
 from datetime import datetime, timedelta
-import logging
 from google.cloud import bigquery
 from modules.log import log
-from modules.woocommerce_utils import get_woocommerce_order_data, get_woocommerce_subscription_data
 
 def move_next_payment_date(data, wcapi, greit_connection_string, klant, script_id, route_naam):
     

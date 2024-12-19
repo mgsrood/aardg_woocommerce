@@ -2,8 +2,7 @@ from modules.facebook_functions import add_new_customers_to_facebook_audience
 from modules.request import parse_request_data, validate_signature
 from modules.config import set_script_id
 from modules.log import log, end_log
-from flask import jsonify
-import request
+from flask import jsonify, request
 import time
 
 def facebook_audience_customer_adder(greit_connection_string, klant, bron, wcapi, secret_key, long_term_token, custom_audience_id, ad_account_id, app_secret, app_id):

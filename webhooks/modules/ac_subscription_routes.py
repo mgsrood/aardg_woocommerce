@@ -2,8 +2,7 @@ from modules.ac_functions import update_ac_abo_field, update_ac_abo_tag
 from modules.request import parse_request_data, validate_signature
 from modules.config import set_script_id
 from modules.log import log, end_log
-from flask import jsonify
-import request
+from flask import jsonify, request
 import time
 
 def ac_abo_field_updater(greit_connection_string, klant, bron, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token):

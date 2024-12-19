@@ -1,13 +1,13 @@
-from woocommerce import API
-from dotenv import load_dotenv
-import os
-import json
-import pandas as pd
-from product_utils import determine_base_product
-import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from product_utils import determine_base_product
 from gspread_dataframe import set_with_dataframe
+from dotenv import load_dotenv
 from datetime import datetime
+from woocommerce import API
+import pandas as pd
+import gspread
+import json
+import os
 
 load_dotenv()
 

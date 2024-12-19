@@ -2,8 +2,7 @@ from modules.wc_functions import move_next_payment_date, update_or_insert_sub_to
 from modules.request import parse_request_data, validate_signature
 from modules.config import set_script_id
 from modules.log import log, end_log
-from flask import jsonify
-import request
+from flask import jsonify, request
 import time
 
 def subscription_payment_date_mover(greit_connection_string, klant, bron, wcapi, secret_key):

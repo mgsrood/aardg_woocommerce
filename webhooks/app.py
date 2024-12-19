@@ -3,9 +3,9 @@ from modules.ac_general_routes import ac_product_field_updater, ac_product_tag_a
 from modules.ac_subscription_routes import ac_abo_tag_adder, ac_abo_field_updater
 from modules.facebook_routes import facebook_audience_customer_adder
 from modules.wc_general_routes import bigquery_order_processor
-from flask import Flask, request, jsonify
 from modules.env_tool import env_check
 from woocommerce import API
+from flask import Flask
 import os
 
 # Check uitvoering: lokaal of productie

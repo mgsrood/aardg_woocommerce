@@ -2,8 +2,7 @@ from modules.ac_functions import update_active_campaign_product_fields, add_prod
 from modules.request import parse_request_data, validate_signature
 from modules.config import set_script_id
 from modules.log import log, end_log
-from flask import jsonify
-import request
+from flask import jsonify, request
 import time
 
 def ac_product_field_updater(greit_connection_string, klant, bron, wcapi, active_campaign_api_url, active_campaign_api_token, secret_key):
