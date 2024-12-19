@@ -1,5 +1,6 @@
-from datetime import datetime
 from modules.database import connect_to_database
+from datetime import datetime, timedelta
+import time
 
 def log(logging_connection_string, klant, bron, log, script, scriptid, tabel=None):
     # Actuele datum en tijd ophalen
@@ -34,3 +35,10 @@ def log(logging_connection_string, klant, bron, log, script, scriptid, tabel=Non
         # Sluit connectie als die is gemaakt
         if logging_conn:
             logging_conn.close()
+            
+def end_log(start_time, greit_connection_string, klant, bron, script, script_id):
+    eindtijd = time.time()
+    tijdsduur = timedelta(seconds=(eindtijd - start_time))
+    tijdsduur_str = str(tijdsduur).split('.')[0]
+    log(greit_connection_string, klant, bron, f"Script gestopt in {tijdsduur_str}", script, script_id)
+    print(f"Script gestopt in {tijdsduur_str}")

@@ -1,8 +1,8 @@
-import requests
-from facebook_business.api import FacebookAdsApi
-from facebook_business.adobjects.adaccount import AdAccount
 from facebook_business.exceptions import FacebookRequestError
+from facebook_business.adobjects.adaccount import AdAccount
+from facebook_business.api import FacebookAdsApi
 from dotenv import load_dotenv
+import requests
 import os
 
 def update_env_file(new_token):

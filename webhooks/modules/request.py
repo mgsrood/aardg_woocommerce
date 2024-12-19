@@ -1,9 +1,9 @@
-import hmac
-import hashlib
-import base64
-import json
 from flask import request
 import logging
+import hashlib
+import base64
+import hmac
+import json
 
 def validate_signature(request, secret):
     payload = request.get_data()

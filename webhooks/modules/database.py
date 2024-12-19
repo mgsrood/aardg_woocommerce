@@ -1,9 +1,5 @@
 import pyodbc
 import time
-from datetime import datetime, timedelta
-import sqlalchemy
-from sqlalchemy import create_engine, event, text
-import urllib
 
 def connect_to_database(connection_string):
     # Retries en delays

@@ -1,4 +1,6 @@
 from modules.database import connect_to_database
+from modules.log import log
+import time
 
 def fetch_script_id(greit_connection_string):
     database_conn = None
@@ -20,3 +22,10 @@ def fetch_script_id(greit_connection_string):
             cursor.close()
         if database_conn:
             database_conn.close()
+            
+def set_script_id(greit_connection_string, klant, bron, actie_naam, route_naam):
+    start_time = time.time()
+    script_id = fetch_script_id(greit_connection_string)
+    log(greit_connection_string, klant, bron, actie_naam, route_naam, script_id, tabel=None)
+    
+    return start_time, script_id
