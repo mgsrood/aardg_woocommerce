@@ -29,7 +29,7 @@ def ac_product_field_updater(greit_connection_string, klant, bron, wcapi, active
     # Data verwerken
     if 'id' in data:
         subscription_id = data['id']
-        response = wcapi.get(f"subscriptions/{subscription_id}")
+        response = wcapi.get(f"orders/{subscription_id}")
         
         # Functie uitvoeren
         if response.status_code == 200:
@@ -69,7 +69,7 @@ def ac_product_tag_adder(greit_connection_string, klant, bron, wcapi, active_cam
     # Data verwerken
     if 'id' in data:
         subscription_id = data['id']
-        response = wcapi.get(f"subscriptions/{subscription_id}")
+        response = wcapi.get(f"orders/{subscription_id}")
         
         # Functie uitvoeren
         if response.status_code == 200:

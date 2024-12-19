@@ -69,11 +69,14 @@ def order_addition_route():
 @app.route('/woocommerce/update_or_add_subscription_to_bigquery', methods=['POST'])
 def subscription_addition_route():
     return bigquery_subscription_processor(greit_connection_string, klant, bron, wcapi, secret_key, credentials_path)
+# Gecontroleerd
 
 # Active Campaign Routes
 @app.route('/woocommerce/update_ac_abo_field', methods=['POST'])
 def update_ac_abo_field_route():
     return ac_abo_field_updater(greit_connection_string, klant, bron, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token)
+# Gecontroleerd
+
 
 @app.route('/woocommerce/add_abo_tag', methods=['POST'])
 def add_abo_tag_route():
