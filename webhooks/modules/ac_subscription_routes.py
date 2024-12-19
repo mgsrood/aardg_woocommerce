@@ -34,6 +34,7 @@ def ac_abo_field_updater(greit_connection_string, klant, bron, wcapi, secret_key
         
         # Functie uitvoeren
         if response.status_code == 200:
+            data = response.json()
             update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token, greit_connection_string, klant, script_id)
             log(greit_connection_string, klant, bron, f"Abonnement {subscription_id} verwerkt", route_naam, script_id, tabel=None)
             
