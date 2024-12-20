@@ -240,7 +240,7 @@ def update_or_insert_order_to_bigquery(greit_connection_string, klant, script_id
     try:
         table = client.get_table(table_ref)
         print(f"Table {table_id} in dataset {dataset_id} accessed successfully.")
-        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"Tabel {table_id} in dataset {dataset_id} gevonden.", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
+        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"Tabel {table_id} in dataset {dataset_id} gevonden.", "Order toevoegen aan BigQuery", script_id, tabel=None)
     except Exception as e:
         print(f"Error accessing table: {e}")
         log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
