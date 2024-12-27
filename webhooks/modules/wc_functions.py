@@ -39,7 +39,7 @@ def update_or_insert_sub_to_bigquery(greit_connection_string, klant, script_id, 
     client = bigquery.Client()
 
     # Verwijs naar de dataset en tabel waarin je de gegevens wilt invoegen
-    dataset_id = "woocommerce_data"
+    dataset_id = "woocommerce"
     table_id = "subscriptions"
 
     # Bouw de volledige tabelreferentie
