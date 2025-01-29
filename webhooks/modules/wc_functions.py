@@ -414,4 +414,5 @@ def update_or_insert_order_to_bigquery(greit_connection_string, klant, script_id
     # Bepaal actie op basis van controle
     action = "Update uitgevoerd voor order ID" if exists else "Insert uitgevoerd voor order ID"
     result_message = f"{action} {order_id}"
+    print(result_message)
     log(greit_connection_string, klant, "WooCommerce", result_message, route_naam, script_id, tabel=None)
