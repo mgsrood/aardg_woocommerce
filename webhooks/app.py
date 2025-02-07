@@ -5,7 +5,7 @@ from modules.facebook_routes import facebook_audience_customer_adder
 from modules.wc_general_routes import bigquery_order_processor
 from modules.env_tool import env_check
 from woocommerce import API
-from flask import Flask
+from flask import Flask, jsonify
 import os
 
 # Check uitvoering: lokaal of productie
@@ -96,6 +96,20 @@ def add_ac_product_tag_route():
 def new_customers_to_facebook_audience_route():
     return facebook_audience_customer_adder(greit_connection_string, klant, bron, wcapi, secret_key, long_term_token, custom_audience_id, ad_account_id, app_secret, app_id)
 
+@app.route('/abonnementen/<email>', methods=['GET'])
+def get_subscriptions(email):
+    try:
+        # Query WooCommerce to get all subscriptions
+        response = wcapi.get("subscriptions", params={"search": email})
+        
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch subscriptions", "status": response.status_code}), response.status_code
+        
+        subscriptions = response.json()
+        
+        return jsonify({"email": email, "subscriptions": subscriptions})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8443)
