@@ -1,11 +1,11 @@
-from modules.wc_subscription_routes import subscription_payment_date_mover, bigquery_subscription_processor
-from modules.ac_general_routes import ac_product_field_updater, ac_product_tag_adder
-from modules.ac_subscription_routes import ac_abo_tag_adder, ac_abo_field_updater
-from modules.facebook_routes import facebook_audience_customer_adder
-from modules.wc_general_routes import bigquery_order_processor
-from modules.env_tool import env_check
-from woocommerce import API
+from w_modules.wc_sub_routes import subscription_payment_date_mover, bigquery_subscription_processor
+from ac_modules.ac_gen_routes import ac_product_field_updater, ac_product_tag_adder
+from ac_modules.ac_sub_routes import ac_abo_tag_adder, ac_abo_field_updater
+from f_modules.facebook_routes import facebook_audience_customer_adder
+from w_modules.wc_gen_routes import bigquery_order_processor
+from g_modules.env_tool import env_check
 from flask import Flask, jsonify
+from woocommerce import API
 import os
 
 # Check uitvoering: lokaal of productie
@@ -41,7 +41,6 @@ server = os.getenv('SERVER')
 greit_connection_string = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
 
 # Algemene configuratie
-bron = "Backend Applicatie"
 klant = "Aard'g"
 script_id = 1
 
@@ -60,41 +59,37 @@ wcapi = API(
 # Woocommerce Routes
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def move_next_payment_date_route():
-    return subscription_payment_date_mover(greit_connection_string, klant, bron, wcapi, secret_key)
+    return subscription_payment_date_mover(greit_connection_string, klant, wcapi, secret_key)
 
 @app.route('/woocommerce/update_or_add_order_to_bigquery', methods=['POST'])
 def order_addition_route():
-    return bigquery_order_processor(greit_connection_string, klant, bron, wcapi, secret_key)
-
+    return bigquery_order_processor(greit_connection_string, klant, wcapi, secret_key)
 
 @app.route('/woocommerce/update_or_add_subscription_to_bigquery', methods=['POST'])
 def subscription_addition_route():
-    return bigquery_subscription_processor(greit_connection_string, klant, bron, wcapi, secret_key, credentials_path)
-# Gecontroleerd
+    return bigquery_subscription_processor(greit_connection_string, klant, wcapi, secret_key)
 
 # Active Campaign Routes
 @app.route('/woocommerce/update_ac_abo_field', methods=['POST'])
 def update_ac_abo_field_route():
-    return ac_abo_field_updater(greit_connection_string, klant, bron, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token)
-# Gecontroleerd
+    return ac_abo_field_updater(greit_connection_string, klant, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token)
 
 @app.route('/woocommerce/add_abo_tag', methods=['POST'])
 def add_abo_tag_route():
-    return ac_abo_tag_adder(greit_connection_string, klant, bron, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token)
+    return ac_abo_tag_adder(greit_connection_string, klant, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token)
 
 @app.route('/woocommerce/update_ac_product_fields', methods=['POST'])
 def update_ac_product_fields_route():
-    return ac_product_field_updater(greit_connection_string, klant, bron, wcapi, active_campaign_api_url, active_campaign_api_token, secret_key)
+    return ac_product_field_updater(greit_connection_string, klant, wcapi, active_campaign_api_url, active_campaign_api_token, secret_key)
 
 @app.route('/woocommerce/add_ac_product_tag', methods=['POST'])
 def add_ac_product_tag_route():
-    return ac_product_tag_adder(greit_connection_string, klant, bron, wcapi, active_campaign_api_url, active_campaign_api_token, secret_key)
-# Gecontroleerd
+    return ac_product_tag_adder(greit_connection_string, klant, wcapi, active_campaign_api_url, active_campaign_api_token, secret_key)
 
 # Facebook Routes
 @app.route('/woocommerce/add_new_customers_to_facebook_audience', methods=['POST'])
 def new_customers_to_facebook_audience_route():
-    return facebook_audience_customer_adder(greit_connection_string, klant, bron, wcapi, secret_key, long_term_token, custom_audience_id, ad_account_id, app_secret, app_id)
+    return facebook_audience_customer_adder(greit_connection_string, klant, wcapi, secret_key, long_term_token, custom_audience_id, app_secret, app_id)
 
 @app.route('/abonnementen/<email>', methods=['GET'])
 def get_subscriptions(email):

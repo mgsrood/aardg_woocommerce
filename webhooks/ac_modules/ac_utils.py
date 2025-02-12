@@ -1,17 +1,28 @@
 import requests
+import logging
 
 def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token):
     url = active_campaign_api_url + f"contacts/{contact_id}/fieldValues"
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
-    response = requests.get(url, headers=headers)
-    return response.json()
+    
+    try:
+        response = requests.get(url, headers=headers)
+        return response.json()                          
+    except Exception as e:
+        logging.error(f"Fout bij het ophalen van ActiveCampaign velden: {e}")
+        return None
 
 def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token):
     url = active_campaign_api_url + "contacts/"
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
     params = {'email': email}
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
+    
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        return response.json()
+    except Exception as e:
+        logging.error(f"Fout bij het ophalen van ActiveCampaign data: {e}")
+        return None
     
 def get_active_campaign_tag_data(active_campaign_api_url, active_campaign_api_token, search_key=None):
     url = f"{active_campaign_api_url}tags"
@@ -26,7 +37,7 @@ def get_active_campaign_tag_data(active_campaign_api_url, active_campaign_api_to
         response.raise_for_status()  # Verhoogt een uitzondering bij een HTTP-foutstatus
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"An error occurred: {e}")
+        logging.error("Fout bij het ophalen van ActiveCampaign tags: {}".format(e))
         return None
 
 def add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token):
@@ -40,9 +51,9 @@ def add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
         } }
             response = requests.post(url, json=payload, headers=headers)
             if response.status_code == 201:
-                print(f"Succesfully added tag {tag['tag']} to contact with id {tag['contact']}")
+                logging.info(f"Tag {tag['tag']} succesvol toegevoegd aan contact {tag['contact']}")
             else:
-                print(f"Failed to add tag {tag['tag']} to contact with id {tag['contact']}: {response.content}")
+                logging.error(f"Tag {tag['tag']} mislukt toe te voegen aan contact {tag['contact']}")
 
 def update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=None, new_fields=None):
     url = active_campaign_api_url + "fieldValues"
@@ -51,7 +62,7 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
         "Api-Token": active_campaign_api_token
     }
 
-    # Update existing fields
+    # Bestaande velden updaten
     if updated_fields:
         for update in updated_fields:
             specific_field_url = url + f"/{update['id']}"
@@ -65,11 +76,11 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
             }
             response = requests.put(specific_field_url, json=payload, headers=headers)
             if response.status_code == 200:
-                print(f"Succesfully updated field {update['field']} with value {update['value']}")
+                logging.info(f"{update['field']} geupdated met waarde {update['value']}")
             else:
-                print(f"Failed to update field {update['field']} with value {update['value']}: {response.content}")
+                logging.error(f"{update['field']} mislukt geupdated met waarde {update['value']}: {response.content}")
 
-    # Add new fields
+    # Nieuwe velden toevoegen
     if new_fields:
         for new in new_fields:
             payload = {
@@ -82,9 +93,9 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
             }
             response = requests.post(url, json=payload, headers=headers)
             if response.status_code == 201:
-                print(f"Succesfully added new field {new['field']} with value {new['value']}")
+                logging.info("Nieuw veld {new['field']} met waarde {new['value']} toegevoegd")
             else:
-                print(f"Failed to add new field {new['field']} with value {new['value']}: {response.content}")
+                logging.error(f"Nieuw veld {new['field']} met waarde {new['value']} mislukt toe te voegen: {response.content}")
 
 
 category_to_field_map = {

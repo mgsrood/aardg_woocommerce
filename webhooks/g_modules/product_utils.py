@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 
@@ -40,6 +41,9 @@ def get_category_one_dict():
             category_one_dict['Frisdrank'].append(id)
         elif any(sub in sku for sub in starter):
             category_one_dict['Starter'].append(id)
+        else:
+            logging.error("Onbekende SKU: " + sku)
+            return None
 
     return category_one_dict
 
@@ -100,6 +104,9 @@ def get_base_unit_values():
             base_unit_values_dict['2'].append(id)
         elif any(sub in sku for sub in one):
             base_unit_values_dict['1'].append(id)
+        else:
+            logging.error("Onbekende SKU: " + sku)
+            None
 
     return base_unit_values_dict
 
@@ -152,6 +159,9 @@ def get_sku_dict():
             sku_dict['C12'].append(id)
         elif any(sub in sku for sub in g12):
             sku_dict['G12'].append(id)
+        else:
+            logging.error("Onbekende SKU: " + sku)
+            None
 
     return sku_dict
 
@@ -182,4 +192,5 @@ def determine_base_product(sku):
     elif any(substring in sku for substring in ['F12', 'F-', '8719327215128', 'F-X2', 'F-XL']):
         return 'Frisdrank Mix'
     else:
-        return 'Onbekend' 
+        logging.error("Onbekende SKU: " + sku)
+        return None

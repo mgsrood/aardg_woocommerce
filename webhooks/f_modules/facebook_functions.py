@@ -1,10 +1,10 @@
 from facebook_business.adobjects.customaudience import CustomAudience
-from modules.facebook_utils import initialize_facebook_api
-from modules.log import log
+from facebook_business.api import FacebookAdsApi
+import logging
 import hashlib
 
 
-def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id, greit_connection_string, klant, script_id):
+def add_new_customers_to_facebook_audience(customer_data, my_app_id, my_app_secret, long_term_token, custom_audience_id):
     # Account to add
     users = [
         {
@@ -21,9 +21,10 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
 
     # Initialiseer de Facebook API (en vernieuw token indien nodig)
     try:
-        long_term_token = initialize_facebook_api(app_id, app_secret, long_term_token)
+        FacebookAdsApi.init(app_id=my_app_id, app_secret=my_app_secret, access_token=long_term_token)
+        logging.info("Initialisatie Facebook API geslaagd")
     except Exception as e:
-        log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+        logging.error(f"Initialisatie Facebook API mislukt: {e}")
 
     # Definieer de Custom Audience
     custom_audience = CustomAudience(custom_audience_id)
@@ -42,7 +43,7 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
     # Normaliseer en hash de gegevens
     hashed_users = []
     try:
-        log(greit_connection_string, klant, "WooCommerce | Facebook", "Gegevens normaliseren en hashen", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+        logging.info("Gegevens normaliseren en hashen")
         for user in users:
             hashed_user = []
             hashed_user.append(normalize_and_hash(user.get('email')))
@@ -55,7 +56,7 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
             hashed_user.append(normalize_and_hash(user.get('country')))
             hashed_users.append(hashed_user)
     except Exception as e:
-        log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+        logging.error(f"Gegevens normaliseren en hashen mislukt: {e}")
         raise
 
     # Bepaal het schema dat overeenkomt met de volgorde van de gegevens in hashed_users
@@ -65,12 +66,13 @@ def add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, lo
 
     # Voeg gebruikers toe aan de Custom Audience
     try:
-        log(greit_connection_string, klant, "WooCommerce | Facebook", "Gebruikers toevoegen aan Facebook audience", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+        logging.info("Gebruikers toevoegen aan Facebook audience")
         response = custom_audience.add_users(
             schema=schema,
             users=hashed_users,
             is_raw=True  # Geeft aan dat de gegevens al gehasht zijn
         )
+        logging.info(f"Gebruikers toevoegen aan Facebook audience geslaagd: {response}")
     except Exception as e:
-        log(greit_connection_string, klant, "WooCommerce | Facebook", f"FOUTMELDING: {e}", "Nieuwe klanten toevoegen aan Facebook audience", script_id, tabel=None)
+        logging.error(f"Gebruikers toevoegen aan Facebook audience mislukt: {e}")
         raise

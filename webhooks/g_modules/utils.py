@@ -1,4 +1,5 @@
 def update_field_values(current_fields, updates):
+    
     # Maak een dictionary van de huidige velden voor snelle toegang
     updated_fields_dict = {field['field']: field for field in current_fields}
     new_fields_dict = {}
@@ -26,8 +27,7 @@ def update_field_values(current_fields, updates):
 
 def add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_item):
 
-    # Check updated_fields if there is a field with id 13, if so update the value of that field with last_ordered_item, if no field with id 13, add a new field with id 13 and value last_ordered_item to new_fields
-
+    # Controleer of er een veld met id 13 bestaat in updated_fields
     for field in updated_fields:
         if field['field'] == '13':
             field['value'] = last_ordered_item

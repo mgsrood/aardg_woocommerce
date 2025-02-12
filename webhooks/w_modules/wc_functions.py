@@ -1,18 +1,18 @@
-from modules.woocommerce_utils import get_woocommerce_order_data, get_woocommerce_subscription_data
+from w_modules.woocommerce_utils import get_woocommerce_order_data, get_woocommerce_subscription_data
 from datetime import datetime, timedelta
 from google.cloud import bigquery
-from modules.log import log
+import logging
 
-def move_next_payment_date(data, wcapi, greit_connection_string, klant, script_id, route_naam):
+def move_next_payment_date(data, wcapi):
     
     # Verkoopmethode bepalen
     payment_method = data.get('payment_method_title')
-    log(greit_connection_string, klant, "WooCommerce", f"Verkoopmethode bepalen", route_naam, script_id, tabel=None)
+    logging.info("Verkoopmethode: " + payment_method)
     
     # Als betaalmethode iDEAL of Bancontact is, verplaats de volgende betaaldatum met 7 dagen
     if payment_method in ['iDEAL', 'Bancontact']:
         next_payment_date_str = data.get('next_payment_date_gmt')
-        log(greit_connection_string, klant, "WooCommerce", f"Betaaldatum verplaatsen naar {next_payment_date_str}", route_naam, script_id, tabel=None)
+        logging.info("Betaaldatum: " + next_payment_date_str)
         
         # Converteer de datum string naar een datetime object
         if next_payment_date_str:
@@ -27,13 +27,13 @@ def move_next_payment_date(data, wcapi, greit_connection_string, klant, script_i
             # Voer de PUT request uit naar WooCommerce API
             try:
                 wcapi.put(f"subscriptions/{data['id']}", update_data)
+                logging.info("Betaaldatum verplaatst met 7 dagen")
             except Exception as e:
-                log(greit_connection_string, klant, "WooCommerce", f"FOUTMELDING: {e}", route_naam, script_id, tabel=None)
+                logging.error("Fout bij het verplaatsen van de betaaldatum: " + str(e))
 
-def update_or_insert_sub_to_bigquery(greit_connection_string, klant, script_id, route_naam, subscription_id, wcapi):
+def update_or_insert_sub_to_bigquery(subscription_id, wcapi):
 
-    # Log de start van de verwerking
-    log(greit_connection_string, klant, "WooCommerce | BigQuery", "Initialiseren van BigQuery", "Abonnement verwerken in BigQuery", script_id, tabel=None)
+    logging.info("Abonnement verwerken in BigQuery")
 
     # Initialiseer de BigQuery client
     client = bigquery.Client()
@@ -48,11 +48,9 @@ def update_or_insert_sub_to_bigquery(greit_connection_string, klant, script_id, 
     # Verkrijg de tabel om ervoor te zorgen dat deze bestaat en dat je schema correct is
     try:
         table = client.get_table(table_ref)
-        print(f"Table {table_id} in dataset {dataset_id} accessed successfully.")
-        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"Tabel {table_id} in dataset {dataset_id} gevonden.", "Abonnement verwerken in BigQuery", script_id, tabel=None)
+        logging.info("Table " + table_id + " in dataset " + dataset_id + " gevonden.")
     except Exception as e:
-        print(f"Error accessing table: {e}")
-        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement verwerken in BigQuery", script_id, tabel=None)
+        logging.error("Fout bij het verkrijgen van de tabel: " + str(e))
         return
     
     # Controleer of de order al bestaat
@@ -60,7 +58,7 @@ def update_or_insert_sub_to_bigquery(greit_connection_string, klant, script_id, 
     check_job = client.query(check_query)
     exists = next(check_job.result()).f0_ > 0
 
-
+    # Verkrijg de order data van WooCommerce
     customer_data = get_woocommerce_subscription_data(subscription_id, wcapi)
     tabel_input = {
         "subscription_id": customer_data["id"],
@@ -214,17 +212,20 @@ def update_or_insert_sub_to_bigquery(greit_connection_string, klant, script_id, 
     # Voer de MERGE-query uit
     try:
         query_job = client.query(query)
+        logging.info("Query uitgevoerd")
     except Exception as e:
-        log(greit_connection_string, klant, "WooCommerce", f"FOUTMELDING: {e}", route_naam, script_id, tabel=None)
+        logging.error("Fout bij het uitvoeren van de query: " + str(e))
 
     query_job.result()  # Wacht tot de query is voltooid
     
     # Bepaal actie op basis van controle
     action = "Update uitgevoerd voor subscription ID" if exists else "Insert uitgevoerd voor subscription ID"
     result_message = f"{action} {subscription_id}"
-    log(greit_connection_string, klant, "WooCommerce", result_message, route_naam, script_id, tabel=None)
+    logging.info(result_message)
 
-def update_or_insert_order_to_bigquery(greit_connection_string, klant, script_id, route_naam, order_id, wcapi):
+def update_or_insert_order_to_bigquery(order_id, wcapi):
+
+    logging.info("Order verwerken in BigQuery")
 
     # Initialiseer de BigQuery client
     client = bigquery.Client()
@@ -239,11 +240,10 @@ def update_or_insert_order_to_bigquery(greit_connection_string, klant, script_id
     # Verkrijg de tabel om ervoor te zorgen dat deze bestaat en dat je schema correct is
     try:
         table = client.get_table(table_ref)
-        print(f"Table {table_id} in dataset {dataset_id} accessed successfully.")
-        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"Tabel {table_id} in dataset {dataset_id} gevonden.", "Order toevoegen aan BigQuery", script_id, tabel=None)
+        logging.info("Table " + table_id + " in dataset " + dataset_id + " gevonden.")
     except Exception as e:
-        print(f"Error accessing table: {e}")
-        log(greit_connection_string, klant, "WooCommerce | BigQuery", f"FOUTMELDING: {e}", "Abonnement toevoegen aan BigQuery", script_id, tabel=None)
+        logging.error("Fout bij het verkrijgen van de tabel: " + str(e))
+        return
 
     # Controleer of de order al bestaat
     check_query = f"SELECT COUNT(*) FROM `{dataset_id}.{table_id}` WHERE order_id = {order_id}"
@@ -406,13 +406,13 @@ def update_or_insert_order_to_bigquery(greit_connection_string, klant, script_id
     # Voer de MERGE-query uit
     try:
         query_job = client.query(query)
+        logging.info("Query uitgevoerd")
     except Exception as e:
-        log(greit_connection_string, klant, "WooCommerce", f"FOUTMELDING: {e}", route_naam, script_id, tabel=None)
+        logging.error("Fout bij het uitvoeren van de query: " + str(e))
 
     query_job.result()  # Wacht tot de query is voltooid
     
     # Bepaal actie op basis van controle
     action = "Update uitgevoerd voor order ID" if exists else "Insert uitgevoerd voor order ID"
     result_message = f"{action} {order_id}"
-    print(result_message)
-    log(greit_connection_string, klant, "WooCommerce", result_message, route_naam, script_id, tabel=None)
+    logging.info(result_message)
