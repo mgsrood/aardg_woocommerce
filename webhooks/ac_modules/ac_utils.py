@@ -78,10 +78,10 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
             response = requests.put(specific_field_url, json=payload, headers=headers)
             if response.status_code == 200:
                 logging.info(f"Veld {update['field']} geüpdatet met waarde {update['value']}")
-            elif "No Result found for Field" in response.content:
+            elif "No Result found for Field" in response.content.decode("utf-8"):
                 logging.warning(f"Geen resultaat gevonden voor veld {update['field']}. Geen update uitgevoerd.")
             else:
-                logging.error(f"Veld {update['field']} mislukt geüpdatet met waarde {update['value']}: {response.content}")
+                logging.error(f"Veld {update['field']} mislukt geüpdatet met waarde {update['value']}: {response.content.decode('utf-8')}")
 
     # Nieuwe velden toevoegen
     if new_fields:
