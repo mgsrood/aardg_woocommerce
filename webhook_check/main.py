@@ -67,4 +67,6 @@ def main():
     end_log(start_time)
         
 if __name__ == "__main__":
+    # Start main
     main()
+    
