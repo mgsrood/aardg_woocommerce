@@ -15,7 +15,7 @@ def get_file_path():
 def get_category_one_dict():
     # File path
     file_path = get_file_path()
-
+    logging.info(file_path)
     # Catalogus laden
     product_catalogue = load_catalogue_from_json(file_path)
 
@@ -42,8 +42,7 @@ def get_category_one_dict():
         elif any(sub in sku for sub in starter):
             category_one_dict['Starter'].append(id)
         else:
-            logging.error("Onbekende SKU: " + sku)
-            return None
+            logging.warning("Onbekende SKU: " + sku)
 
     return category_one_dict
 
@@ -105,8 +104,7 @@ def get_base_unit_values():
         elif any(sub in sku for sub in one):
             base_unit_values_dict['1'].append(id)
         else:
-            logging.error("Onbekende SKU: " + sku)
-            None
+            logging.warning("Onbekende SKU: " + sku)
 
     return base_unit_values_dict
 
@@ -160,8 +158,7 @@ def get_sku_dict():
         elif any(sub in sku for sub in g12):
             sku_dict['G12'].append(id)
         else:
-            logging.error("Onbekende SKU: " + sku)
-            None
+            logging.warning("Onbekende SKU: " + sku)
 
     return sku_dict
 
@@ -192,5 +189,4 @@ def determine_base_product(sku):
     elif any(substring in sku for substring in ['F12', 'F-', '8719327215128', 'F-X2', 'F-XL']):
         return 'Frisdrank Mix'
     else:
-        logging.error("Onbekende SKU: " + sku)
-        return None
+        logging.warning("Onbekende SKU: " + sku)
