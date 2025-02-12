@@ -70,6 +70,7 @@ def update_active_campaign_product_fields(order_data, active_campaign_api_url, a
     try:
         updated_fields, new_fields = update_field_values(current_fields, product_line_fields + discount_line_fields + orderbump_line_fields + fkcart_upsell_line_fields)
         updated_fields, new_fields = add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_item)
+        logging.info(f"Updated fields: {updated_fields}, New fields: {new_fields}")
     except Exception as e:
         logging.error("Fout bij het bijwerken van ActiveCampaign product velden: " + str(e))
 

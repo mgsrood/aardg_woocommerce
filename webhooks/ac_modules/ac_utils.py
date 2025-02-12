@@ -76,9 +76,9 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
             }
             response = requests.put(specific_field_url, json=payload, headers=headers)
             if response.status_code == 200:
-                logging.info(f"{update['field']} geupdated met waarde {update['value']}")
+                logging.info(f"Veld {update['field']} geupdated met waarde {update['value']}")
             else:
-                logging.error(f"{update['field']} mislukt geupdated met waarde {update['value']}: {response.content}")
+                logging.error(f"Veld {update['field']} mislukt geupdated met waarde {update['value']}: {response.content}")
 
     # Nieuwe velden toevoegen
     if new_fields:
@@ -93,7 +93,7 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
             }
             response = requests.post(url, json=payload, headers=headers)
             if response.status_code == 201:
-                logging.info("Nieuw veld {new['field']} met waarde {new['value']} toegevoegd")
+                logging.info(f"Nieuw veld {new['field']} met waarde {new['value']} toegevoegd")
             else:
                 logging.error(f"Nieuw veld {new['field']} met waarde {new['value']} mislukt toe te voegen: {response.content}")
 
