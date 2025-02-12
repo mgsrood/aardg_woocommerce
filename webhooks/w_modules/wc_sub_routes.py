@@ -44,7 +44,7 @@ def subscription_payment_date_mover(greit_connection_string, klant, wcapi, secre
             # Customer data verwerken
             subscription_data = response.json()
             move_next_payment_date(data, wcapi)
-            logging.info(f"Product velden bijgewerkt voor {subscription_data['billing']['first_name'] + ' ' + subscription_data['billing']['last_name']}")
+            logging.info(f"Abonnement toegevoegd / geupdate voor {subscription_data['billing']['first_name'] + ' ' + subscription_data['billing']['last_name']}")
             
             # End logging
             end_log(start_time)

@@ -44,7 +44,7 @@ def bigquery_order_processor(greit_connection_string, klant, wcapi, secret_key):
             # Customer data verwerken
             order_data = response.json()
             update_or_insert_order_to_bigquery(order_id, wcapi)
-            logging.info(f"Product velden bijgewerkt voor {order_data['billing']['first_name'] + ' ' + order_data['billing']['last_name']}")
+            logging.info(f"Order toegevoegd / geupdate voor {order_data['billing']['first_name'] + ' ' + order_data['billing']['last_name']}")
             
             # End logging
             end_log(start_time)

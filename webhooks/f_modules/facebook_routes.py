@@ -50,7 +50,7 @@ def facebook_audience_customer_adder(greit_connection_string, klant, wcapi, secr
             end_log(start_time)
         
         else:
-            logging.error("Klant kon niet worden toegevoegd aan Facebook audience: " + response.status_code)
+            logging.error(f"Klant kon niet worden toegevoegd aan Facebook audience: {response.status_code}")
             jsonify({'status': 'error'}), response.status_code
 
     return jsonify({'status': 'success'}), 200
