@@ -22,6 +22,7 @@ def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api
         response = requests.get(url, headers=headers, params=params)
         return response.json()
     except Exception as e:
+        logging.error(response.content)
         logging.error(f"Fout bij het ophalen van ActiveCampaign data: {e}")
         return None
     
