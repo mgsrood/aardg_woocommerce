@@ -89,11 +89,11 @@ def add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_
     # Gewenste datapunten uit order data halen
     line_items = order_data['line_items']
     email = order_data.get('billing', {}).get('email')
-    logging.info(f"Email: {email}")
-    logging.info(f"Order_data: {order_data}")
+
     # ActiveCampaign ID ophalen
     logging.info("Ophalen ActiveCampaign ID voor: " + email)
     active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
+    logging.info(f"Active Campaign Data: {active_campaign_data}")
     active_campaign_id = active_campaign_data['contacts'][0]['id']
 
     # Gewenste tags
