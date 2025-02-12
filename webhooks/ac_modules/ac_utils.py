@@ -14,7 +14,7 @@ def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campa
 
 def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token):
     url = active_campaign_api_url + f"contacts?email={email}"
-    logging.info(url)
+    logging.info(active_campaign_api_token)
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
     
     try:
