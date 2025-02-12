@@ -13,13 +13,12 @@ def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campa
         return None
 
 def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token):
-    url = active_campaign_api_url + "contacts"
+    url = active_campaign_api_url + f"contacts?email={email}"
     logging.info(url)
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
-    params = {'email': email}
     
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers)
         return response.json()
     except Exception as e:
         logging.error(response.content)
