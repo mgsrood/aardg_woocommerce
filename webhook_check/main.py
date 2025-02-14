@@ -36,12 +36,6 @@ def main():
     server = os.getenv('SERVER')
     greit_connection_string = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
 
-    # Algemene configuratie
-    klant = "Aard'g"
-    script = "Order Correctie"
-    bron = "WooCommerce"
-    start_time = time.time()
-
     # WooCommerce API configuratie
     wcapi = API(
         url=woocommerce_url,
