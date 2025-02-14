@@ -105,10 +105,10 @@ def update_or_insert_to_bigquery(table_id, dataset_id, primary_key, data):
 def update_or_insert_order_to_bigquery(order_id, wcapi):
     """ Verwerk een order in BigQuery """
     data = get_woocommerce_order_data(order_id, wcapi)
-    update_or_insert_to_bigquery("orders", "woocommerce_data", "order_id", data)
+    update_or_insert_to_bigquery("orders", "woocommerce_data", "id", data)
 
 def update_or_insert_sub_to_bigquery(subscription_id, wcapi):
     """ Verwerk een abonnement in BigQuery """
     data = get_woocommerce_subscription_data(subscription_id, wcapi)
-    update_or_insert_to_bigquery("subscriptions", "woocommerce", "subscription_id", data)
+    update_or_insert_to_bigquery("subscriptions", "woocommerce", "id", data)
 
