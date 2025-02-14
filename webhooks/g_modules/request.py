@@ -11,8 +11,8 @@ def validate_signature(request, secret):
     computed_signature = base64.b64encode(hmac.new(secret.encode(), payload, hashlib.sha256).digest()).decode()
     
     # Logging voor debugging
-    logging.debug(f"Received signature: {signature}")
-    logging.debug(f"Computed signature: {computed_signature}")
+    logging.info(f"Received signature: {signature}")
+    logging.info(f"Computed signature: {computed_signature}")
     
     return hmac.compare_digest(signature, computed_signature)
 
