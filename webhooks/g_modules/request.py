@@ -8,7 +8,9 @@ import json
 def validate_signature(request, secret):
     payload = request.get_data()
     signature = request.headers.get('X-WC-Webhook-Signature')
-    computed_signature = base64.b64encode(hmac.new(secret.encode(), payload, hashlib.sha256).digest()).decode()
+    computed_signature = base64.b64encode(
+    bytes.fromhex(hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest())
+).decode()
     
     # Logging voor debugging
     logging.info(f"Received signature: {signature}")
