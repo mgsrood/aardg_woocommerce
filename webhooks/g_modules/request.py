@@ -6,19 +6,25 @@ import hmac
 import json
 
 def validate_signature(request, secret):
-    raw_payload = request.get_data()  # Dit moet de exacte bytes zijn
-    received_signature = request.headers.get('X-WC-Webhook-Signature')
-
-    computed_signature = base64.b64encode(
-        hmac.new(secret.encode("utf-8"), raw_payload, hashlib.sha256).digest()
-    ).decode("utf-8")
-    logging.info(f"Secret key: {secret}")
-    logging.info(f"Raw Payload: {raw_payload}")
-    logging.info(f"Computed Signature: {computed_signature}")
-    logging.info(f"Received Signature: {received_signature}")
-
-    return hmac.compare_digest(received_signature, computed_signature)
-
+    payload = request.get_data()
+    signature = request.headers.get('X-WC-Webhook-Signature')
+    computed_signature = base64.b64encode(hmac.new(secret.encode(), payload, hashlib.sha256).digest()).decode()
+    
+    # Logging voor debugging
+    logging.debug(f"Received signature: {signature}")
+    logging.debug(f"Computed signature: {computed_signature}")
+    
+    return hmac.compare_digest(signature, computed_signature)
 
 def parse_request_data():
-    return request.get_data()
+    content_type = request.headers.get('Content-Type')
+    if content_type == 'application/json':
+        return request.get_json(silent=True)
+    elif content_type == 'application/x-www-form-urlencoded':
+        form_data = request.form.to_dict(flat=False)
+        for key in form_data:
+            try:
+                return json.loads(key)
+            except json.JSONDecodeError:
+                continue
+    return None
