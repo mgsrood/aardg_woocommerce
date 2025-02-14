@@ -12,6 +12,7 @@ def validate_signature(request, secret):
     
     # Logging voor debugging
     logging.info(f"Received signature: {signature}")
+    logging.info(f"Received payload: {payload}")
     logging.info(f"Computed signature: {computed_signature}")
     
     return hmac.compare_digest(signature, computed_signature)
