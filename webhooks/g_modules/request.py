@@ -23,17 +23,17 @@ def parse_request_data():
 
     # Log de ruwe payload direct
     raw_payload = request.get_data()
-    logging.debug(f"Ruwe payload (bytes): {raw_payload}")
+    logging.info(f"Ruwe payload (bytes): {raw_payload}")
 
     # Als JSON, probeer te decoderen zonder mutaties
     if content_type == 'application/json':
         try:
             json_payload = request.get_json(silent=True)  # Kan de JSON herformatteren
-            logging.debug(f"JSON payload (zoals Flask parsed): {json_payload}")
+            logging.info(f"JSON payload (zoals Flask parsed): {json_payload}")
 
             # Herformatteer naar exacte JSON string zoals WooCommerce zou verwachten
             formatted_payload = json.dumps(json_payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-            logging.debug(f"Geformatteerde JSON (zonder spaties/newlines): {formatted_payload}")
+            logging.info(f"Geformatteerde JSON (zonder spaties/newlines): {formatted_payload}")
 
             return formatted_payload  # Dit is wat we voor de signature check moeten gebruiken
         except Exception as e:
