@@ -36,20 +36,45 @@ class DatabaseHandler(logging.Handler):
 
     def emit(self, record):
         try:
-            # Voeg de extra informatie toe aan het logbericht
             log_message = self.format(record)
             log_message = log_message.split('-')[-1].strip()
-            
-            # Converteer de tijd naar een string in het juiste formaat
             created_at = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Voer de SQL-query uit om het logbericht in de database in te voegen
-            self.cursor.execute("INSERT INTO Logboek (Niveau, Bericht, Datumtijd, Klant, Bron, Script, Script_ID) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                (record.levelname, log_message, created_at, self.customer, self.source, self.script, self.script_id))
+
+            # Controleer of de verbinding nog actief is
+            if self.conn is None or self.cursor is None:
+                self.reconnect()
+
+            self.cursor.execute(
+                "INSERT INTO Logboek (Niveau, Bericht, Datumtijd, Klant, Bron, Script, Script_ID) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (record.levelname, log_message, created_at, self.customer, self.source, self.script, self.script_id)
+            )
             self.conn.commit()
+
+        except pyodbc.OperationalError:
+            print("Databaseverbinding weg. Probeer opnieuw te verbinden.")
+            self.reconnect()
+
         except Exception as e:
-            # Fout bij het invoegen van het logbericht in de database
-            logging.error(f"Fout bij het invoegen van het logbericht in de database: {e}")
+            print(f"Fout bij het loggen naar de database: {e}")
+
+    def reconnect(self):
+        """Herstel de databaseverbinding met een retry-mechanisme."""
+        retries = 3
+        for attempt in range(retries):
+            try:
+                print(f"Probeer opnieuw verbinding te maken... (poging {attempt + 1})")
+                self.conn = pyodbc.connect(self.conn_str, timeout=10)
+                self.cursor = self.conn.cursor()
+                print("Databaseverbinding hersteld.")
+                return
+            except Exception as e:
+                print(f"Poging {attempt + 1} mislukt: {e}")
+                time.sleep(5)  # Wacht 5 seconden voor een nieuwe poging
+
+        print("Kon geen verbinding maken na meerdere pogingen.")
+        self.conn = None
+        self.cursor = None
+
 
     def close(self):
         try:
