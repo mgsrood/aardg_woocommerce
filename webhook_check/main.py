@@ -1,7 +1,6 @@
 from c_modules.webhook_check import check_webhooks
 from c_modules.config import determine_script_id
 from c_modules.log import end_log, setup_logging
-from datetime import datetime, timedelta
 from c_modules.env_tool import env_check
 from woocommerce import API
 import logging

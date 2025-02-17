@@ -1,0 +1,17 @@
+2025-02-17 11:43:57 - INFO - Logboek is geconfigureerd.
+2025-02-17 11:43:57 - ERROR - Error: single_invoice() takes 1 positional argument but 6 were given
+2025-02-17 11:43:57 - INFO - Script ended in 0:00:00
+2025-02-17 11:44:13 - INFO - Logboek is geconfigureerd.
+2025-02-17 11:44:15 - ERROR - Error: Cannot open resource "/Users/maxrood/werk/codering/aardg/projecten/woocommerce/invoicing/logo.jpg"
+2025-02-17 11:44:15 - INFO - Script ended in 0:00:02
+2025-02-17 11:44:54 - INFO - Logboek is geconfigureerd.
+2025-02-17 11:44:59 - INFO - Script ended in 0:00:06
+2025-02-17 12:07:22 - INFO - Logboek is geconfigureerd.
+2025-02-17 12:07:28 - INFO - Script ended in 0:00:06
+2025-02-17 12:12:47 - INFO - Logboek is geconfigureerd.
+2025-02-17 12:12:56 - ERROR - Error: create_invoice_pdf() missing 1 required positional argument: 'logo'
+2025-02-17 12:12:56 - INFO - Script ended in 0:00:16
+2025-02-17 12:13:39 - INFO - Logboek is geconfigureerd.
+2025-02-17 12:13:45 - INFO - Script ended in 0:00:06
+2025-02-17 12:13:59 - INFO - Logboek is geconfigureerd.
+2025-02-17 12:14:08 - INFO - Script ended in 0:00:09
