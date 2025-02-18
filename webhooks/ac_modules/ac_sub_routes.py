@@ -22,7 +22,7 @@ def ac_abo_field_updater(greit_connection_string, klant, wcapi, secret_key, acti
     # Payload verwerken
     data = parse_request_data()
     if not data:
-        logging.warning("Geen payload gevonden")
+        logging.error("Geen payload gevonden")
         return jsonify({'status': 'no payload'}), 200
 
     # Handtekening controleren
@@ -71,7 +71,7 @@ def ac_abo_tag_adder(greit_connection_string, klant, wcapi, secret_key, active_c
     # Payload verwerken
     data = parse_request_data()
     if not data:
-        logging.warning("Geen payload gevonden")
+        logging.error("Geen payload gevonden")
         return jsonify({'status': 'no payload'}), 200
 
     # Handtekening controleren

@@ -22,7 +22,7 @@ def bigquery_order_processor(greit_connection_string, klant, wcapi, secret_key):
     # Payload verwerken
     data = parse_request_data()
     if not data:
-        logging.warning("Geen payload gevonden")
+        logging.error("Geen payload gevonden")
         return jsonify({'status': 'no payload'}), 200
 
     # Handtekening controleren

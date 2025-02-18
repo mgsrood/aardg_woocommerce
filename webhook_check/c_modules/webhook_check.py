@@ -12,7 +12,7 @@ def check_webhooks(wcapi):
         for webhook in webhooks:
             if "ActiveCampaign" not in webhook["name"]:
                 if webhook["status"] in ["disabled", "trash"]:
-                    logging.warning(f"Webhook '{webhook['name']}' (ID: {webhook['id']}) is uitgeschakeld.")
+                    logging.error(f"Webhook '{webhook['name']}' (ID: {webhook['id']}) is uitgeschakeld.")
 
     except Exception as e:
         logging.error(f"Fout bij ophalen WooCommerce webhooks: {e}")

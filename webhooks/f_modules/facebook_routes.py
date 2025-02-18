@@ -22,7 +22,7 @@ def facebook_audience_customer_adder(greit_connection_string, klant, wcapi, secr
     # Payload verwerken
     data = parse_request_data()
     if not data:
-        logging.warning("Geen payload gevonden")
+        logging.error("Geen payload gevonden")
         return jsonify({'status': 'no payload'}), 200
 
     # Handtekening controleren

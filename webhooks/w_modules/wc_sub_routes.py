@@ -22,7 +22,7 @@ def subscription_payment_date_mover(greit_connection_string, klant, wcapi, secre
     # Payload verwerken
     data = parse_request_data()
     if not data:
-        logging.warning("Geen payload gevonden")
+        logging.error("Geen payload gevonden")
         return jsonify({'status': 'no payload'}), 200
 
     # Handtekening controleren
@@ -71,7 +71,7 @@ def bigquery_subscription_processor(greit_connection_string, klant, wcapi, secre
     # Payload verwerken
     data = parse_request_data()
     if not data:
-        logging.warning("Geen payload gevonden")
+        logging.error("Geen payload gevonden")
         return jsonify({'status': 'no payload'}), 200
 
     # Handtekening controleren
