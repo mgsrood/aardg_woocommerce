@@ -15,7 +15,7 @@ def get_file_path():
 def get_category_one_dict():
     # File path
     file_path = get_file_path()
-    logging.info(file_path)
+
     # Catalogus laden
     product_catalogue = load_catalogue_from_json(file_path)
 
@@ -31,7 +31,6 @@ def get_category_one_dict():
     originals = ['P28', 'P56', 'K4', 'K8', 'W4', 'W8', 'M4', 'M8', 'P-', 'K-', 'W-', 'M-', '8719327215180', '8719326399386', '8719326399393', '8719327215135']
     frisdrank = ['F12', 'B12', 'C12', 'G12', 'F-', 'B-', 'C-', 'G-', '8719326399355', '8719326399362', '8719326399379', '8719327215128']
     starter = ['Starter', 'S-', '8719327215111', 'S-ACTIE_X']
-    overig = ['8719327215159', '8719327215173', '8719327215197']
 
     for sku, id in product_catalogue.items():
         if any(sub in sku for sub in challenge):
@@ -42,10 +41,6 @@ def get_category_one_dict():
             category_one_dict['Frisdrank'].append(id)
         elif any(sub in sku for sub in starter):
             category_one_dict['Starter'].append(id)
-        elif any(sub in sku for sub in overig):
-            logging.info("Overig product")
-        else:
-            logging.error("Onbekende SKU: " + sku)
 
     return category_one_dict
 
@@ -66,8 +61,6 @@ def get_discount_dict():
     for sku, id in product_catalogue.items():
         if any(sub in sku for sub in discount):
             discount_dict['Discount'].append(id)
-        else:
-            None
 
     return discount_dict
 
@@ -94,7 +87,6 @@ def get_base_unit_values():
     three = ['MP-XL', 'F-XL']
     six = ['halfjaar']
     twelve = ['jaar']
-    overig = ['8719327215159', '8719327215173', '8719327215197']
 
     for sku, id in product_catalogue.items():
         if any(sub in sku for sub in twelve):
@@ -107,10 +99,6 @@ def get_base_unit_values():
             base_unit_values_dict['2'].append(id)
         elif any(sub in sku for sub in one):
             base_unit_values_dict['1'].append(id)
-        elif any(sub in sku for sub in overig):
-            logging.info("Overig product")
-        else:
-            logging.error("Onbekende SKU: " + sku)
 
     return base_unit_values_dict
 
@@ -164,10 +152,6 @@ def get_sku_dict():
             sku_dict['C12'].append(id)
         elif any(sub in sku for sub in g12):
             sku_dict['G12'].append(id)
-        elif any(sub in sku for sub in overig):
-            logging.info("Overig product")
-        else:
-            logging.error("Onbekende SKU: " + sku)
 
     return sku_dict
 
@@ -197,7 +181,5 @@ def determine_base_product(sku):
         return 'Bloem'
     elif any(substring in sku for substring in ['F12', 'F-', '8719327215128', 'F-X2', 'F-XL']):
         return 'Frisdrank Mix'
-    elif any(substring in sku for substring in ['8719327215159', '8719327215173', '8719327215197']):
-        return 'Overig'
-    else:
-        logging.error("Onbekende SKU: " + sku)
+    else:  
+        return 'unknown'

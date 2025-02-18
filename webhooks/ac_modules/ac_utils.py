@@ -54,7 +54,7 @@ def add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
             if response.status_code == 201:
                 logging.info(f"Tag {tag['tag']} succesvol toegevoegd aan contact {tag['contact']}")
             else:
-                logging.error(f"Tag {tag['tag']} mislukt toe te voegen aan contact {tag['contact']}")
+                logging.error(f"Tag {tag['tag']} mislukt toe te voegen aan contact {tag['contact']}: {response.content}")
 
 def update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=None, new_fields=None):
     url = active_campaign_api_url + "fieldValues"
