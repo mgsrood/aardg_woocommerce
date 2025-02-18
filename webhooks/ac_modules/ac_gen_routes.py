@@ -93,7 +93,7 @@ def ac_product_tag_adder(greit_connection_string, klant, wcapi, active_campaign_
             # Customer data verwerken
             order_data = response.json()
             add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_token)
-            logging.info(f"Product velden bijgewerkt voor {order_data['billing']['first_name'] + ' ' + order_data['billing']['last_name']}")
+            logging.info(f"Tags bijgewerkt voor {order_data['billing']['first_name'] + ' ' + order_data['billing']['last_name']}")
             
             # End logging
             end_log(start_time)

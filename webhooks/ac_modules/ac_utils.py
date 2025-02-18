@@ -1,5 +1,6 @@
 import requests
 import logging
+import json
 
 def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token):
     url = active_campaign_api_url + f"contacts/{contact_id}/fieldValues"
@@ -51,10 +52,19 @@ def add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
             "tag": int(tag['tag'])
         } }
             response = requests.post(url, json=payload, headers=headers)
-            if response.status_code == 201:
+            
+            try:
+                response_json = response.json()  # Probeer de JSON-response te parsen
+            except json.JSONDecodeError:
+                response_json = response.content  # Fallback als JSON-parsing mislukt
+
+            logging.info(f"Status code: {response.status_code}")
+            logging.info(f"Response content: {response_json}")
+            
+            if response.status_code in [200, 201]:  # Controleer meerdere succescodes
                 logging.info(f"Tag {tag['tag']} succesvol toegevoegd aan contact {tag['contact']}")
             else:
-                logging.error(f"Tag {tag['tag']} mislukt toe te voegen aan contact {tag['contact']}: {response.content}")
+                logging.error(f"Fout bij toevoegen tag {tag['tag']} aan contact {tag['contact']}: {response_json}")
 
 def update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=None, new_fields=None):
     url = active_campaign_api_url + "fieldValues"
@@ -76,7 +86,16 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
                 "useDefaults": False
             }
             response = requests.put(specific_field_url, json=payload, headers=headers)
-            if response.status_code == 200:
+            
+            try:
+                response_json = response.json()  # Probeer de JSON-response te parsen
+            except json.JSONDecodeError:
+                response_json = response.content  # Fallback als JSON-parsing mislukt
+
+            logging.info(f"Status code: {response.status_code}")
+            logging.info(f"Response content: {response_json}")
+            
+            if response.status_code in [200, 201]:  # Controleer meerdere succescodes
                 logging.info(f"Veld {update['field']} geüpdatet met waarde {update['value']}")
             elif "No Result found for Field" in response.content.decode("utf-8"):
                 logging.info(f"Geen resultaat gevonden voor veld {update['field']}. Geen update uitgevoerd.")
@@ -95,9 +114,10 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
                 "useDefaults": False
             }
             response = requests.post(url, json=payload, headers=headers)
-            if response.status_code == 201:
+            if response.status_code in [200, 201]:
                 logging.info(f"Nieuw veld {new['field']} met waarde {new['value']} toegevoegd")
             else:
+                logging.error(response.json())
                 logging.error(f"Nieuw veld {new['field']} met waarde {new['value']} mislukt toe te voegen: {response.content}")
 
 
