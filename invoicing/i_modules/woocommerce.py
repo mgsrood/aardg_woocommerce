@@ -9,7 +9,7 @@ def get_batch_data(order_id, api_url, username, password):
     endpoint = f"order/{order_id}/batches"
     url = api_url + endpoint
     try:
-        response = requests.get(url, auth=HTTPBasicAuth(username, password))
+        response = requests.get(url, auth=HTTPBasicAuth(username, password), timeout=120)
         if response.status_code == 200:
             response_data_2 = response.json()
         else: 
@@ -42,7 +42,7 @@ def get_batch_data(order_id, api_url, username, password):
             endpoint = f"product/{sku}"
             url = api_url + endpoint
             try:
-                response = requests.get(url, auth=HTTPBasicAuth(username, password))
+                response = requests.get(url, auth=HTTPBasicAuth(username, password), timeout=120)
                 if response.status_code == 200:
                     product_data = response.json()
                     product_name = product_data.get('Description', None)

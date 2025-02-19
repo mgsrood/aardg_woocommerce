@@ -7,7 +7,7 @@ def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campa
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
     
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=120)
         return response.json()                          
     except Exception as e:
         logging.error(f"Fout bij het ophalen van ActiveCampaign velden: {e}")
@@ -19,7 +19,7 @@ def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
     
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=120)
         return response.json()
     except Exception as e:
         logging.error(response.content)
@@ -32,7 +32,7 @@ def get_active_campaign_tag_data(active_campaign_api_url, active_campaign_api_to
         url += f"?search={search_key}"
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
 
-    timeout = 10  # Stel de timeout in op 10 seconden
+    timeout = 120  # Stel de timeout in op 10 seconden
     
     try:
         response = requests.get(url, headers=headers, timeout=timeout)
