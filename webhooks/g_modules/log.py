@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import threading
 import logging
 import pyodbc
@@ -142,3 +142,42 @@ class DatabaseHandler(logging.Handler):
         except Exception as e:
             print(f"Fout bij het sluiten van de databaseverbinding: {e}")
         super().close()
+
+# Functie om logging op te zetten
+def setup_logging(conn_str, klant, bron, script, script_id, log_file='app.log', log_level=logging.INFO):
+    # Configureer de basis logging
+    logger = logging.getLogger()  # Haal de root logger op
+    logger.setLevel(log_level)
+
+    # Maak de handlers
+    file_handler = logging.FileHandler(log_file)
+
+    # Formatteer de logberichten voor de file handler
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    file_handler.setFormatter(file_formatter)
+
+    # Voeg de handlers toe aan de logger
+    logger.addHandler(file_handler)
+
+    # Voeg de DatabaseHandler toe aan de logger
+    db_handler = DatabaseHandler(conn_str, klant, bron, script, script_id)
+    db_handler.setFormatter(file_formatter)  # Gebruik dezelfde formatter voor de database
+    logger.addHandler(db_handler)
+
+    logging.info("Logboek is geconfigureerd.")
+
+# Functie om de starttijd van het script te loggen
+def start_log():
+    start_time = time.time()
+    current_time = datetime.now()
+    formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+    logging.info(f"Script started at {formatted_time}")
+    
+    return start_time
+
+# Functie om de eindtijd van het script te loggen
+def end_log(start_time):
+    end_time = time.time()
+    total_time = timedelta(seconds=(end_time - start_time))
+    total_time_str = str(total_time).split('.')[0]
+    logging.info(f"Script ended in {total_time_str}")
