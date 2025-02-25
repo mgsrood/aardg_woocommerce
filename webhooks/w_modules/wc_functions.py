@@ -31,7 +31,7 @@ def move_next_payment_date(data, wcapi):
             except Exception as e:
                 logging.error("Fout bij het verplaatsen van de betaaldatum: " + str(e))
 
-def update_or_insert_sub_to_bigquery(subscription_id, wcapi):
+def update_or_insert_sub_to_bigquery(customer_data, subscription_id):
 
     logging.info("Abonnement verwerken in BigQuery")
 
@@ -59,7 +59,6 @@ def update_or_insert_sub_to_bigquery(subscription_id, wcapi):
     exists = next(check_job.result()).f0_ > 0
 
     # Verkrijg de order data van WooCommerce
-    customer_data = get_woocommerce_subscription_data(subscription_id, wcapi)
     tabel_input = {
         "subscription_id": customer_data["id"],
         "parent_id": customer_data["parent_id"],
@@ -223,7 +222,7 @@ def update_or_insert_sub_to_bigquery(subscription_id, wcapi):
     result_message = f"{action} {subscription_id}"
     logging.info(result_message)
 
-def update_or_insert_order_to_bigquery(order_id, wcapi):
+def update_or_insert_order_to_bigquery(customer_data, order_id):
 
     logging.info("Order verwerken in BigQuery")
 
@@ -251,7 +250,6 @@ def update_or_insert_order_to_bigquery(order_id, wcapi):
     exists = next(check_job.result()).f0_ > 0
     
     # Verkrijg de order data van WooCommerce
-    customer_data = get_woocommerce_order_data(order_id, wcapi)
     tabel_input = {
         "order_id": customer_data["id"],
         "status": customer_data["status"],

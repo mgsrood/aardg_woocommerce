@@ -3,10 +3,11 @@ from g_modules.request import parse_request_data, validate_signature
 from g_modules.config import determine_script_id
 from g_modules.log import end_log, setup_logging
 from flask import jsonify, request
+import traceback
 import logging
 import time
 
-def facebook_audience_customer_adder(greit_connection_string, klant, wcapi, secret_key, long_term_token, custom_audience_id, app_secret, app_id):
+def facebook_audience_customer_adder(greit_connection_string, klant, secret_key, long_term_token, custom_audience_id, app_secret, app_id):
     
     # Configuratie
     start_time = time.time()
@@ -17,7 +18,7 @@ def facebook_audience_customer_adder(greit_connection_string, klant, wcapi, secr
     script_id = determine_script_id(greit_connection_string)
     
     # Set up logging (met database logging)
-    setup_logging(greit_connection_string, klant, bron, script, script_id)
+    db_handler = setup_logging(greit_connection_string, klant, bron, script, script_id)
     
     # Payload verwerken
     data = parse_request_data()
@@ -30,27 +31,24 @@ def facebook_audience_customer_adder(greit_connection_string, klant, wcapi, secr
         logging.error("Ongeldige handtekening")
         return "Invalid signature", 401
     
-    # Voeg een vertraging van 20 seconden in
-    time.sleep(20)
-    
     # Data verwerken
-    if 'id' in data:
-        order_id = data['id']
-        response = wcapi.get(f"orders/{order_id}")
+    try:
+        # Customer data verwerken
+        add_new_customers_to_facebook_audience(data, app_id, app_secret, long_term_token, custom_audience_id)
+        logging.info(f"Klant {data['billing']['first_name'] + ' ' + data['billing']['last_name']} verwerkt")
         
-        # Functie uitvoeren
-        if response.status_code == 200:
-            
-            # Customer data verwerken
-            customer_data = response.json()
-            add_new_customers_to_facebook_audience(customer_data, app_id, app_secret, long_term_token, custom_audience_id)
-            logging.info(f"Klant {customer_data['billing']['first_name'] + ' ' + customer_data['billing']['last_name']} verwerkt")
-            
-            # End logging
-            end_log(start_time)
+        # Eindtijd logging
+        end_log(start_time)
         
-        else:
-            logging.error(f"Klant kon niet worden toegevoegd aan Facebook audience: {response.status_code}")
-            jsonify({'status': 'error'}), response.status_code
+        # Logging afhandelen
+        db_handler.flush_logs()
+        
+        return jsonify({'status': 'success'}), 200
+    
+    except Exception as e:
+        logging.error(f"Fout opgetreden: {e}\n{traceback.format_exc()}")
+        db_handler.flush_logs()
+        
+        return jsonify({'status': 'error'}), 500
 
-    return jsonify({'status': 'success'}), 200
+    

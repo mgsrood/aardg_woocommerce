@@ -3,10 +3,11 @@ from g_modules.request import parse_request_data, validate_signature
 from g_modules.config import determine_script_id
 from g_modules.log import end_log, setup_logging
 from flask import jsonify, request
+import traceback
 import logging
 import time
 
-def subscription_payment_date_mover(greit_connection_string, klant, wcapi, secret_key):
+def subscription_payment_date_mover(greit_connection_string, klant, secret_key):
     
     # Configuratie
     start_time = time.time()
@@ -17,7 +18,7 @@ def subscription_payment_date_mover(greit_connection_string, klant, wcapi, secre
     script_id = determine_script_id(greit_connection_string)
     
     # Set up logging (met database logging)
-    setup_logging(greit_connection_string, klant, bron, script, script_id)
+    db_handler = setup_logging(greit_connection_string, klant, bron, script, script_id)
     
     # Payload verwerken
     data = parse_request_data()
@@ -29,33 +30,32 @@ def subscription_payment_date_mover(greit_connection_string, klant, wcapi, secre
     if not validate_signature(request, secret_key):
         logging.error("Ongeldige handtekening")
         return "Invalid signature", 401
-    
-    # Voeg een vertraging van 20 seconden in
-    time.sleep(20)
-    
-    # Data verwerken
-    if 'id' in data:
-        subscription_id = data['id']
-        response = wcapi.get(f"subscriptions/{subscription_id}")
-        
-        # Functie uitvoeren
-        if response.status_code == 200:
-            
-            # Customer data verwerken
-            subscription_data = response.json()
-            move_next_payment_date(data, wcapi)
-            logging.info(f"Abonnement toegevoegd / geupdate voor {subscription_data['billing']['first_name'] + ' ' + subscription_data['billing']['last_name']}")
-            
-            # End logging
-            end_log(start_time)
-        
-        else:
-            logging.error(response.status_code)
-            jsonify({'status': 'error'}), response.status_code
 
-    return jsonify({'status': 'success'}), 200
+    # Functie uitvoeren
+    try:
+        # Customer data verwerken
+        move_next_payment_date(data, data['id'])
+        logging.info(f"Abonnement toegevoegd / geupdate voor {data['billing']['first_name'] + ' ' + data['billing']['last_name']}")
+        
+        # Eindtijd logging
+        end_log(start_time)
+        
+        # Logging afhandelen
+        db_handler.flush_logs()
+        logging.shutdown()
+        
+        return jsonify({'status': 'success'}), 200
+    
+    except Exception as e:
+        logging.error(f"Fout opgetreden: {e}\n{traceback.format_exc()}")
+        db_handler.flush_logs()
+        logging.shutdown()
+        
+        return jsonify({'status': 'error'}), 500
 
-def bigquery_subscription_processor(greit_connection_string, klant, wcapi, secret_key):
+    
+
+def bigquery_subscription_processor(greit_connection_string, klant, secret_key):
     
     # Configuratie
     start_time = time.time()
@@ -66,7 +66,7 @@ def bigquery_subscription_processor(greit_connection_string, klant, wcapi, secre
     script_id = determine_script_id(greit_connection_string)
     
     # Set up logging (met database logging)
-    setup_logging(greit_connection_string, klant, bron, script, script_id)
+    db_handler = setup_logging(greit_connection_string, klant, bron, script, script_id)
     
     # Payload verwerken
     data = parse_request_data()
@@ -79,27 +79,23 @@ def bigquery_subscription_processor(greit_connection_string, klant, wcapi, secre
         logging.error("Ongeldige handtekening")
         return "Invalid signature", 401
     
-    # Voeg een vertraging van 20 seconden in
-    time.sleep(20)
+    # Functie uitvoeren
+    try:
+        update_or_insert_sub_to_bigquery(data, data['id'])
+        logging.info(f"Product velden bijgewerkt voor {data['billing']['first_name'] + ' ' + data['billing']['last_name']}")
+        
+        # Eindtijd logging
+        end_log(start_time)
+        
+        # Logging afhandelen
+        db_handler.flush_logs()
+        
+        return jsonify({'status': 'success'}), 200
     
-    # Data verwerken
-    if 'id' in data:
-        subscription_id = data['id']
-        response = wcapi.get(f"subscriptions/{subscription_id}")
+    except Exception as e:
+        logging.error(f"Fout opgetreden: {e}\n{traceback.format_exc()}")
+        db_handler.flush_logs()
         
-        # Functie uitvoeren
-        if response.status_code == 200:
-            
-            # Customer data verwerken
-            subscription_data = response.json()
-            update_or_insert_sub_to_bigquery(subscription_id, wcapi)
-            logging.info(f"Product velden bijgewerkt voor {subscription_data['billing']['first_name'] + ' ' + subscription_data['billing']['last_name']}")
-            
-            # End logging
-            end_log(start_time)
-        
-        else:
-            logging.error(response.status_code)
-            jsonify({'status': 'error'}), response.status_code
+        return jsonify({'status': 'error'}), 500
 
-    return jsonify({'status': 'success'}), 200
+    
