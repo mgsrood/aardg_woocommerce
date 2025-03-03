@@ -1,0 +1,184 @@
+/* Kleuren */
+:root {
+    --primary: #FF0D46;
+    --primary-light: #FFE6EC;
+    --dark-blue: #19214E;
+    --gray: #A3A6B8;
+}
+
+/* Typografie */
+@font-face {
+    font-family: 'Filson Pro';
+    src: url('../fonts/FilsonPro-Regular.woff2') format('woff2');
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: 'Filson Pro';
+    src: url('../fonts/FilsonPro-Bold.woff2') format('woff2');
+    font-weight: 700;
+}
+
+body {
+    font-family: 'Filson Pro', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--dark-blue);
+}
+
+h1 {
+    font-size: 64px;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 38px;
+    }
+}
+
+h2 {
+    font-size: 36px;
+    font-weight: 400;
+}
+
+@media (max-width: 768px) {
+    h2 {
+        font-size: 21px;
+    }
+}
+
+h3 {
+    font-size: 36px;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    h3 {
+        font-size: 22px;
+    }
+}
+
+/* Buttons */
+.btn {
+    font-family: 'Filson Pro', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    padding: 15px 30px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(25, 33, 78, 0.15);
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--dark-blue);
+    border-color: var(--dark-blue);
+}
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-sm {
+    padding: 8px 15px;
+    font-size: 14px;
+}
+
+/* Card styling */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(25, 33, 78, 0.2);
+    border: none;
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 1px solid rgba(25, 33, 78, 0.1);
+}
+
+/* Status badges */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background-color: #E8FFF3;
+    color: #00B86B;
+}
+
+.status-on-hold {
+    background-color: #FFF4E5;
+    color: #FF9900;
+}
+
+.status-cancelled {
+    background-color: #FFE6EC;
+    color: var(--primary);
+}
+
+.status-pending {
+    background-color: #F0F1F7;
+    color: var(--gray);
+}
+
+/* Form controls */
+.form-control {
+    border-radius: 10px;
+    border: 1px solid rgba(25, 33, 78, 0.2);
+    padding: 12px 15px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(255, 13, 70, 0.15);
+}
+
+/* Tables */
+.table {
+    color: var(--dark-blue);
+}
+
+.table th {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 12px;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 10px;
+    border: none;
+    padding: 15px 20px;
+}
+
+.alert-danger {
+    background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.alert-info {
+    background-color: #F0F1F7;
+    color: var(--dark-blue);
+} 

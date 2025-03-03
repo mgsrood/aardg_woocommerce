@@ -58,7 +58,7 @@ wcapi = API(
 # Woocommerce Routes
 @app.route('/woocommerce/move_next_payment_date', methods=['POST'])
 def move_next_payment_date_route():
-    return subscription_payment_date_mover(greit_connection_string, klant, secret_key)
+    return subscription_payment_date_mover(greit_connection_string, klant, secret_key, wcapi)
 
 @app.route('/woocommerce/update_or_add_order_to_bigquery', methods=['POST'])
 def order_addition_route():

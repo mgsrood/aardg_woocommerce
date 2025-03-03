@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- View Type Toggle -->
+    <div class="d-flex justify-content-end mb-4">
+        {% if view_type == 'subscriptions' %}
+            <a href="{{ url_for('index', view='orders') }}" class="btn btn-outline-primary">Bekijk Orders</a>
+        {% else %}
+            <a href="{{ url_for('index', view='subscriptions') }}" class="btn btn-outline-primary">Bekijk Abonnementen</a>
+        {% endif %}
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {% if view_type == 'subscriptions' %}
+        <!-- Abonnementsstatistieken -->
+        {% if subscription_stats %}
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Actief</h5>
+                        <h2>{{ subscription_stats.status_counts|selectattr('status', 'equalto', 'active')|map(attribute='count')|first or 0 }}</h2>
+                        <p>€{{ "%.2f"|format(subscription_stats.total_value_excl|float) }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-warning">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Gepauzeerd</h5>
+                        <h2>{{ subscription_stats.status_counts|selectattr('status', 'equalto', 'on-hold')|map(attribute='count')|first or 0 }}</h2>
+                        <p>€{{ "%.2f"|format(subscription_stats.total_value_incl|float - subscription_stats.total_value_excl|float) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if subscriptions %}
+        <!-- Zoekresultaten Abonnementen -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Zoekresultaten</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Abonnements ID</th>
+                                <th>Naam</th>
+                                <th>E-mailadres</th>
+                                <th>Product Array</th>
+                                <th>Totaal Prijs</th>
+                                <th>Begindatum</th>
+                                <th>Volgende Besteldatum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subscription in subscriptions %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('subscription_details', subscription_id=subscription.id) }}">
+                                        {{ subscription.id }}
+                                    </a>
+                                </td>
+                                <td>{{ subscription.billing.first_name }} {{ subscription.billing.last_name }}</td>
+                                <td>{{ subscription.billing.email }}</td>
+                                <td>
+                                    {% if subscription.line_items %}
+                                        {% for item in subscription.line_items %}
+                                            {{ item.quantity }}x {{ item.name }}<br>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>€{{ subscription.total }}</td>
+                                <td>{{ subscription.start_date.split('T')[0] if subscription.start_date else 'N/A' }}</td>
+                                <td>{{ subscription.next_payment_date_formatted or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Laatste 5 Abonnementen -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Laatste vijf abonnementen</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Abonnements ID</th>
+                                <th>Naam</th>
+                                <th>E-mailadres</th>
+                                <th>Product Array</th>
+                                <th>Totaal Prijs</th>
+                                <th>Begindatum</th>
+                                <th>Volgende Besteldatum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subscription in recent_subscriptions %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('subscription_details', subscription_id=subscription.id) }}">
+                                        {{ subscription.id }}
+                                    </a>
+                                </td>
+                                <td>{{ subscription.billing.first_name }} {{ subscription.billing.last_name }}</td>
+                                <td>{{ subscription.billing.email }}</td>
+                                <td>
+                                    {% if subscription.line_items %}
+                                        {% for item in subscription.line_items %}
+                                            {{ item.quantity }}x {{ item.name }}<br>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>€{{ subscription.total }}</td>
+                                <td>{{ subscription.start_date.split('T')[0] if subscription.start_date else 'N/A' }}</td>
+                                <td>{{ subscription.next_payment_date_formatted or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zoekformulieren -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Zoeken op Abonnement ID</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('search') }}" method="get">
+                            <input type="hidden" name="type" value="subscription">
+                            <div class="form-group">
+                                <input type="text" class="form-control" name="subscription_id" placeholder="Voer ID in">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Zoeken</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Zoeken op E-mail</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('search') }}" method="get">
+                            <input type="hidden" name="type" value="subscription">
+                            <div class="form-group">
+                                <input type="email" class="form-control" name="email" placeholder="Voer e-mailadres in">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Zoeken</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Zoeken op Naam</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('search') }}" method="get">
+                            <input type="hidden" name="type" value="subscription">
+                            <div class="form-group">
+                                <input type="text" class="form-control" name="name" placeholder="Voer naam in">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Zoeken</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toon Alle Abonnementen -->
+        <div class="text-center mb-4">
+            <a href="{{ url_for('all_subscriptions') }}" class="btn btn-lg btn-danger">Toon Alle Abonnementen</a>
+        </div>
+
+    {% else %}
+        <!-- Order statistieken -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Orders deze maand</h5>
+                        <h2>{{ order_stats.count }}</h2>
+                        <p>€{{ "%.2f"|format(order_stats.total|float) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if orders %}
+        <!-- Zoekresultaten Orders -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Zoekresultaten</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Naam</th>
+                                <th>E-mailadres</th>
+                                <th>Product Array</th>
+                                <th>Totaal Prijs</th>
+                                <th>Datum</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('order_details', order_id=order.id) }}">
+                                        {{ order.id }}
+                                    </a>
+                                </td>
+                                <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
+                                <td>{{ order.billing_email }}</td>
+                                <td>
+                                    {% if order.line_items %}
+                                        {% for item in order.line_items %}
+                                            {{ item.quantity }}x {{ item.name }}<br>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>€{{ order.total }}</td>
+                                <td>{{ order.date_created.split('T')[0] if order.date_created else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-{{ order.status }}">
+                                        {{ order.status_display or order.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Laatste 5 Orders -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Laatste vijf orders</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Naam</th>
+                                <th>E-mailadres</th>
+                                <th>Product Array</th>
+                                <th>Totaal Prijs</th>
+                                <th>Datum</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('order_details', order_id=order.id) }}">
+                                        {{ order.id }}
+                                    </a>
+                                </td>
+                                <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
+                                <td>{{ order.billing_email }}</td>
+                                <td>
+                                    {% if order.line_items %}
+                                        {% for item in order.line_items %}
+                                            {{ item.quantity }}x {{ item.name }}<br>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>€{{ order.total }}</td>
+                                <td>{{ order.date_created.split('T')[0] if order.date_created else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-{{ order.status }}">
+                                        {{ order.status_display or order.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zoekformulieren -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Zoeken op Order ID</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('search') }}" method="get">
+                            <input type="hidden" name="type" value="order">
+                            <div class="form-group">
+                                <input type="text" class="form-control" name="order_id" placeholder="Voer ID in">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Zoeken</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Zoeken op E-mail</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('search') }}" method="get">
+                            <input type="hidden" name="type" value="order">
+                            <div class="form-group">
+                                <input type="email" class="form-control" name="email" placeholder="Voer e-mailadres in">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Zoeken</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Zoeken op Naam</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('search') }}" method="get">
+                            <input type="hidden" name="type" value="order">
+                            <div class="form-group">
+                                <input type="text" class="form-control" name="name" placeholder="Voer naam in">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Zoeken</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toon Alle Orders -->
+        <div class="text-center mb-4">
+            <a href="{{ url_for('all_orders') }}" class="btn btn-lg btn-danger">Toon Alle Orders</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // E-mail autocomplete
+    $('input[name="email"]').autocomplete({
+        source: function(request, response) {
+            $.getJSON("{{ url_for('email_suggestions') }}", {
+                query: request.term
+            }, response);
+        },
+        minLength: 2
+    });
+});
+</script>
+{% endblock %} 

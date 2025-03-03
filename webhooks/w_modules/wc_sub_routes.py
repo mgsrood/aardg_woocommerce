@@ -7,7 +7,7 @@ import traceback
 import logging
 import time
 
-def subscription_payment_date_mover(greit_connection_string, klant, secret_key):
+def subscription_payment_date_mover(greit_connection_string, klant, secret_key, wcapi):
     
     # Configuratie
     start_time = time.time()
@@ -34,7 +34,7 @@ def subscription_payment_date_mover(greit_connection_string, klant, secret_key):
     # Functie uitvoeren
     try:
         # Customer data verwerken
-        move_next_payment_date(data, data['id'])
+        move_next_payment_date(data, wcapi)
         logging.info(f"Abonnement toegevoegd / geupdate voor {data['billing']['first_name'] + ' ' + data['billing']['last_name']}")
         
         # Eindtijd logging

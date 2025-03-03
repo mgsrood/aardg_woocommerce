@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="mb-3">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">&larr; Terug naar zoeken</a>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        {% if subscription %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    Abonnement #{{ subscription.id }}
+                    <span class="status-badge status-{{ subscription.status }} float-end">
+                        {{ subscription.status_display }}
+                    </span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Klantgegevens</h6>
+                        <p>
+                            <strong>Naam:</strong> {{ subscription.billing.first_name }} {{ subscription.billing.last_name }}<br>
+                            <strong>E-mail:</strong> {{ subscription.billing.email }}<br>
+                            <strong>Telefoon:</strong> {{ subscription.billing.phone or 'Niet opgegeven' }}
+                        </p>
+
+                        <h6 class="mb-3 mt-4">Factuuradres</h6>
+                        <p>
+                            {{ subscription.billing.address_1 }}<br>
+                            {% if subscription.billing.address_2 %}
+                                {{ subscription.billing.address_2 }}<br>
+                            {% endif %}
+                            {{ subscription.billing.postcode }} {{ subscription.billing.city }}<br>
+                            {{ subscription.billing.country }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Abonnementsdetails</h6>
+                        <p>
+                            <strong>Start datum:</strong> {{ subscription.start_date.split('T')[0] if subscription.start_date else 'N/A' }}<br>
+                            <strong>Volgende betaling:</strong> {{ subscription.next_payment_date_formatted or 'N/A' }}<br>
+                            <strong>Betalingsperiode:</strong> {{ subscription.billing_period or 'N/A' }}<br>
+                            <strong>Totaal bedrag:</strong> €{{ subscription.total }}
+                        </p>
+                        
+                        {% if subscription.line_items %}
+                            <h6 class="mb-3 mt-4">Producten</h6>
+                            <ul class="list-group mb-3">
+                                {% for item in subscription.line_items %}
+                                <li class="list-group-item d-flex justify-content-between lh-sm">
+                                    <div>
+                                        <h6 class="my-0">{{ item.name }}</h6>
+                                        <small class="text-muted">{{ item.quantity }} x €{{ item.price }}</small>
+                                    </div>
+                                    <span class="text-muted">€{{ item.total }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        
+                        {% if subscription.shipping_lines %}
+                            <h6 class="mb-3">Verzendgegevens</h6>
+                            <ul class="list-group mb-3">
+                                {% for shipping in subscription.shipping_lines %}
+                                <li class="list-group-item d-flex justify-content-between lh-sm">
+                                    <div>
+                                        <h6 class="my-0">{{ shipping.method_title }}</h6>
+                                    </div>
+                                    <span class="text-muted">€{{ shipping.total }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if orders %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    Alle orders voor {{ subscription.billing.email }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Datum</th>
+                                <th>Status</th>
+                                <th>Betaalmethode</th>
+                                <th>Totaal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('order_details', order_id=order.id) }}" class="text-primary">
+                                        {{ order.id }}
+                                    </a>
+                                </td>
+                                <td>{{ order.date_created_formatted }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ order.status }}">
+                                        {{ order.status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ order.payment_method_title }}</td>
+                                <td>€{{ order.total }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 
