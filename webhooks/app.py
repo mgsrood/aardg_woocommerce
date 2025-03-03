@@ -5,6 +5,7 @@ from f_modules.facebook_routes import facebook_audience_customer_adder
 from w_modules.wc_gen_routes import bigquery_order_processor
 from g_modules.env_tool import env_check
 from g_modules.monitoring import Monitoring
+from g_modules.db_metrics import save_metrics_to_db
 from flask import Flask, jsonify, Response
 from woocommerce import API
 import os
@@ -175,6 +176,13 @@ def health_check():
 
     # Overall latency
     health_status["latency_ms"] = round((time.time() - start_time) * 1000, 2)
+    
+    # Sla metrics op in database
+    try:
+        save_metrics_to_db(greit_connection_string, health_status)
+    except Exception as e:
+        print(f"Error saving metrics: {str(e)}")
+        # We laten de health check niet falen als het opslaan mislukt
     
     status_code = 200 if health_status["status"] == "healthy" else 503
     return Response(
