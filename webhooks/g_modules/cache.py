@@ -3,6 +3,7 @@ import os
 import json
 from functools import wraps
 import logging
+from .monitoring import Monitoring
 
 # Redis client setup
 try:
@@ -14,6 +15,8 @@ except Exception as e:
     redis_client = None
     logging.warning(f"Redis niet beschikbaar: {str(e)}")
 
+monitoring = Monitoring()
+
 def cache_decorator(timeout=300):
     """
     Decorator voor het cachen van functie resultaten.
@@ -24,39 +27,32 @@ def cache_decorator(timeout=300):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if not REDIS_AVAILABLE:
+            if not REDIS_AVAILABLE or not os.getenv('ENABLE_CACHING', 'true').lower() == 'true':
                 return f(*args, **kwargs)
             
             # Cache key genereren
-            cache_key = f"aardg:webhook:{f.__name__}:{str(args)}:{str(kwargs)}"
+            cache_key = f"{f.__name__}:{str(args)}:{str(kwargs)}"
             
+            # Probeer uit cache te halen
             try:
-                # Probeer uit cache te halen
-                cached_result = redis_client.get(cache_key)
-                if cached_result:
-                    logging.info(f"Cache hit voor {cache_key}")
-                    return json.loads(cached_result)
-                    
-            except Exception as e:
-                logging.warning(f"Fout bij cache ophalen: {str(e)}")
-                return f(*args, **kwargs)
+                result = redis_client.get(cache_key)
+                if result:
+                    monitoring.track_cache_stats(cache_key, hit=True)
+                    return result
+            except:
+                pass
+            
+            # Cache miss
+            monitoring.track_cache_stats(cache_key, hit=False)
                 
-            # Functie uitvoeren als niet in cache
+            # Functie uitvoeren en cachen
             result = f(*args, **kwargs)
-            
             try:
-                # Resultaat cachen
-                redis_client.setex(
-                    cache_key,
-                    timeout,
-                    json.dumps(result)
-                )
-                logging.info(f"Resultaat gecached voor {cache_key}")
-            except Exception as e:
-                logging.warning(f"Fout bij cachen: {str(e)}")
+                redis_client.setex(cache_key, timeout, result)
+            except:
+                pass
                 
             return result
-            
         return decorated_function
     return decorator
 
