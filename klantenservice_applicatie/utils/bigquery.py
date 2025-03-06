@@ -74,50 +74,72 @@ def fetch_subscriptions():
     """
     Haal alle abonnementen op uit BigQuery.
     """
-    # Pas deze query aan naar de juiste tabel en velden in BigQuery
-    project_id = os.getenv('BIGQUERY_PROJECT_ID')
-    dataset = os.getenv('BIGQUERY_DATASET')
-    table = os.getenv('BIGQUERY_SUBSCRIPTIONS_TABLE')
-    limit = int(os.getenv('BIGQUERY_QUERY_LIMIT', '1000'))
+    # Gebruik de volledige tabel referentie
+    table_ref = os.getenv('BIGQUERY_SUBSCRIPTIONS_TABLE_REF')
+    limit = int(os.getenv('BIGQUERY_QUERY_LIMIT', '100000'))
     
-    logger.info(f"BigQuery configuratie: project_id={project_id}, dataset={dataset}, table={table}")
+    logger.info(f"BigQuery configuratie: table_ref={table_ref}")
     
     query = """
-    SELECT 
-        subscription_id as id, 
-        status, 
-        customer_id, 
-        billing_first_name, 
-        billing_last_name, 
-        billing_email, 
-        CAST(NULL AS STRING) as billing_phone,
-        billing_address_1,
-        billing_address_2,
-        billing_postcode,
-        billing_city,
-        billing_country,
-        date_created,
-        date_modified,
-        next_payment_date,
-        total,
-        payment_method,
-        payment_method_title,
-        billing_period,
-        billing_interval,
-        start_date,
-        CAST(NULL AS STRING) as trial_end_date,
-        end_date,
-        CAST(NULL AS STRING) as meta_data
-    FROM 
-        `{project_id}.{dataset}.{table}`
-    ORDER BY 
-        subscription_id DESC
-    LIMIT 
-        {limit}
+    WITH RankedSubscriptions AS (
+        SELECT 
+            subscription_id as id, 
+            status,
+            CASE status
+                WHEN 'active' THEN 'Actief'
+                WHEN 'on-hold' THEN 'In afwachting'
+                WHEN 'pending' THEN 'In afwachting van betaling'
+                WHEN 'cancelled' THEN 'Geannuleerd'
+                WHEN 'expired' THEN 'Verlopen'
+                WHEN 'pending-cancel' THEN 'Wordt geannuleerd'
+                WHEN 'paused' THEN 'Gepauzeerd'
+                ELSE status
+            END as status_display,
+            customer_id, 
+            billing_first_name, 
+            billing_last_name, 
+            billing_email, 
+            CAST(NULL AS STRING) as billing_phone,
+            billing_address_1,
+            billing_address_2,
+            billing_postcode,
+            billing_city,
+            billing_country,
+            date_created,
+            date_modified,
+            next_payment_date,
+            CASE 
+                WHEN status = 'paused' THEN NULL 
+                ELSE total 
+            END as total,
+            payment_method,
+            payment_method_title,
+            billing_period,
+            billing_interval,
+            CONCAT(
+                CAST(billing_interval AS STRING),
+                CASE 
+                    WHEN billing_period = 'day' THEN ' dagen'
+                    WHEN billing_period = 'week' THEN ' weken'
+                    WHEN billing_period = 'month' THEN ' maanden'
+                    WHEN billing_period = 'year' THEN ' jaar'
+                    ELSE ''
+                END
+            ) as frequency,
+            start_date,
+            CAST(NULL AS STRING) as trial_end_date,
+            end_date,
+            CAST(NULL AS STRING) as meta_data,
+            ROW_NUMBER() OVER (ORDER BY date_created DESC) as rn
+        FROM 
+            `{table_ref}`
+    )
+    SELECT * EXCEPT(rn)
+    FROM RankedSubscriptions
+    WHERE rn <= {limit}
+    ORDER BY date_created DESC
     """.format(
-        project_id=project_id,
-        dataset=dataset,
-        table=table,
+        table_ref=table_ref,
         limit=limit
     )
     
@@ -127,44 +149,68 @@ def fetch_orders():
     """
     Haal alle orders op uit BigQuery.
     """
-    # Pas deze query aan naar de juiste tabel en velden in BigQuery
-    project_id = os.getenv('BIGQUERY_PROJECT_ID')
-    dataset = os.getenv('BIGQUERY_DATASET')
-    table = os.getenv('BIGQUERY_ORDERS_TABLE')
-    limit = int(os.getenv('BIGQUERY_QUERY_LIMIT', '1000'))
+    # Gebruik de volledige tabel referentie
+    table_ref = os.getenv('BIGQUERY_ORDERS_TABLE_REF')
+    limit = int(os.getenv('BIGQUERY_QUERY_LIMIT', '100000'))
     
-    logger.info(f"BigQuery configuratie: project_id={project_id}, dataset={dataset}, table={table}")
+    logger.info(f"BigQuery configuratie: table_ref={table_ref}")
     
     query = """
-    SELECT 
-        order_id as id, 
-        status, 
-        customer_id, 
-        billing_first_name, 
-        billing_last_name, 
-        billing_email, 
-        CAST(NULL AS STRING) as billing_phone,
-        billing_address_1,
-        billing_address_2,
-        billing_postcode,
-        billing_city,
-        billing_country,
-        date_created,
-        date_modified,
-        total,
-        payment_method,
-        payment_method_title,
-        CAST(NULL AS STRING) as meta_data
-    FROM 
-        `{project_id}.{dataset}.{table}`
-    ORDER BY 
-        order_id DESC
-    LIMIT 
-        {limit}
+    WITH RankedOrders AS (
+        SELECT 
+            order_id as id, 
+            status,
+            CASE status
+                WHEN 'completed' THEN 'Afgerond'
+                WHEN 'processing' THEN 'In behandeling'
+                WHEN 'on-hold' THEN 'In afwachting'
+                WHEN 'pending' THEN 'In afwachting van betaling'
+                WHEN 'cancelled' THEN 'Geannuleerd'
+                WHEN 'refunded' THEN 'Terugbetaald'
+                WHEN 'failed' THEN 'Mislukt'
+                WHEN 'trash' THEN 'Verwijderd'
+                ELSE status
+            END as status_display,
+            customer_id, 
+            billing_first_name, 
+            billing_last_name, 
+            billing_email, 
+            CAST(NULL AS STRING) as billing_phone,
+            billing_address_1,
+            billing_address_2,
+            billing_postcode,
+            billing_city,
+            billing_country,
+            date_created as created_date,
+            CASE 
+                WHEN status = 'completed' THEN date_completed
+                ELSE NULL
+            END as completed_date,
+            date_modified,
+            total,
+            payment_method,
+            payment_method_title,
+            TO_JSON_STRING(ARRAY_AGG(
+                STRUCT(
+                    lineItems_product_name as name,
+                    lineitems_quantity as quantity
+                )
+            )) as line_items,
+            ROW_NUMBER() OVER (ORDER BY date_created DESC) as rn
+        FROM 
+            `{table_ref}`
+        GROUP BY 
+            order_id, status, customer_id, billing_first_name, billing_last_name,
+            billing_email, billing_address_1, billing_address_2, billing_postcode,
+            billing_city, billing_country, date_created, date_completed, date_modified,
+            total, payment_method, payment_method_title
+    )
+    SELECT * EXCEPT(rn)
+    FROM RankedOrders
+    WHERE rn <= {limit}
+    ORDER BY created_date DESC
     """.format(
-        project_id=project_id,
-        dataset=dataset,
-        table=table,
+        table_ref=table_ref,
         limit=limit
     )
     
@@ -188,6 +234,7 @@ def create_sqlite_db():
         CREATE TABLE IF NOT EXISTS subscriptions (
             id INTEGER PRIMARY KEY,
             status TEXT,
+            status_display TEXT,
             customer_id INTEGER,
             billing_first_name TEXT,
             billing_last_name TEXT,
@@ -206,6 +253,7 @@ def create_sqlite_db():
             payment_method_title TEXT,
             billing_period TEXT,
             billing_interval INTEGER,
+            frequency TEXT,
             start_date TEXT,
             trial_end_date TEXT,
             end_date TEXT,
@@ -217,6 +265,7 @@ def create_sqlite_db():
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY,
             status TEXT,
+            status_display TEXT,
             customer_id INTEGER,
             billing_first_name TEXT,
             billing_last_name TEXT,
@@ -227,12 +276,13 @@ def create_sqlite_db():
             billing_postcode TEXT,
             billing_city TEXT,
             billing_country TEXT,
-            date_created TEXT,
+            created_date TEXT,
+            completed_date TEXT,
             date_modified TEXT,
             total REAL,
             payment_method TEXT,
             payment_method_title TEXT,
-            meta_data TEXT
+            line_items TEXT
         )
         ''')
         

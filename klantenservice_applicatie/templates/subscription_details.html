@@ -3,8 +3,19 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10">
-        <div class="mb-3">
+        <!-- Alerts container -->
+        <div id="alertsContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+
+        <div class="mb-3 d-flex justify-content-between align-items-center">
             <a href="{{ url_for('index') }}" class="btn btn-outline-primary">&larr; Terug naar zoeken</a>
+            {% if subscription %}
+            <button type="submit" form="subscriptionForm" class="btn btn-primary" id="updateButton">
+                <span id="updateButtonText">Update</span>
+                <span id="updateSpinner" class="spinner-border spinner-border-sm ms-1" role="status" style="display: none;">
+                    <span class="visually-hidden">Laden...</span>
+                </span>
+            </button>
+            {% endif %}
         </div>
 
         {% if error %}
@@ -25,37 +36,202 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <h6 class="mb-3">Klantgegevens</h6>
                         <p>
                             <strong>Naam:</strong> {{ subscription.billing.first_name }} {{ subscription.billing.last_name }}<br>
                             <strong>E-mail:</strong> {{ subscription.billing.email }}<br>
                             <strong>Telefoon:</strong> {{ subscription.billing.phone or 'Niet opgegeven' }}
                         </p>
-
-                        <h6 class="mb-3 mt-4">Factuuradres</h6>
-                        <p>
-                            {{ subscription.billing.address_1 }}<br>
-                            {% if subscription.billing.address_2 %}
-                                {{ subscription.billing.address_2 }}<br>
-                            {% endif %}
-                            {{ subscription.billing.postcode }} {{ subscription.billing.city }}<br>
-                            {{ subscription.billing.country }}
-                        </p>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <h6 class="mb-3">Abonnementsdetails</h6>
-                        <p>
-                            <strong>Start datum:</strong> {{ subscription.start_date.split('T')[0] if subscription.start_date else 'N/A' }}<br>
-                            <strong>Volgende betaling:</strong> {{ subscription.next_payment_date_formatted or 'N/A' }}<br>
-                            <strong>Betalingsperiode:</strong> {{ subscription.billing_period or 'N/A' }}<br>
+                        <form id="subscriptionForm">
+                            <!-- Status -->
+                            <div class="mb-3">
+                                <strong>Status:</strong>
+                                <div class="d-inline-block ms-2">
+                                    <select class="form-select form-select-sm d-inline-block w-auto" id="newStatus" name="status">
+                                        <option value="active" {% if subscription.status == 'active' %}selected{% endif %}>Actief</option>
+                                        <option value="on-hold" {% if subscription.status == 'on-hold' %}selected{% endif %}>On-hold</option>
+                                        <option value="cancelled" {% if subscription.status == 'cancelled' %}selected{% endif %}>Geannuleerd</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Volgende betaling -->
+                            <div class="mb-3">
+                                <strong>Volgende betaling:</strong>
+                                <div class="d-inline-block ms-2">
+                                    <input type="date" class="form-control form-control-sm d-inline-block" style="width: auto;" id="nextPaymentDate" name="next_payment_date" 
+                                        value="{{ subscription.next_payment_date_gmt.split('T')[0] if subscription.next_payment_date_gmt else '' }}"
+                                        min="{{ today }}" required>
+                                    <input type="time" class="form-control form-control-sm d-inline-block" style="width: auto;" id="nextPaymentTime" name="next_payment_time" 
+                                        value="{{ subscription.next_payment_date_gmt.split('T')[1][:5] if subscription.next_payment_date_gmt else '00:00' }}"
+                                        required>
+                                </div>
+                            </div>
+
+                            <!-- Betalingsperiode -->
+                            <div class="mb-3">
+                                <strong>Betalingsperiode:</strong>
+                                <div class="d-inline-block ms-2">
+                                    <select class="form-select form-select-sm d-inline-block" style="width: auto;" id="billingInterval" name="billing_interval" required>
+                                        <option value="1" {% if subscription.billing_interval == '1' %}selected{% endif %}>1</option>
+                                        <option value="2" {% if subscription.billing_interval == '2' %}selected{% endif %}>2</option>
+                                        <option value="3" {% if subscription.billing_interval == '3' %}selected{% endif %}>3</option>
+                                        <option value="4" {% if subscription.billing_interval == '4' %}selected{% endif %}>4</option>
+                                        <option value="5" {% if subscription.billing_interval == '5' %}selected{% endif %}>5</option>
+                                        <option value="6" {% if subscription.billing_interval == '6' %}selected{% endif %}>6</option>
+                                    </select>
+                                    <select class="form-select form-select-sm d-inline-block" style="width: auto;" id="billingPeriod" name="billing_period">
+                                        <option value="week" {% if subscription.billing_period == 'week' %}selected{% endif %}>Week</option>
+                                        <option value="month" {% if subscription.billing_period == 'month' %}selected{% endif %}>Maand</option>
+                                        <option value="year" {% if subscription.billing_period == 'year' %}selected{% endif %}>Jaar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Totaal bedrag -->
+                            <div class="mb-3">
                             <strong>Totaal bedrag:</strong> €{{ subscription.total }}
-                        </p>
+                            </div>
+
+                            <!-- Adressen -->
+                            <div class="row mt-4">
+                                <div class="col-md-6 mb-4">
+                                    <h6 class="mb-3">Factuuradres</h6>
+                                    <div class="mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Voornaam</label>
+                                                <input type="text" class="form-control form-control-sm" name="billing_first_name" value="{{ subscription.billing.first_name }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Achternaam</label>
+                                                <input type="text" class="form-control form-control-sm" name="billing_last_name" value="{{ subscription.billing.last_name }}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Bedrijfsnaam</label>
+                                        <input type="text" class="form-control form-control-sm" name="billing_company" value="{{ subscription.billing.company }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Straat</label>
+                                        <input type="text" class="form-control form-control-sm" name="billing_street" value="{{ subscription.billing.address_1.split(' ')[0:-1]|join(' ') }}" required>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Huisnummer</label>
+                                            <input type="text" class="form-control form-control-sm" name="billing_number" value="{{ subscription.billing.address_1.split(' ')[-1].split('-')[0] }}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Toevoeging</label>
+                                            <input type="text" class="form-control form-control-sm" name="billing_addition" value="{{ subscription.billing.address_1.split(' ')[-1].split('-')[1] if '-' in subscription.billing.address_1.split(' ')[-1] else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Adres 2</label>
+                                        <input type="text" class="form-control form-control-sm" name="billing_address_2" value="{{ subscription.billing.address_2 }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Postcode</label>
+                                                <input type="text" class="form-control form-control-sm" name="billing_postcode" value="{{ subscription.billing.postcode }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Stad</label>
+                                                <input type="text" class="form-control form-control-sm" name="billing_city" value="{{ subscription.billing.city }}" required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Provincie</label>
+                                                <input type="text" class="form-control form-control-sm" name="billing_state" value="{{ subscription.billing.state }}">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Land</label>
+                                                <input type="text" class="form-control form-control-sm" name="billing_country" value="{{ subscription.billing.country or 'NL' }}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">E-mailadres</label>
+                                        <input type="email" class="form-control form-control-sm" name="billing_email" value="{{ subscription.billing.email }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Telefoonnummer</label>
+                                        <input type="tel" class="form-control form-control-sm" name="billing_phone" value="{{ subscription.billing.phone }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Verzendadres</h6>
+                                    <div class="mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Voornaam</label>
+                                                <input type="text" class="form-control form-control-sm" name="shipping_first_name" value="{{ subscription.shipping.first_name }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Achternaam</label>
+                                                <input type="text" class="form-control form-control-sm" name="shipping_last_name" value="{{ subscription.shipping.last_name }}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Bedrijfsnaam</label>
+                                        <input type="text" class="form-control form-control-sm" name="shipping_company" value="{{ subscription.shipping.company }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Straat</label>
+                                        <input type="text" class="form-control form-control-sm" name="shipping_street" value="{{ subscription.shipping.address_1.split(' ')[0:-1]|join(' ') }}" required>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Huisnummer</label>
+                                            <input type="text" class="form-control form-control-sm" name="shipping_number" value="{{ subscription.shipping.address_1.split(' ')[-1].split('-')[0] }}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Toevoeging</label>
+                                            <input type="text" class="form-control form-control-sm" name="shipping_addition" value="{{ subscription.shipping.address_1.split(' ')[-1].split('-')[1] if '-' in subscription.shipping.address_1.split(' ')[-1] else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Adres 2</label>
+                                        <input type="text" class="form-control form-control-sm" name="shipping_address_2" value="{{ subscription.shipping.address_2 }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Postcode</label>
+                                                <input type="text" class="form-control form-control-sm" name="shipping_postcode" value="{{ subscription.shipping.postcode }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Stad</label>
+                                                <input type="text" class="form-control form-control-sm" name="shipping_city" value="{{ subscription.shipping.city }}" required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Provincie</label>
+                                                <input type="text" class="form-control form-control-sm" name="shipping_state" value="{{ subscription.shipping.state }}">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Land</label>
+                                                <input type="text" class="form-control form-control-sm" name="shipping_country" value="{{ subscription.shipping.country or 'NL' }}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         
                         {% if subscription.line_items %}
-                            <h6 class="mb-3 mt-4">Producten</h6>
-                            <ul class="list-group mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                                <h6 class="mb-0">Producten</h6>
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editProductsModal">
+                                    Producten bewerken
+                                </button>
+                            </div>
+                            <ul class="list-group mb-3" id="productsList">
                                 {% for item in subscription.line_items %}
                                 <li class="list-group-item d-flex justify-content-between lh-sm">
                                     <div>
@@ -81,55 +257,791 @@
                                 {% endfor %}
                             </ul>
                         {% endif %}
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
         
-        {% if orders %}
-        <div class="card">
+        <div id="orders-section" class="card mt-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">
-                    Alle orders voor {{ subscription.billing.email }}
-                </h5>
+                <h5 class="mb-0">Orders</h5>
             </div>
             <div class="card-body">
+                <div id="orders-loading" class="text-center d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Laden...</span>
+                    </div>
+                </div>
+                <div id="orders-content">
+                    {% if orders %}
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                            <table class="table table-hover">
                         <thead>
                             <tr>
                                 <th>Order ID</th>
                                 <th>Datum</th>
                                 <th>Status</th>
-                                <th>Betaalmethode</th>
-                                <th>Totaal</th>
+                                        <th>Bedrag</th>
+                                        <th>Acties</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for order in orders %}
                             <tr>
+                                        <td>{{ order.id }}</td>
                                 <td>
-                                    <a href="{{ url_for('order_details', order_id=order.id) }}" class="text-primary">
-                                        {{ order.id }}
-                                    </a>
+                                    <span class="format-date" data-date="{{ order.date_created }}">
+                                        {{ order.date_created_formatted or '-' }}
+                                    </span>
                                 </td>
-                                <td>{{ order.date_created_formatted }}</td>
                                 <td>
-                                    <span class="status-badge status-{{ order.status }}">
+                                            <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'processing' %}bg-primary{% elif order.status == 'on-hold' %}bg-warning{% elif order.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
                                         {{ order.status_display }}
                                     </span>
                                 </td>
-                                <td>{{ order.payment_method_title }}</td>
-                                <td>€{{ order.total }}</td>
+                                        <td>€ {{ "%.2f"|format(order.total|float) }}</td>
+                                        <td>
+                                            <a href="{{ url_for('order_details', order_id=order.id) }}" class="btn btn-sm btn-primary">Details</a>
+                                        </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Geen orders gevonden voor dit e-mailadres.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% endif %}
-        {% endif %}
     </div>
 </div>
+
+<!-- Modaal venster voor het bewerken van producten -->
+<div class="modal fade" id="editProductsModal" tabindex="-1" aria-labelledby="editProductsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProductsModalLabel">Producten bewerken</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Sluiten"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Producten zoeken -->
+                <div class="mb-4">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="productSearch" placeholder="Zoek producten...">
+                        <button class="btn btn-outline-secondary" type="button" id="searchButton">Zoeken</button>
+                    </div>
+                    <div id="searchResults" class="list-group">
+                        <!-- Zoekresultaten komen hier -->
+                    </div>
+                </div>
+
+                <!-- Huidige producten -->
+                <div class="mb-4">
+                    <h6>Huidige producten</h6>
+                    <div id="currentProducts">
+                        {% for item in subscription.line_items %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 product-item" data-product-id="{{ item.product_id }}">
+                            <div class="d-flex align-items-center">
+                                <input type="number" class="form-control form-control-sm me-2 product-quantity" style="width: 70px;" 
+                                       value="{{ item.quantity }}" min="1" max="99">
+                                <span>{{ item.name }}</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="input-group input-group-sm me-3" style="width: 150px;">
+                                    <span class="input-group-text">€</span>
+                                    <input type="number" class="form-control product-price" step="0.01" min="0" 
+                                           value="{{ item.price }}" placeholder="Prijs">
+                                    <span class="input-group-text">/st</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger remove-product">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Verzendkosten -->
+                <div class="mb-4">
+                    <h6>Verzendkosten</h6>
+                    <div id="shippingMethods">
+                        {% for shipping in subscription.shipping_lines %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 shipping-method" data-method-id="{{ shipping.method_id }}">
+                            <div class="d-flex align-items-center">
+                                <input type="text" class="form-control form-control-sm me-2 shipping-method-title" style="width: 200px;" 
+                                       value="{{ shipping.method_title }}" placeholder="Verzendmethode">
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="input-group input-group-sm me-3" style="width: 150px;">
+                                    <span class="input-group-text">€</span>
+                                    <input type="number" class="form-control shipping-cost" step="0.01" min="0" 
+                                           value="{{ shipping.total }}" placeholder="Kosten">
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger remove-shipping">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addShippingMethod">
+                        <i class="bi bi-plus"></i> Verzendmethode toevoegen
+                    </button>
+                </div>
+
+                <!-- Totaal -->
+                <div class="border-top pt-3 mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Subtotaal producten</h6>
+                            <h6 class="mb-1">Verzendkosten</h6>
+                            <h6 class="mb-0">Totaal</h6>
+                        </div>
+                        <div class="text-end">
+                            <h6 class="mb-1" id="modalSubtotal">€0.00</h6>
+                            <h6 class="mb-1" id="modalShipping">€0.00</h6>
+                            <h6 class="mb-0" id="modalTotal">€0.00</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                <button type="button" class="btn btn-primary" id="saveProductChanges">
+                    <span id="saveButtonText">Wijzigingen opslaan</span>
+                    <span id="saveSpinner" class="spinner-border spinner-border-sm ms-1" role="status" style="display: none;">
+                        <span class="visually-hidden">Laden...</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const subscriptionId = "{{ subscription.id }}";
+
+    // Functie om datum te formatteren naar dd maandnaam yyyy
+    function formatDate(dateString) {
+        if (!dateString) return '-';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+            
+            const months = [
+                'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+                'juli', 'augustus', 'september', 'oktober', 'november', 'december'
+            ];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        } catch (e) {
+            return '-';
+        }
+    }
+
+    // Formatteer alle datums bij het laden van de pagina
+    const dateElements = document.querySelectorAll('.format-date');
+    dateElements.forEach(element => {
+        const originalDate = element.getAttribute('data-date');
+        element.textContent = formatDate(originalDate);
+    });
+
+    // Functie om factuuradres naar verzendadres te kopiëren
+    function copyBillingToShipping(e) {
+        const fieldName = e.target.name;
+        const shippingFieldName = fieldName.replace('billing_', 'shipping_');
+        const shippingField = document.querySelector(`[name="${shippingFieldName}"]`);
+        
+        if (shippingField) {
+            shippingField.value = e.target.value;
+            // Trigger een 'change' event op het shipping veld voor eventuele andere listeners
+            shippingField.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // Event listeners toevoegen aan alle factuuradresvelden
+    const billingFields = document.querySelectorAll('[name^="billing_"]');
+    billingFields.forEach(field => {
+        field.addEventListener('input', copyBillingToShipping);
+        field.addEventListener('change', copyBillingToShipping);
+    });
+
+    // Functie om alerts te tonen
+    function showAlert(type, message) {
+        const alertsContainer = document.getElementById('alertsContainer');
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        alertsContainer.appendChild(alertDiv);
+    }
+
+    const searchInput = document.getElementById('productSearch');
+    const searchButton = document.getElementById('searchButton');
+    const searchResults = document.getElementById('searchResults');
+    const currentProducts = document.getElementById('currentProducts');
+    const addShippingButton = document.getElementById('addShippingMethod');
+    const shippingMethods = document.getElementById('shippingMethods');
+    const saveButton = document.getElementById('saveProductChanges');
+    const editProductsModal = document.getElementById('editProductsModal');
+
+    // Reset het modaal venster wanneer het wordt geopend
+    editProductsModal.addEventListener('show.bs.modal', function() {
+        // Update totalen
+        updateTotal();
+    });
+
+    // Verwijder product event listener
+    currentProducts.addEventListener('click', function(e) {
+        const removeButton = e.target.closest('.remove-product');
+        if (removeButton) {
+            const productItem = removeButton.closest('.product-item');
+            if (productItem) {
+                productItem.remove();
+                updateTotal();
+            }
+        }
+    });
+
+    // Verwijder verzendmethode event listener
+    shippingMethods.addEventListener('click', function(e) {
+        const removeButton = e.target.closest('.remove-shipping');
+        if (removeButton) {
+            const shippingMethod = removeButton.closest('.shipping-method');
+            if (shippingMethod) {
+                shippingMethod.remove();
+                updateTotal();
+            }
+        }
+    });
+
+    // Zoekfunctionaliteit
+    searchButton.addEventListener('click', function() {
+        const query = searchInput.value.trim();
+        if (query.length >= 2) {
+            searchProducts(query);
+        }
+    });
+
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const query = searchInput.value.trim();
+            if (query.length >= 2) {
+                searchProducts(query);
+            }
+        }
+    });
+
+    // Zoek producten via API
+    async function searchProducts(query) {
+        try {
+            searchResults.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Laden...</span></div></div>';
+            
+            const response = await fetch('/subscription/available_products');
+            const result = await response.json();
+            
+            if (result.success) {
+                // Haal alle huidige product IDs op
+                const currentProductIds = Array.from(document.querySelectorAll('.product-item')).map(
+                    item => parseInt(item.dataset.productId)
+                );
+                
+                // Filter producten die al in het abonnement zitten eruit
+                const filteredProducts = result.data.filter(product => 
+                    !currentProductIds.includes(product.id) && (
+                        product.name.toLowerCase().includes(query.toLowerCase()) ||
+                        (product.sku && product.sku.toLowerCase().includes(query.toLowerCase()))
+                    )
+                );
+                displaySearchResults(filteredProducts);
+            } else {
+                searchResults.innerHTML = '<div class="alert alert-danger">Fout bij het zoeken naar producten</div>';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            searchResults.innerHTML = '<div class="alert alert-danger">Er is een fout opgetreden bij het zoeken naar producten</div>';
+        }
+    }
+
+    // Toon zoekresultaten
+    function displaySearchResults(products) {
+        if (products.length === 0) {
+            searchResults.innerHTML = '<div class="alert alert-info">Geen producten gevonden</div>';
+            return;
+        }
+
+        searchResults.innerHTML = '';
+        products.forEach(product => {
+            const item = document.createElement('a');
+            item.href = '#';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">${product.name}</h6>
+                        <small class="text-muted">SKU: ${product.sku || 'N/A'}</small>
+                    </div>
+                    <span>€${product.price}</span>
+                </div>
+            `;
+            
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                addProductToList(product);
+                searchInput.value = '';
+                searchResults.innerHTML = '';
+            });
+            
+            searchResults.appendChild(item);
+        });
+    }
+
+    // Voeg product toe aan lijst
+    function addProductToList(product) {
+        // Verwijder bestaand product als het al bestaat
+        const existingProduct = document.querySelector(`.product-item[data-product-id="${product.id}"]`);
+        if (existingProduct) {
+            existingProduct.remove();
+        }
+        
+        const productElement = document.createElement('div');
+        productElement.className = 'd-flex justify-content-between align-items-center mb-2 product-item';
+        productElement.dataset.productId = product.id;
+        productElement.innerHTML = `
+            <div class="d-flex align-items-center">
+                <input type="number" class="form-control form-control-sm me-2 product-quantity" style="width: 70px;" 
+                       value="1" min="1" max="99">
+                <span>${product.name}</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="input-group input-group-sm me-3" style="width: 150px;">
+                    <span class="input-group-text">€</span>
+                    <input type="number" class="form-control product-price" step="0.01" min="0" 
+                           value="${product.price}" placeholder="Prijs">
+                    <span class="input-group-text">/st</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger remove-product">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        currentProducts.appendChild(productElement);
+        
+        // Event listeners voor nieuwe product
+        const quantityInput = productElement.querySelector('.product-quantity');
+        quantityInput.addEventListener('change', updateTotal);
+        
+        const priceInput = productElement.querySelector('.product-price');
+        priceInput.addEventListener('change', updateTotal);
+        
+        updateTotal();
+    }
+
+    // Voeg verzendmethode toe
+    if (addShippingButton) {
+        addShippingButton.addEventListener('click', function() {
+            const newMethod = document.createElement('div');
+            newMethod.className = 'd-flex justify-content-between align-items-center mb-2 shipping-method';
+            newMethod.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <input type="text" class="form-control form-control-sm me-2 shipping-method-title" style="width: 200px;" 
+                           placeholder="Verzendmethode">
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="input-group input-group-sm me-3" style="width: 150px;">
+                        <span class="input-group-text">€</span>
+                        <input type="number" class="form-control shipping-cost" step="0.01" min="0" value="0" 
+                               placeholder="Kosten">
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger remove-shipping">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+            shippingMethods.appendChild(newMethod);
+            updateTotal();
+        });
+    }
+
+    // Update totaal bedrag
+    function updateTotal() {
+        let subtotal = 0;
+        let shippingTotal = 0;
+        
+        // Bereken subtotaal van producten
+        document.querySelectorAll('.product-item').forEach(item => {
+            const quantity = parseInt(item.querySelector('.product-quantity').value);
+            const price = parseFloat(item.querySelector('.product-price').value);
+            if (!isNaN(quantity) && !isNaN(price)) {
+                subtotal += quantity * price;
+            }
+        });
+        
+        // Bereken totaal verzendkosten
+        document.querySelectorAll('.shipping-method').forEach(item => {
+            const cost = parseFloat(item.querySelector('.shipping-cost').value);
+            if (!isNaN(cost)) {
+                shippingTotal += cost;
+            }
+        });
+        
+        // Update de totalen
+        const total = subtotal + shippingTotal;
+        document.getElementById('modalSubtotal').textContent = `€${subtotal.toFixed(2)}`;
+        document.getElementById('modalShipping').textContent = `€${shippingTotal.toFixed(2)}`;
+        document.getElementById('modalTotal').textContent = `€${total.toFixed(2)}`;
+    }
+
+    // Event listeners voor prijswijzigingen
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('.product-quantity') || 
+            e.target.matches('.product-price') || 
+            e.target.matches('.shipping-cost')) {
+            updateTotal();
+        }
+    });
+
+    // Sla wijzigingen op
+    if (saveButton) {
+        saveButton.addEventListener('click', async function() {
+            const saveButtonText = document.getElementById('saveButtonText');
+            const saveSpinner = document.getElementById('saveSpinner');
+            
+            // Verzamel productgegevens
+            const products = [];
+            document.querySelectorAll('.product-item').forEach(item => {
+                products.push({
+                    product_id: parseInt(item.dataset.productId),
+                    quantity: parseInt(item.querySelector('.product-quantity').value),
+                    price: parseFloat(item.querySelector('.product-price').value)
+                });
+            });
+            
+            // Verzamel verzendgegevens
+            const shipping = [];
+            document.querySelectorAll('.shipping-method').forEach(item => {
+                shipping.push({
+                    method_title: item.querySelector('.shipping-method-title').value,
+                    total: parseFloat(item.querySelector('.shipping-cost').value)
+                });
+            });
+            
+            // Toon laad-animatie
+            saveButtonText.textContent = 'Bezig met opslaan...';
+            saveSpinner.style.display = 'inline-block';
+            saveButton.disabled = true;
+            
+            try {
+                const response = await fetch(`/subscription/${subscriptionId}/update_products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        products: products,
+                        shipping_lines: shipping
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('success', 'Producten zijn succesvol bijgewerkt');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', result.error || 'Er is een fout opgetreden bij het opslaan van de wijzigingen');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('danger', 'Er is een fout opgetreden bij het opslaan van de wijzigingen');
+            } finally {
+                // Herstel de knop
+                saveButtonText.textContent = 'Wijzigingen opslaan';
+                saveSpinner.style.display = 'none';
+                saveButton.disabled = false;
+            }
+        });
+    }
+
+    const ordersSection = document.getElementById('orders-section');
+    const ordersLoading = document.getElementById('orders-loading');
+    const ordersContent = document.getElementById('orders-content');
+    
+    // Laad orders pas als de gebruiker naar beneden scrollt
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                loadOrders();
+            }
+        });
+    });
+    
+    observer.observe(ordersSection);
+    
+    function loadOrders() {
+        if (ordersLoading.classList.contains('d-none')) {
+            ordersLoading.classList.remove('d-none');
+            ordersContent.classList.add('d-none');
+            
+            // Haal orders op via API
+            fetch(`/subscription/{{ subscription.id }}/orders?email={{ subscription.billing.email }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateOrdersTable(data.data);
+                    } else {
+                        ordersContent.innerHTML = '<p class="text-danger">Er is een fout opgetreden bij het laden van de orders.</p>';
+                    }
+                })
+                .catch(error => {
+                    ordersContent.innerHTML = '<p class="text-danger">Er is een fout opgetreden bij het laden van de orders.</p>';
+                })
+                .finally(() => {
+                    ordersLoading.classList.add('d-none');
+                    ordersContent.classList.remove('d-none');
+                });
+        }
+    }
+    
+    function updateOrdersTable(orders) {
+        if (orders.length === 0) {
+            ordersContent.innerHTML = '<p class="text-muted">Geen orders gevonden voor dit e-mailadres.</p>';
+            return;
+        }
+
+        // Definieer de volgorde van statussen
+        const statusOrder = {
+            'active': 1,
+            'on-hold': 2,
+            'cancelled': 3
+        };
+        
+        // Sorteer de orders
+        const sortedOrders = orders.sort((a, b) => {
+            // Eerst op status
+            const statusA = statusOrder[a.status] || 999;
+            const statusB = statusOrder[b.status] || 999;
+            if (statusA !== statusB) {
+                return statusA - statusB;
+            }
+            
+            // Dan op ID (DESC)
+            return parseInt(b.id) - parseInt(a.id);
+        });
+        
+        const tbody = document.createElement('tbody');
+        sortedOrders.forEach(order => {
+            const tr = document.createElement('tr');
+            // Format de datum met de nieuwe functie
+            const formattedDate = formatDate(order.date_created);
+            tr.innerHTML = `
+                <td>${order.id}</td>
+                <td>
+                    <span class="format-date" data-date="${order.date_created}">
+                        ${formattedDate}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${getStatusBadgeClass(order.status)}">
+                        ${order.status_display}
+                    </span>
+                </td>
+                <td>€ ${parseFloat(order.total).toFixed(2)}</td>
+                <td>
+                    <a href="/order/${order.id}" class="btn btn-sm btn-primary">Details</a>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        const table = document.createElement('table');
+        table.className = 'table table-hover';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Datum</th>
+                    <th>Status</th>
+                    <th>Bedrag</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+        `;
+        table.appendChild(tbody);
+        
+        const tableResponsive = document.createElement('div');
+        tableResponsive.className = 'table-responsive';
+        tableResponsive.appendChild(table);
+        
+        ordersContent.innerHTML = '';
+        ordersContent.appendChild(tableResponsive);
+    }
+    
+    function getStatusBadgeClass(status) {
+        switch (status) {
+            case 'completed': return 'bg-success';
+            case 'processing': return 'bg-primary';
+            case 'on-hold': return 'bg-warning';
+            case 'cancelled': return 'bg-danger';
+            default: return 'bg-secondary';
+        }
+    }
+
+    // Functie om adresgegevens bij te werken
+    async function updateAddresses() {
+        // Verzamel straat, nummer en toevoeging voor factuuradres
+        const billingStreet = document.querySelector('[name="billing_street"]').value;
+        const billingNumber = document.querySelector('[name="billing_number"]').value;
+        const billingAddition = document.querySelector('[name="billing_addition"]').value || '';
+        
+        // Verzamel straat, nummer en toevoeging voor verzendadres
+        const shippingStreet = document.querySelector('[name="shipping_street"]').value;
+        const shippingNumber = document.querySelector('[name="shipping_number"]').value;
+        const shippingAddition = document.querySelector('[name="shipping_addition"]').value || '';
+
+        const formData = {
+            billing: {
+                first_name: document.querySelector('[name="billing_first_name"]').value,
+                last_name: document.querySelector('[name="billing_last_name"]').value,
+                company: document.querySelector('[name="billing_company"]').value || '',
+                address_1: `${billingStreet} ${billingNumber}${billingAddition ? ' ' + billingAddition : ''}`,
+                address_2: document.querySelector('[name="billing_address_2"]').value || '',
+                postcode: document.querySelector('[name="billing_postcode"]').value,
+                city: document.querySelector('[name="billing_city"]').value,
+                state: document.querySelector('[name="billing_state"]').value || '',
+                country: document.querySelector('[name="billing_country"]').value || 'NL',
+                email: document.querySelector('[name="billing_email"]').value,
+                phone: document.querySelector('[name="billing_phone"]').value || ''
+            },
+            shipping: {
+                first_name: document.querySelector('[name="shipping_first_name"]').value,
+                last_name: document.querySelector('[name="shipping_last_name"]').value,
+                company: document.querySelector('[name="shipping_company"]').value || '',
+                address_1: `${shippingStreet} ${shippingNumber}${shippingAddition ? ' ' + shippingAddition : ''}`,
+                address_2: document.querySelector('[name="shipping_address_2"]').value || '',
+                postcode: document.querySelector('[name="shipping_postcode"]').value,
+                city: document.querySelector('[name="shipping_city"]').value,
+                state: document.querySelector('[name="shipping_state"]').value || '',
+                country: document.querySelector('[name="shipping_country"]').value || 'NL'
+            }
+        };
+
+        try {
+            console.log('Sending address update:', formData);
+            const response = await fetch(`/subscription/${subscriptionId}/update_addresses`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+            console.log('Address update response:', result);
+            
+            if (result.success) {
+                return true;
+            } else {
+                throw new Error(result.error || 'Er is een fout opgetreden bij het bijwerken van de adressen');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    }
+
+    // Update form submit handler
+    const form = document.getElementById('subscriptionForm');
+    const updateButton = document.getElementById('updateButton');
+    const updateButtonText = document.getElementById('updateButtonText');
+    const updateSpinner = document.getElementById('updateSpinner');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Toon laad-indicator
+        updateButton.disabled = true;
+        updateButtonText.textContent = 'Bijwerken...';
+        updateSpinner.style.display = 'inline-block';
+        
+        try {
+            // Update adressen eerst
+            await updateAddresses();
+
+            // Update status
+            const status = document.getElementById('newStatus').value;
+            await updateSubscriptionField('status', { status });
+            
+            // Update volgende betaaldatum
+            const nextPaymentDate = document.getElementById('nextPaymentDate').value;
+            const nextPaymentTime = document.getElementById('nextPaymentTime').value;
+            await updateSubscriptionField('next_payment', { 
+                next_payment_date: nextPaymentDate,
+                next_payment_time: nextPaymentTime
+            });
+            
+            // Update betalingsinterval
+            const billingInterval = document.getElementById('billingInterval').value;
+            const billingPeriod = document.getElementById('billingPeriod').value;
+            await updateSubscriptionField('interval', {
+                billing_interval: billingInterval,
+                billing_period: billingPeriod
+            });
+            
+            // Ververs de pagina met een success parameter
+            window.location.href = window.location.pathname + '?success=true';
+            
+        } catch (error) {
+            console.error('Update error:', error);
+            showAlert('danger', 'Er is een fout opgetreden bij het bijwerken van het abonnement');
+            
+            // Reset de knop
+            updateButton.disabled = false;
+            updateButtonText.textContent = 'Update';
+            updateSpinner.style.display = 'none';
+        }
+    });
+    
+    // Check voor success parameter en toon melding
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+            showAlert('success', 'Abonnement succesvol bijgewerkt');
+            // Verwijder de success parameter uit de URL zonder de pagina te verversen
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    });
+    
+    async function updateSubscriptionField(field, data) {
+        const response = await fetch(`/subscription/{{ subscription.id }}/update_${field}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Er is een fout opgetreden');
+        }
+        
+        return response.json();
+    }
+});
+</script>
 {% endblock %} 

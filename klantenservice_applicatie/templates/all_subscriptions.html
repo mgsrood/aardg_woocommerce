@@ -1,130 +1,95 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="mb-3">
-            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">&larr; Terug naar zoeken</a>
-        </div>
+<script>
+    // Functie om datum te formatteren naar dd maandnaam yyyy
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const months = [
+            'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+            'juli', 'augustus', 'september', 'oktober', 'november', 'december'
+        ];
+        const day = date.getDate();
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day} ${month} ${year}`;
+    }
 
-        {% if error %}
-        <div class="alert alert-danger">
-            {{ error }}
-        </div>
-        {% endif %}
+    // Formatteer alle datums bij het laden van de pagina
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateElements = document.querySelectorAll('.format-date');
+        dateElements.forEach(element => {
+            const originalDate = element.getAttribute('data-date');
+            if (originalDate) {
+                element.textContent = formatDate(originalDate);
+            }
+        });
+    });
+</script>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Zoeken op e-mailadres</h5>
-            </div>
-            <div class="card-body">
-                <form method="GET" action="{{ url_for('all_subscriptions') }}" class="row g-3">
-                    <div class="col-md-8">
-                        <input type="text" id="email_autocomplete" name="email_filter" class="form-control" placeholder="Zoek op e-mailadres..." value="{{ request.args.get('email_filter', '') }}">
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Alle abonnementen</h5>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger">
+                        {{ error }}
                     </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100">Zoeken</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    Alle Abonnementen
-                    {% if total %}
-                    <span class="badge bg-secondary float-end">{{ total }} totaal</span>
                     {% endif %}
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if subscriptions %}
-                    {% if subscriptions|length > 0 %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Status</th>
-                                        <th>Klant</th>
-                                        <th>E-mail</th>
-                                        <th>Totaal</th>
-                                        <th>Volgende betaling</th>
-                                        <th>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for subscription in subscriptions %}
-                                    <tr>
-                                        <td>{{ subscription.id }}</td>
-                                        <td>
-                                            <span class="status-badge status-{{ subscription.status }}">
-                                                {{ subscription.status_display }}
-                                            </span>
-                                        </td>
-                                        <td>{{ subscription.billing.first_name }} {{ subscription.billing.last_name }}</td>
-                                        <td>{{ subscription.billing.email }}</td>
-                                        <td>€{{ subscription.total }}</td>
-                                        <td>{{ subscription.next_payment_date_formatted or 'N/A' }}</td>
-                                        <td>
-                                            <a href="{{ url_for('subscription_details', subscription_id=subscription.id) }}" class="btn btn-sm btn-primary">
-                                                Details
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
 
-                        {% if total_pages > 1 %}
-                        <nav aria-label="Paginering">
-                            <ul class="pagination justify-content-center">
-                                {% if page > 1 %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('all_subscriptions', page=page-1, email_filter=request.args.get('email_filter', '')) }}">&laquo; Vorige</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">&laquo; Vorige</span>
-                                </li>
-                                {% endif %}
-                                
-                                {% for p in range(1, total_pages + 1) %}
-                                    {% if p == page %}
-                                    <li class="page-item active">
-                                        <span class="page-link">{{ p }}</span>
-                                    </li>
-                                    {% elif p <= 5 or p >= total_pages - 4 or (p >= page - 2 and p <= page + 2) %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('all_subscriptions', page=p, email_filter=request.args.get('email_filter', '')) }}">{{ p }}</a>
-                                    </li>
-                                    {% elif p == 6 or p == total_pages - 5 %}
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                    {% endif %}
+                    {% if subscriptions %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Abonnement ID</th>
+                                    <th>E-mail</th>
+                                    <th>Status</th>
+                                    <th>Start datum</th>
+                                    <th>Volgende betaling</th>
+                                    <th>Totaal</th>
+                                    <th>Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subscription in subscriptions %}
+                                <tr>
+                                    <td>{{ subscription.id }}</td>
+                                    <td>{{ subscription.billing.email }}</td>
+                                    <td>
+                                        <span class="badge {% if subscription.status == 'active' %}bg-success{% elif subscription.status == 'on-hold' %}bg-warning{% elif subscription.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ subscription.status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ subscription.start_date }}">
+                                            {{ subscription.start_date_formatted }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ subscription.next_payment_date }}">
+                                            {{ subscription.next_payment_date_formatted }}
+                                        </span>
+                                    </td>
+                                    <td>€{{ subscription.total }}</td>
+                                    <td>
+                                        <a href="{{ url_for('subscription_details', subscription_id=subscription.id) }}" class="btn btn-sm btn-primary">Details</a>
+                                    </td>
+                                </tr>
                                 {% endfor %}
-                                
-                                {% if page < total_pages %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('all_subscriptions', page=page+1, email_filter=request.args.get('email_filter', '')) }}">Volgende &raquo;</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Volgende &raquo;</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
                     {% else %}
-                        <div class="alert alert-info">
-                            Geen abonnementen gevonden.
-                        </div>
+                    <div class="alert alert-info">
+                        Geen abonnementen gevonden.
+                    </div>
                     {% endif %}
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>

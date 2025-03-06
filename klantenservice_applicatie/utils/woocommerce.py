@@ -10,7 +10,8 @@ wcapi = API(
     url=os.getenv('WOOCOMMERCE_URL'),
     consumer_key=os.getenv('WOOCOMMERCE_CONSUMER_KEY'),
     consumer_secret=os.getenv('WOOCOMMERCE_CONSUMER_SECRET'),
-    version="wc/v3"
+    version="wc/v3",
+    timeout=30  # Verhoog timeout naar 30 seconden
 )
 
 def search_subscriptions_by_id(subscription_id):
@@ -319,6 +320,278 @@ def get_subscription_statistics():
     
     except Exception as e:
         error_message = f"Fout bij ophalen abonnementsstatistieken: {str(e)}"
+        print(error_message)
+        import traceback
+        print(f"Stacktrace: {traceback.format_exc()}")
+        return {"error": error_message, "status": 500}
+
+def update_subscription_status(subscription_id, new_status):
+    """
+    Update de status van een abonnement via de WooCommerce API.
+    Mogelijke statussen: 'active', 'on-hold', 'cancelled', 'pending'
+    """
+    try:
+        print(f"Ophalen huidige gegevens voor abonnement {subscription_id}")
+        
+        # Haal eerst de huidige gegevens op
+        current_data = wcapi.get(f"subscriptions/{subscription_id}")
+        if current_data.status_code != 200:
+            error_message = f"Fout bij ophalen huidige gegevens: {current_data.status_code} - {current_data.text}"
+            print(error_message)
+            return {"error": error_message, "status": current_data.status_code}
+            
+        current_subscription = current_data.json()
+        current_status = current_subscription.get('status', 'unknown')
+        
+        print(f"Updating subscription {subscription_id} van status: {current_status} naar: {new_status}")
+        
+        data = {
+            'status': new_status
+        }
+        
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        
+        if response.status_code != 200:
+            error_message = f"Fout bij updaten abonnement: {response.status_code} - {response.text}"
+            print(error_message)
+            return {"error": error_message, "status": response.status_code}
+            
+        subscription = response.json()
+        
+        # Voeg leesbare status toe voor zowel oude als nieuwe status
+        status_display = {
+            'active': 'Actief',
+            'on-hold': 'On-hold',
+            'cancelled': 'Geannuleerd',
+            'pending': 'In afwachting'
+        }
+        
+        subscription['previous_status'] = current_status
+        subscription['previous_status_display'] = status_display.get(current_status, current_status)
+        subscription['status_display'] = status_display.get(subscription['status'], subscription['status'])
+        
+        return {"success": True, "data": subscription}
+        
+    except Exception as e:
+        error_message = f"Onverwachte fout: {str(e)}"
+        print(error_message)
+        import traceback
+        print(f"Stacktrace: {traceback.format_exc()}")
+        return {"error": error_message, "status": 500}
+
+def update_subscription_billing_interval(subscription_id, billing_interval, billing_period='week'):
+    """
+    Update de factureringsinterval van een abonnement.
+    billing_period kan 'day', 'week', 'month' of 'year' zijn.
+    """
+    try:
+        print(f"Ophalen huidige gegevens voor abonnement {subscription_id}")
+        
+        # Haal eerst de huidige gegevens op
+        current_data = wcapi.get(f"subscriptions/{subscription_id}")
+        if current_data.status_code != 200:
+            error_message = f"Fout bij ophalen huidige gegevens: {current_data.status_code} - {current_data.text}"
+            print(error_message)
+            return {"error": error_message, "status": current_data.status_code}
+            
+        current_subscription = current_data.json()
+        current_interval = current_subscription.get('billing_interval', 'unknown')
+        current_period = current_subscription.get('billing_period', 'unknown')
+        
+        print(f"Updating subscription {subscription_id} van interval: {current_interval} {current_period} naar: {billing_interval} {billing_period}")
+        
+        data = {
+            'billing_interval': billing_interval,
+            'billing_period': billing_period
+        }
+        
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        
+        if response.status_code != 200:
+            error_message = f"Fout bij updaten abonnement: {response.status_code} - {response.text}"
+            print(error_message)
+            return {"error": error_message, "status": response.status_code}
+            
+        subscription = response.json()
+        subscription['previous_billing_interval'] = current_interval
+        subscription['previous_billing_period'] = current_period
+            
+        return {"success": True, "data": subscription}
+        
+    except Exception as e:
+        error_message = f"Onverwachte fout: {str(e)}"
+        print(error_message)
+        return {"error": error_message, "status": 500}
+
+def update_subscription_next_payment_date(subscription_id, next_payment_date, next_payment_time=None):
+    """
+    Update de volgende betaaldatum van een abonnement.
+    next_payment_date moet in YYYY-MM-DD formaat zijn
+    next_payment_time moet in HH:mm formaat zijn (optioneel, standaard 00:00)
+    """
+    try:
+        # Als er geen tijd is opgegeven, gebruik dan 00:00
+        time_str = next_payment_time if next_payment_time else "00:00"
+        
+        # Combineer datum en tijd
+        next_payment_datetime = f"{next_payment_date} {time_str}:00"
+        
+        print(f"Updating subscription {subscription_id} next payment date to: {next_payment_datetime}")
+        
+        data = {
+            'next_payment_date': next_payment_datetime
+        }
+        
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        
+        if response.status_code != 200:
+            error_message = f"Fout bij updaten abonnement: {response.status_code} - {response.text}"
+            print(error_message)
+            return {"error": error_message, "status": response.status_code}
+            
+        return {"success": True, "data": response.json()}
+        
+    except Exception as e:
+        error_message = f"Onverwachte fout: {str(e)}"
+        print(error_message)
+        return {"error": error_message, "status": 500}
+
+def update_subscription_shipping_address(subscription_id, shipping_address):
+    """
+    Update het verzendadres van een abonnement.
+    shipping_address moet een dictionary zijn met de volgende velden:
+    first_name, last_name, address_1, address_2, city, state, postcode, country
+    """
+    try:
+        print(f"Updating subscription {subscription_id} shipping address")
+        print(f"Shipping address data: {shipping_address}")
+        
+        # Controleer of alle vereiste velden aanwezig zijn
+        required_fields = ['first_name', 'last_name', 'address_1', 'city', 'postcode', 'country']
+        missing_fields = [field for field in required_fields if not shipping_address.get(field)]
+        
+        if missing_fields:
+            error_message = f"Ontbrekende verplichte velden voor verzendadres: {', '.join(missing_fields)}"
+            print(error_message)
+            return {"error": error_message, "status": 400}
+        
+        # Zorg ervoor dat optionele velden tenminste een lege string zijn
+        optional_fields = ['company', 'address_2', 'state']
+        for field in optional_fields:
+            if field not in shipping_address or shipping_address[field] is None:
+                shipping_address[field] = ''
+        
+        data = {
+            'shipping': shipping_address
+        }
+        print(f"Request data: {data}")
+        
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        print(f"Response status: {response.status_code}")
+        print(f"Response text: {response.text}")
+        
+        if response.status_code != 200:
+            error_message = f"Fout bij updaten abonnement: {response.status_code} - {response.text}"
+            print(error_message)
+            return {"error": error_message, "status": response.status_code}
+            
+        return {"success": True, "data": response.json()}
+        
+    except Exception as e:
+        error_message = f"Onverwachte fout: {str(e)}"
+        print(error_message)
+        import traceback
+        print(f"Stacktrace: {traceback.format_exc()}")
+        return {"error": error_message, "status": 500}
+
+def update_subscription_billing_address(subscription_id, billing_address):
+    """
+    Update het factuuradres van een abonnement.
+    billing_address moet een dictionary zijn met de volgende velden:
+    first_name, last_name, address_1, address_2, city, state, postcode, country, email, phone
+    """
+    try:
+        print(f"Updating subscription {subscription_id} billing address")
+        print(f"Billing address data: {billing_address}")
+        
+        # Controleer of alle vereiste velden aanwezig zijn
+        required_fields = ['first_name', 'last_name', 'address_1', 'city', 'postcode', 'country', 'email']
+        missing_fields = [field for field in required_fields if not billing_address.get(field)]
+        
+        if missing_fields:
+            error_message = f"Ontbrekende verplichte velden voor factuuradres: {', '.join(missing_fields)}"
+            print(error_message)
+            return {"error": error_message, "status": 400}
+        
+        # Zorg ervoor dat optionele velden tenminste een lege string zijn
+        optional_fields = ['company', 'address_2', 'state', 'phone']
+        for field in optional_fields:
+            if field not in billing_address or billing_address[field] is None:
+                billing_address[field] = ''
+        
+        data = {
+            'billing': billing_address
+        }
+        print(f"Request data: {data}")
+        
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        print(f"Response status: {response.status_code}")
+        print(f"Response text: {response.text}")
+        
+        if response.status_code != 200:
+            error_message = f"Fout bij updaten factuuradres: {response.status_code} - {response.text}"
+            print(error_message)
+            return {"error": error_message, "status": response.status_code}
+            
+        return {"success": True, "data": response.json()}
+        
+    except Exception as e:
+        error_message = f"Onverwachte fout: {str(e)}"
+        print(error_message)
+        import traceback
+        print(f"Stacktrace: {traceback.format_exc()}")
+        return {"error": error_message, "status": 500}
+
+def get_subscription_products():
+    """
+    Haalt alle producten op die als abonnement zijn gemarkeerd in WooCommerce.
+    """
+    try:
+        print(f"Ophalen van abonnementsproducten via WooCommerce API")
+        
+        # Haal producten op met type 'subscription'
+        response = wcapi.get("products", params={
+            "type": "subscription",
+            "status": "publish",
+            "per_page": 100  # Maximaal aantal per pagina
+        })
+        
+        if response.status_code != 200:
+            error_message = f"Fout bij ophalen producten: {response.status_code} - {response.text}"
+            print(error_message)
+            return {"error": error_message, "status": response.status_code}
+            
+        products = response.json()
+        
+        # Verwerk de producten voor eenvoudiger gebruik
+        formatted_products = [{
+            'id': product['id'],
+            'name': product['name'],
+            'price': product['price'],
+            'regular_price': product['regular_price'],
+            'description': product['short_description'],
+            'sku': product['sku'],
+            'stock_status': product['stock_status'],
+            'stock_quantity': product.get('stock_quantity'),
+            'images': [img['src'] for img in product.get('images', [])],
+            'attributes': product.get('attributes', [])
+        } for product in products]
+        
+        print(f"{len(formatted_products)} abonnementsproducten opgehaald")
+        return {"success": True, "data": formatted_products}
+        
+    except Exception as e:
+        error_message = f"Onverwachte fout bij ophalen producten: {str(e)}"
         print(error_message)
         import traceback
         print(f"Stacktrace: {traceback.format_exc()}")

@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_caching import Cache
 from utils.woocommerce import search_subscriptions_by_id as wc_search_by_id, get_order_by_id as wc_get_order_by_id
 from utils.woocommerce import get_subscription_statistics as wc_get_subscription_statistics
 from utils.sqlite_db import search_subscriptions_by_id as db_search_by_id
@@ -9,7 +10,18 @@ import os
 import sqlite3
 import logging
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+import json
+from concurrent.futures import ThreadPoolExecutor
+from utils.woocommerce import (
+    update_subscription_status,
+    update_subscription_billing_interval,
+    update_subscription_next_payment_date,
+    update_subscription_shipping_address,
+    update_subscription_billing_address,
+    get_subscription_products,
+    wcapi
+)
 
 # Configureer logging
 logger = logging.getLogger(__name__)
@@ -18,6 +30,12 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+
+# Configureer caching
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300  # 5 minuten
+})
 
 # Bepaal welke databron te gebruiken
 USE_SQLITE = os.getenv('USE_SQLITE', 'true').lower() == 'true'
@@ -44,27 +62,41 @@ def get_recent_orders(limit=5):
         cursor.execute("""
             SELECT o.*, 
                    o.billing_first_name || ' ' || o.billing_last_name as customer_name,
-                   GROUP_CONCAT(omd.quantity || 'x ' || omd.base_product, CHAR(10)) as product_list
+                   o.line_items as product_list
             FROM orders o
-            LEFT JOIN order_margin_data omd ON o.id = omd.order_id
-            GROUP BY o.id
-            ORDER BY o.date_created DESC 
+            ORDER BY o.created_date DESC 
             LIMIT ?
         """, (limit,))
         
         orders = []
         for row in cursor.fetchall():
             order_dict = dict(row)
-            order_dict['line_items'] = []
             
-            if order_dict['product_list']:
-                for product in order_dict['product_list'].split('\n'):
-                    if product:
-                        qty, name = product.split('x ', 1)
+            # Parse line_items JSON
+            if order_dict.get('line_items'):
+                try:
+                    line_items = json.loads(order_dict['line_items'])
+                    order_dict['line_items'] = []
+                    for item in line_items:
+                        if isinstance(item['name'], list):
+                            name = item['name'][0]
+                        else:
+                            name = item['name']
+                            
+                        if isinstance(item['quantity'], list):
+                            quantity = item['quantity'][0]
+                        else:
+                            quantity = item['quantity']
+                            
                         order_dict['line_items'].append({
-                            'quantity': int(qty),
-                            'name': name.strip()
+                            'quantity': quantity,
+                            'name': name
                         })
+                except Exception as e:
+                    logger.error(f"Fout bij parsen line_items JSON: {str(e)}")
+                    order_dict['line_items'] = []
+            else:
+                order_dict['line_items'] = []
             
             orders.append(order_dict)
             
@@ -97,7 +129,7 @@ def get_monthly_order_stats():
         cursor.execute("""
             SELECT COUNT(*) as count, SUM(total) as total
             FROM orders 
-            WHERE date_created >= ? AND date_created < ?
+            WHERE created_date >= ? AND created_date < ?
         """, (first_day, last_day))
         
         result = cursor.fetchone()
@@ -340,54 +372,103 @@ def search_orders():
 @app.route('/subscription/<int:subscription_id>')
 def subscription_details(subscription_id):
     """Toon details van een specifiek abonnement"""
-    # Altijd WooCommerce API gebruiken voor volledige details
-    from utils.woocommerce import search_subscriptions_by_id as wc_search_by_id
-    result = wc_search_by_id(subscription_id)
-    
-    if 'error' in result:
-        return render_template('subscription_details.html', error=result['error'])
-    
-    subscription = result.get('data', [])[0] if result.get('data') else None
-    
-    # Haal orders op voor het e-mailadres als we SQLite gebruiken
-    orders = []
-    if USE_SQLITE and subscription and subscription.get('billing', {}).get('email'):
-        email = subscription['billing']['email']
-        orders_result = get_orders_by_email(email)
-        if 'success' in orders_result:
-            orders = orders_result.get('data', [])
-    
-    # Altijd use_woocommerce op True zetten
-    return render_template('subscription_details.html', subscription=subscription, orders=orders, use_woocommerce=True)
+    try:
+        # Haal subscription en orders parallel op
+        with ThreadPoolExecutor() as executor:
+            # Haal subscription op
+            subscription_future = executor.submit(wc_search_by_id, subscription_id)
+            subscription_result = subscription_future.result()
+            
+            # Haal subscription uit het resultaat
+            subscription = subscription_result.get('data', [])[0] if subscription_result.get('data') else None
+            
+            # Als er een fout is, geef deze door samen met subscription
+            if 'error' in subscription_result:
+                return render_template('subscription_details.html', 
+                                    error=subscription_result['error'],
+                                    subscription=subscription,
+                                    today=date.today().isoformat())
+            
+            # Haal orders op voor het e-mailadres als die er is
+            orders = []
+            if subscription and subscription.get('billing', {}).get('email'):
+                email = subscription['billing']['email']
+                logger.info(f"Zoeken naar orders voor e-mailadres: {email}")
+                
+                if USE_SQLITE:
+                    orders_future = executor.submit(get_orders_by_email, email)
+                    orders_result = orders_future.result()
+                    logger.info(f"SQLite orders resultaat: {orders_result}")
+                    if 'success' in orders_result:
+                        orders = orders_result.get('data', [])
+                        logger.info(f"Aantal orders gevonden: {len(orders)}")
+                else:
+                    # Fallback naar WooCommerce API als SQLite niet wordt gebruikt
+                    from utils.woocommerce import get_orders_by_email as wc_get_orders_by_email
+                    orders_future = executor.submit(wc_get_orders_by_email, email)
+                    orders_result = orders_future.result()
+                    logger.info(f"WooCommerce orders resultaat: {orders_result}")
+                    if 'success' in orders_result:
+                        orders = orders_result.get('data', [])
+                        logger.info(f"Aantal orders gevonden: {len(orders)}")
+            
+            # Voeg huidige datum toe voor datumvalidatie
+            today = date.today().isoformat()
+            
+            return render_template('subscription_details.html', 
+                                subscription=subscription, 
+                                orders=orders, 
+                                use_woocommerce=True,
+                                today=today)
+                                
+    except Exception as e:
+        logger.error(f"Fout bij ophalen subscription details: {str(e)}")
+        return render_template('subscription_details.html', 
+                            error=f"Er is een fout opgetreden: {str(e)}",
+                            subscription=None,
+                            today=date.today().isoformat())
 
 @app.route('/order/<int:order_id>')
 def order_details(order_id):
     """Toon details van een specifieke order"""
-    # Gebruik altijd de WooCommerce API voor orderdetails
-    result = wc_get_order_by_id(order_id)
+    try:
+        # Probeer eerst de WooCommerce API met een langere timeout
+        wcapi.timeout = 60  # Verhoog timeout naar 60 seconden
+        result = wc_get_order_by_id(order_id)
         
-    if 'error' in result:
-        return render_template('order_details.html', error=result['error'])
-    
-    order = result.get('data')
-    
-    # Haal abonnementen op voor het e-mailadres
-    subscriptions = []
-    if order and order.get('billing', {}).get('email'):
-        email = order['billing']['email']
-        # Gebruik altijd de SQLite functie voor het zoeken naar abonnementen
-        # omdat er geen equivalent is in de WooCommerce module
-        subscriptions_result = search_subscriptions_by_email(email)
-        if 'success' in subscriptions_result or 'data' in subscriptions_result:
-            subscriptions = subscriptions_result.get('data', [])
-    
-    # Haal margegegevens op uit de SQLite database
-    margin_data = None
-    margin_result = get_order_margin(order_id)
-    if 'success' in margin_result:
-        margin_data = margin_result.get('data')
-    
-    return render_template('order_details.html', order=order, subscriptions=subscriptions, margin_data=margin_data)
+        if 'error' in result:
+            # Als er een fout is met de WooCommerce API, probeer SQLite
+            if USE_SQLITE:
+                logger.info(f"Fallback naar SQLite voor order {order_id}")
+                result = db_get_order_by_id(order_id)
+                if 'error' in result:
+                    return render_template('order_details.html', error=result['error'])
+                order = result.get('data')
+            else:
+                return render_template('order_details.html', error=result['error'])
+        else:
+            order = result.get('data')
+        
+        # Haal abonnementen op voor het e-mailadres
+        subscriptions = []
+        if order and order.get('billing', {}).get('email'):
+            email = order['billing']['email']
+            # Gebruik altijd de SQLite functie voor het zoeken naar abonnementen
+            subscriptions_result = search_subscriptions_by_email(email)
+            if 'success' in subscriptions_result or 'data' in subscriptions_result:
+                subscriptions = subscriptions_result.get('data', [])
+        
+        # Haal margegegevens op uit de SQLite database
+        margin_data = None
+        margin_result = get_order_margin(order_id)
+        if 'success' in margin_result:
+            margin_data = margin_result.get('data')
+        
+        return render_template('order_details.html', order=order, subscriptions=subscriptions, margin_data=margin_data)
+        
+    except Exception as e:
+        logger.error(f"Onverwachte fout bij ophalen order {order_id}: {str(e)}")
+        return render_template('order_details.html', error=f"Er is een fout opgetreden bij het ophalen van de order: {str(e)}")
 
 @app.route('/all')
 def all_subscriptions():
@@ -438,11 +519,9 @@ def all_orders():
         cursor.execute("""
             SELECT o.*, 
                    o.billing_first_name || ' ' || o.billing_last_name as customer_name,
-                   GROUP_CONCAT(omd.quantity || 'x ' || omd.base_product, CHAR(10)) as product_list
+                   o.line_items as product_list
             FROM orders o
-            LEFT JOIN order_margin_data omd ON o.id = omd.order_id
-            GROUP BY o.id
-            ORDER BY o.date_created DESC 
+            ORDER BY o.created_date DESC 
             LIMIT ? OFFSET ?
         """, (limit, offset))
         
@@ -451,14 +530,27 @@ def all_orders():
             order_dict = dict(row)
             order_dict['line_items'] = []
             
+            # Parse line_items JSON
             if order_dict['product_list']:
-                for product in order_dict['product_list'].split('\n'):
-                    if product:
-                        qty, name = product.split('x ', 1)
+                try:
+                    line_items = json.loads(order_dict['product_list'])
+                    for item in line_items:
+                        if isinstance(item['name'], list):
+                            name = item['name'][0]
+                        else:
+                            name = item['name']
+                            
+                        if isinstance(item['quantity'], list):
+                            quantity = item['quantity'][0]
+                        else:
+                            quantity = item['quantity']
+                            
                         order_dict['line_items'].append({
-                            'quantity': int(qty),
-                            'name': name.strip()
+                            'quantity': quantity,
+                            'name': name
                         })
+                except Exception as e:
+                    logger.error(f"Fout bij parsen line_items JSON: {str(e)}")
             
             # Voeg leesbare status toe
             order_dict['status_display'] = {
@@ -527,7 +619,416 @@ def email_suggestions():
         print(f"Fout bij ophalen e-mail suggesties: {str(e)}")
         return jsonify([])
 
+@app.route('/subscription/<int:subscription_id>/update_status', methods=['POST'])
+def update_subscription_status_route(subscription_id):
+    """Update de status van een abonnement"""
+    try:
+        new_status = request.json.get('status')
+        if not new_status:
+            return jsonify({"error": "Geen status opgegeven"}), 400
+            
+        result = update_subscription_status(subscription_id, new_status)
+        
+        if 'error' in result:
+            return jsonify(result), result.get('status', 500)
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/<int:subscription_id>/update_interval', methods=['POST'])
+def update_subscription_interval_route(subscription_id):
+    """Update de factureringsinterval van een abonnement"""
+    try:
+        billing_interval = request.json.get('billing_interval')
+        billing_period = request.json.get('billing_period', 'week')
+        
+        if not billing_interval:
+            return jsonify({"error": "Geen interval opgegeven"}), 400
+            
+        result = update_subscription_billing_interval(subscription_id, billing_interval, billing_period)
+        
+        if 'error' in result:
+            return jsonify(result), result.get('status', 500)
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/<int:subscription_id>/update_next_payment', methods=['POST'])
+def update_subscription_next_payment_route(subscription_id):
+    """Update de volgende betaaldatum van een abonnement"""
+    try:
+        next_payment_date = request.json.get('next_payment_date')
+        next_payment_time = request.json.get('next_payment_time')
+        
+        if not next_payment_date:
+            return jsonify({"error": "Geen datum opgegeven"}), 400
+            
+        result = update_subscription_next_payment_date(
+            subscription_id, 
+            next_payment_date,
+            next_payment_time
+        )
+        
+        if 'error' in result:
+            return jsonify(result), result.get('status', 500)
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/<int:subscription_id>/update_shipping', methods=['POST'])
+def update_subscription_shipping_route(subscription_id):
+    """Update het verzendadres van een abonnement"""
+    try:
+        shipping_address = request.json.get('shipping_address')
+        
+        if not shipping_address:
+            return jsonify({"error": "Geen adres opgegeven"}), 400
+            
+        result = update_subscription_shipping_address(subscription_id, shipping_address)
+        
+        if 'error' in result:
+            return jsonify(result), result.get('status', 500)
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/<int:subscription_id>/update_billing', methods=['POST'])
+def update_subscription_billing_route(subscription_id):
+    """Update het factuuradres van een abonnement"""
+    try:
+        billing_address = request.json.get('billing_address')
+        
+        if not billing_address:
+            return jsonify({"error": "Geen adres opgegeven"}), 400
+            
+        result = update_subscription_billing_address(subscription_id, billing_address)
+        
+        if 'error' in result:
+            return jsonify(result), result.get('status', 500)
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/available_products', methods=['GET'])
+def get_available_subscription_products():
+    """
+    Endpoint om beschikbare abonnementsproducten op te halen
+    """
+    result = get_subscription_products()
+    if result.get("error"):
+        return jsonify(result), result.get("status", 500)
+    return jsonify(result)
+
+@app.route('/subscription/<int:subscription_id>/update_products', methods=['POST'])
+def update_subscription_products(subscription_id):
+    """Update de producten en verzendkosten van een abonnement"""
+    try:
+        products = request.json.get('products')
+        shipping_lines = request.json.get('shipping_lines', [])
+        
+        print(f"Ontvangen producten: {products}")
+        print(f"Ontvangen verzendkosten: {shipping_lines}")
+        
+        if not products:
+            return jsonify({"error": "Geen producten opgegeven"}), 400
+            
+        # Haal het huidige abonnement op
+        current_subscription = wcapi.get(f"subscriptions/{subscription_id}")
+        if current_subscription.status_code != 200:
+            return jsonify({"error": "Kon het abonnement niet ophalen"}), 500
+            
+        # Haal de huidige data op
+        current_data = current_subscription.json()
+        print(f"Huidige abonnementsdata: {current_data}")
+        print(f"Huidige verzendkosten: {current_data.get('shipping_lines', [])}")
+        
+        # Maak een nieuwe data structuur met de bestaande line_items
+        data = {
+            'line_items': [],
+            'shipping_lines': [],
+            'status': current_data.get('status', 'active')
+        }
+        
+        # Verwerk alle bestaande producten
+        for existing_item in current_data.get('line_items', []):
+            product_id = existing_item.get('product_id')
+            
+            # Zoek of dit product in de nieuwe lijst staat
+            new_product = None
+            for product in products:
+                if product['product_id'] == product_id:
+                    new_product = product
+                    break
+            
+            if new_product:
+                # Update het product met de nieuwe hoeveelheid
+                data['line_items'].append({
+                    'id': existing_item['id'],
+                    'product_id': product_id,
+                    'quantity': new_product['quantity'],
+                    'subtotal': str(float(new_product['price']) * float(new_product['quantity'])),
+                    'total': str(float(new_product['price']) * float(new_product['quantity']))
+                })
+            else:
+                # Zet de hoeveelheid op 0 voor producten die niet meer in de lijst staan
+                data['line_items'].append({
+                    'id': existing_item['id'],
+                    'product_id': product_id,
+                    'quantity': 0,
+                    'subtotal': '0.00',
+                    'total': '0.00'
+                })
+        
+        # Voeg eventuele nieuwe producten toe
+        for new_product in products:
+            product_id = new_product['product_id']
+            
+            # Controleer of dit product al bestaat
+            exists = False
+            for item in data['line_items']:
+                if item.get('product_id') == product_id:
+                    exists = True
+                    break
+            
+            if not exists:
+                # Voeg het nieuwe product toe
+                data['line_items'].append({
+                    'product_id': product_id,
+                    'quantity': new_product['quantity'],
+                    'subtotal': str(float(new_product['price']) * float(new_product['quantity'])),
+                    'total': str(float(new_product['price']) * float(new_product['quantity']))
+                })
+        
+        # Verwerk de verzendkosten
+        if shipping_lines:
+            print("Nieuwe verzendkosten ontvangen, deze worden toegepast:")
+            for shipping in shipping_lines:
+                print(f"Verzendkost: {shipping}")
+                if shipping.get('method_id'):
+                    shipping_line = {
+                        'method_id': shipping['method_id'],
+                        'method_title': shipping['method_title'],
+                        'total': str(shipping['total'])
+                    }
+                    print(f"Toegevoegde verzendkost: {shipping_line}")
+                    data['shipping_lines'].append(shipping_line)
+        else:
+            print("Geen nieuwe verzendkosten ontvangen, bestaande worden behouden:")
+            for shipping in current_data.get('shipping_lines', []):
+                if shipping.get('method_id'):
+                    print(f"Bestaande verzendkost: {shipping}")
+                    data['shipping_lines'].append({
+                        'id': shipping.get('id'),
+                        'method_id': shipping['method_id'],
+                        'method_title': shipping['method_title'],
+                        'total': str(shipping['total'])
+                    })
+        
+        print(f"Data die naar WooCommerce wordt gestuurd: {data}")
+        
+        # Update het abonnement met de nieuwe data
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        
+        print(f"WooCommerce response status: {response.status_code}")
+        print(f"WooCommerce response body: {response.text}")
+        
+        if response.status_code != 200:
+            return jsonify({"error": f"Fout bij updaten abonnement: {response.text}"}), response.status_code
+            
+        # Haal het bijgewerkte abonnement op om te controleren
+        updated_subscription = wcapi.get(f"subscriptions/{subscription_id}")
+        print(f"Bijgewerkte abonnementsdata: {updated_subscription.json()}")
+        print(f"Bijgewerkte verzendkosten: {updated_subscription.json().get('shipping_lines', [])}")
+        
+        return jsonify({"success": True, "data": response.json()})
+        
+    except Exception as e:
+        print(f"Exception: {str(e)}")
+        import traceback
+        print(f"Stacktrace: {traceback.format_exc()}")
+        return jsonify({"error": str(e)}), 500
+
+def sync_products_to_sqlite():
+    """Synchroniseer producten met SQLite database"""
+    try:
+        # Haal alle producten op van WooCommerce
+        response = wcapi.get("products", params={'per_page': 100})
+        if response.status_code != 200:
+            logger.error(f"Fout bij ophalen producten: {response.text}")
+            return False
+            
+        products = response.json()
+        
+        # Maak database connectie
+        conn = get_db_connection()
+        if not conn:
+            return False
+            
+        try:
+            cursor = conn.cursor()
+            
+            # Maak products tabel als deze niet bestaat
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS products (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT,
+                    sku TEXT,
+                    price REAL,
+                    regular_price REAL,
+                    sale_price REAL,
+                    status TEXT,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Update of voeg producten toe
+            for product in products:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO products 
+                    (id, name, sku, price, regular_price, sale_price, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    product['id'],
+                    product['name'],
+                    product.get('sku', ''),
+                    float(product.get('price', 0)),
+                    float(product.get('regular_price', 0)),
+                    float(product.get('sale_price', 0)),
+                    product.get('status', '')
+                ))
+            
+            conn.commit()
+            return True
+            
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        logger.error(f"Fout bij synchroniseren producten: {str(e)}")
+        return False
+
+def search_products(query):
+    """Zoek producten in SQLite database"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Kan geen verbinding maken met de database"}
+            
+        cursor = conn.cursor()
+        
+        # Zoek op naam of SKU
+        cursor.execute("""
+            SELECT id, name, sku, price, regular_price, sale_price, status
+            FROM products
+            WHERE LOWER(name) LIKE ? OR LOWER(sku) LIKE ?
+            ORDER BY name
+            LIMIT 50
+        """, (f"%{query.lower()}%", f"%{query.lower()}%"))
+        
+        products = []
+        for row in cursor.fetchall():
+            products.append({
+                'id': row['id'],
+                'name': row['name'],
+                'sku': row['sku'],
+                'price': row['price'],
+                'regular_price': row['regular_price'],
+                'sale_price': row['sale_price'],
+                'status': row['status']
+            })
+            
+        return {"success": True, "data": products}
+        
+    except Exception as e:
+        logger.error(f"Fout bij zoeken producten: {str(e)}")
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+@app.route('/api/search-products')
+def api_search_products():
+    """API endpoint voor product zoeken"""
+    query = request.args.get('query', '')
+    if not query or len(query) < 2:
+        return jsonify([])
+        
+    result = search_products(query)
+    if 'error' in result:
+        return jsonify({"error": result['error']}), 500
+        
+    return jsonify(result['data'])
+
+@app.route('/subscription/<int:subscription_id>/orders')
+@cache.memoize(timeout=300)  # Cache voor 5 minuten
+def get_subscription_orders(subscription_id):
+    """API endpoint voor het ophalen van orders voor een abonnement"""
+    try:
+        email = request.args.get('email')
+        if not email:
+            return jsonify({"error": "Geen e-mailadres opgegeven"}), 400
+            
+        if USE_SQLITE:
+            result = get_orders_by_email(email)
+        else:
+            # Fallback naar WooCommerce API als SQLite niet wordt gebruikt
+            from utils.woocommerce import get_orders_by_email as wc_get_orders_by_email
+            result = wc_get_orders_by_email(email)
+            
+        if 'error' in result:
+            return jsonify(result), 500
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Fout bij ophalen orders: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/<int:subscription_id>/update_addresses', methods=['POST'])
+def update_subscription_addresses_route(subscription_id):
+    """Update zowel factuur- als verzendadres van een abonnement"""
+    try:
+        data = request.json
+        print(f"Ontvangen data: {data}")
+        
+        billing_address = data.get('billing')
+        shipping_address = data.get('shipping')
+        
+        print(f"Billing address: {billing_address}")
+        print(f"Shipping address: {shipping_address}")
+        
+        if not billing_address or not shipping_address:
+            return jsonify({"error": "Zowel factuur- als verzendadres zijn verplicht"}), 400
+        
+        # Update factuuradres
+        billing_result = update_subscription_billing_address(subscription_id, billing_address)
+        print(f"Billing result: {billing_result}")
+        if 'error' in billing_result:
+            return jsonify(billing_result), billing_result.get('status', 500)
+        
+        # Update verzendadres
+        shipping_result = update_subscription_shipping_address(subscription_id, shipping_address)
+        print(f"Shipping result: {shipping_result}")
+        if 'error' in shipping_result:
+            return jsonify(shipping_result), shipping_result.get('status', 500)
+        
+        return jsonify({"success": True, "data": shipping_result.get('data')})
+        
+    except Exception as e:
+        print(f"Error in update_addresses: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000
     port = int(os.getenv('PORT', 5000))
-    app.run(debug=True, port=port) 
+    app.run(debug=True, port=port)
+    sync_products_to_sqlite()  # Synchroniseer producten bij opstarten 

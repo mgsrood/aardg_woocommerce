@@ -1,87 +1,103 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script>
+    // Functie om datum te formatteren naar dd maandnaam yyyy
+    function formatDate(dateString) {
+        if (!dateString) return '-';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+            
+            const months = [
+                'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+                'juli', 'augustus', 'september', 'oktober', 'november', 'december'
+            ];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        } catch (e) {
+            return '-';
+        }
+    }
+
+    // Formatteer alle datums bij het laden van de pagina
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateElements = document.querySelectorAll('.format-date');
+        dateElements.forEach(element => {
+            const originalDate = element.getAttribute('data-date');
+            element.textContent = formatDate(originalDate);
+        });
+    });
+</script>
+
 <div class="container mt-4">
-    <h1 class="mb-4">Alle Orders</h1>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Alle orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger">
+                        {{ error }}
+                    </div>
+                    {% endif %}
 
-    {% if error %}
-    <div class="alert alert-danger" role="alert">
-        {{ error }}
-    </div>
-    {% endif %}
-
-    {% if orders %}
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Order ID</th>
-                    <th>Datum</th>
-                    <th>Klant</th>
-                    <th>Producten</th>
-                    <th>Status</th>
-                    <th>Totaal</th>
-                    <th>Acties</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.id }}</td>
-                    <td>{{ order.date_created.split('T')[0] if order.date_created else '' }}</td>
-                    <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
-                    <td>
-                        {% if order.line_items %}
-                            {% for item in order.line_items %}
-                                {{ item.quantity }}x {{ item.name }}<br>
-                            {% endfor %}
-                        {% endif %}
-                    </td>
-                    <td><span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' if order.status == 'processing' else 'danger' }}">{{ order.status_display }}</span></td>
-                    <td>€{{ "%.2f"|format(order.total|float) }}</td>
-                    <td>
-                        <a href="{{ url_for('order_details', order_id=order.id) }}" class="btn btn-sm btn-primary">Details</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    {# Paginering #}
-    <nav aria-label="Paginering">
-        <ul class="pagination justify-content-center">
-            {% if page > 1 %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('all_orders', page=page-1) }}">&laquo; Vorige</a>
-            </li>
-            {% endif %}
-
-            {% for p in range(max(1, page-2), min(total_pages+1, page+3)) %}
-            <li class="page-item {{ 'active' if p == page else '' }}">
-                <a class="page-link" href="{{ url_for('all_orders', page=p) }}">{{ p }}</a>
-            </li>
-            {% endfor %}
-
-            {% if page < total_pages %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('all_orders', page=page+1) }}">Volgende &raquo;</a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-
-    <div class="text-center mt-3">
-        <p>Totaal aantal orders: {{ total }}</p>
-    </div>
-    {% else %}
-    <div class="alert alert-info" role="alert">
-        Geen orders gevonden.
-    </div>
-    {% endif %}
-
-    <div class="mt-4">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">Terug naar Home</a>
+                    {% if orders %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>E-mail</th>
+                                    <th>Status</th>
+                                    <th>Datum aangemaakt</th>
+                                    <th>Datum afgerond</th>
+                                    <th>Totaal</th>
+                                    <th>Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.id }}</td>
+                                    <td>{{ order.billing.email }}</td>
+                                    <td>
+                                        <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'processing' %}bg-primary{% elif order.status == 'on-hold' %}bg-warning{% elif order.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ order.status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ order.date_created }}">
+                                            {{ order.date_created_formatted or '-' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ order.date_completed }}">
+                                            {{ order.date_completed_formatted or '-' }}
+                                        </span>
+                                    </td>
+                                    <td>€{{ order.total }}</td>
+                                    <td>
+                                        <a href="{{ url_for('order_details', order_id=order.id) }}" class="btn btn-sm btn-primary">Details</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Geen orders gevonden.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %} 

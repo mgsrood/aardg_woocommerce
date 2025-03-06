@@ -277,57 +277,61 @@ def get_all_subscriptions(limit=100, offset=0):
         conn.close()
 
 def get_orders_by_email(email):
-    """
-    Haal alle orders op voor een specifiek e-mailadres.
-    """
-    conn = get_db_connection()
-    if not conn:
-        return {"error": "Kan geen verbinding maken met de database", "status": 500}
-    
+    """Haal orders op voor een specifiek e-mailadres"""
     try:
-        logger.info(f"Zoeken naar orders voor e-mail: {email}")
-        
-        # Haal orders op
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Kan geen verbinding maken met de database"}
+            
         cursor = conn.cursor()
+        
+        # Voeg index toe voor snellere zoekacties
         cursor.execute("""
-            SELECT * FROM orders 
-            WHERE billing_email LIKE ? 
-            ORDER BY date_created DESC
-        """, (f"%{email}%",))
+            CREATE INDEX IF NOT EXISTS idx_orders_email 
+            ON orders(billing_email)
+        """)
         
-        orders_rows = cursor.fetchall()
+        # Zoek orders op basis van het e-mailadres met LIMIT
+        cursor.execute("""
+            SELECT o.*, 
+                   o.billing_first_name || ' ' || o.billing_last_name as customer_name,
+                   o.line_items as product_list,
+                   o.created_date as date_created
+            FROM orders o
+            WHERE LOWER(o.billing_email) = LOWER(?)
+            ORDER BY o.created_date DESC
+            LIMIT 50  -- Beperk het aantal orders voor betere performance
+        """, (email,))
         
-        if not orders_rows:
-            logger.warning(f"Geen orders gevonden voor e-mail: {email}")
-            return {"error": f"Geen orders gevonden voor e-mail: {email}", "status": 404}
-        
-        # Converteer naar dictionaries
         orders = []
-        for row in orders_rows:
-            order = dict(row)
+        for row in cursor.fetchall():
+            order_dict = dict(row)
+            order_dict['line_items'] = []
             
-            # Verwerk meta_data
-            if order['meta_data']:
+            # Parse line_items JSON
+            if order_dict['product_list']:
                 try:
-                    order['meta_data'] = json.loads(order['meta_data'])
-                except:
-                    order['meta_data'] = []
-            
-            # Voeg billing object toe voor consistentie
-            order['billing'] = {
-                'first_name': order['billing_first_name'],
-                'last_name': order['billing_last_name'],
-                'email': order['billing_email'],
-                'phone': order['billing_phone'],
-                'address_1': order['billing_address_1'],
-                'address_2': order['billing_address_2'],
-                'postcode': order['billing_postcode'],
-                'city': order['billing_city'],
-                'country': order['billing_country']
-            }
+                    line_items = json.loads(order_dict['product_list'])
+                    for item in line_items:
+                        if isinstance(item['name'], list):
+                            name = item['name'][0]
+                        else:
+                            name = item['name']
+                            
+                        if isinstance(item['quantity'], list):
+                            quantity = item['quantity'][0]
+                        else:
+                            quantity = item['quantity']
+                            
+                        order_dict['line_items'].append({
+                            'quantity': quantity,
+                            'name': name
+                        })
+                except Exception as e:
+                    logger.error(f"Fout bij parsen line_items JSON: {str(e)}")
             
             # Voeg leesbare status toe
-            order['status_display'] = {
+            order_dict['status_display'] = {
                 'completed': 'Voltooid',
                 'processing': 'In behandeling',
                 'on-hold': 'On-hold',
@@ -335,24 +339,22 @@ def get_orders_by_email(email):
                 'pending': 'In afwachting',
                 'failed': 'Mislukt',
                 'refunded': 'Terugbetaald'
-            }.get(order['status'], order['status'])
+            }.get(order_dict['status'], order_dict['status'])
             
-            # Formateer datums
-            if order.get('date_created'):
-                order['date_created_formatted'] = order['date_created'].split('T')[0] if 'T' in order['date_created'] else order['date_created']
+            # Voeg geformatteerde datum toe
+            if order_dict.get('date_created'):
+                order_dict['date_created_formatted'] = order_dict['date_created'].split('T')[0] if 'T' in order_dict['date_created'] else order_dict['date_created']
             
-            orders.append(order)
-        
-        logger.info(f"{len(orders)} orders gevonden voor e-mail: {email}")
+            orders.append(order_dict)
+            
         return {"success": True, "data": orders}
-    
+        
     except Exception as e:
-        error_message = f"Fout bij zoeken naar orders: {str(e)}"
-        logger.error(error_message)
-        return {"error": error_message, "status": 500}
-    
+        logger.error(f"Fout bij ophalen orders voor e-mail {email}: {str(e)}")
+        return {"error": str(e)}
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 def get_order_by_id(order_id):
     """
@@ -543,6 +545,7 @@ def get_subscription_statistics():
         status_counts = []
         total_count = 0
         total_value = 0
+        total_value_on_hold = 0
         
         for row in cursor.fetchall():
             status, count, value = row
@@ -554,6 +557,8 @@ def get_subscription_statistics():
             total_count += count
             if status == 'active':
                 total_value = value if value is not None else 0
+            elif status == 'on-hold':
+                total_value_on_hold = value if value is not None else 0
         
         # Haal actieve abonnementen op
         cursor.execute("""
@@ -567,6 +572,18 @@ def get_subscription_statistics():
         active_count = active_row[0] if active_row[0] is not None else 0
         total_value_excl = active_row[1] if active_row[1] is not None else 0
         
+        # Haal gepauzeerde abonnementen op
+        cursor.execute("""
+            SELECT COUNT(*) as count,
+                   SUM(total) as total_value
+            FROM subscriptions
+            WHERE status = 'on-hold'
+        """)
+        
+        on_hold_row = cursor.fetchone()
+        on_hold_count = on_hold_row[0] if on_hold_row[0] is not None else 0
+        total_value_on_hold = on_hold_row[1] if on_hold_row[1] is not None else 0
+        
         conn.close()
         
         return {
@@ -575,15 +592,13 @@ def get_subscription_statistics():
                 'status_counts': status_counts,
                 'total_count': total_count,
                 'active_count': active_count,
-                'total_value_excl': "{:.2f}".format(total_value_excl),
-                'total_shipping': "0.00",  # Standaard 0 voor verzendkosten
-                'total_value_incl': "{:.2f}".format(total_value_excl)  # Totaal is gelijk aan excl. omdat we geen verzendkosten hebben
+                'total_value': total_value,
+                'total_value_excl': total_value_excl,
+                'total_value_on_hold': total_value_on_hold
             }
         }
-        
     except Exception as e:
         logger.error(f"Fout bij ophalen abonnementsstatistieken: {str(e)}")
-        logger.error(f"Stacktrace: {traceback.format_exc()}")
         return {
             'success': False,
             'error': f"Fout bij ophalen abonnementsstatistieken: {str(e)}"
