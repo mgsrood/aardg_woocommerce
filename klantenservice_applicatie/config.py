@@ -23,8 +23,8 @@ class Config:
     
     # Monta API configuratie
     MONTA_API_URL = os.getenv('MONTA_API_URL', 'https://api-v6.monta.nl')
-    MONTA_USERNAME = os.getenv('MONTA_USERNAME')  # Gebruik username/password
-    MONTA_PASSWORD = os.getenv('MONTA_PASSWORD')  # in plaats van key/secret
+    MONTA_API_KEY = os.getenv('MONTA_API_KEY')
+    MONTA_API_SECRET = os.getenv('MONTA_API_SECRET')
     
     # Gebruik SQLite als standaard
     USE_SQLITE = os.getenv('USE_SQLITE', 'true').lower() == 'true' 

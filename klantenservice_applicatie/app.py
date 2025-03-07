@@ -1100,56 +1100,43 @@ def forward_order_to_monta(order_id):
                     return jsonify({"error": "Order is al doorgestuurd naar het distributiecentrum"}), 400
             
         # Maak Monta order data
-        from datetime import datetime, timedelta
-        future_time = (datetime.utcnow() + timedelta(hours=2)).strftime("%H:%M:%S")
-        
         monta_data = {
-            "WebshopOrderId": str(order['id']),  # Verplicht veld
-            "Reference": str(order['id']),  # Gebruik order ID als referentie
-            "Origin": "aardg.nl",  # Webshop naam
-            "ConsumerDetails": {  # Verplicht veld
-                "DeliveryAddress": {  # Verplicht veld voor verzendadres
-                    "Company": order['shipping'].get('company', ''),
-                    "FirstName": order['shipping']['first_name'],
-                    "LastName": order['shipping']['last_name'],
-                    "Street": order['shipping']['address_1'].split()[0],
-                    "HouseNumber": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
-                    "HouseNumberAddition": order['shipping']['address_2'] or "",
-                    "PostalCode": order['shipping']['postcode'],
-                    "City": order['shipping']['city'],
-                    "CountryCode": order['shipping']['country'],
-                    "PhoneNumber": order['billing'].get('phone', ''),
-                    "EmailAddress": order['billing']['email']
-                },
-                "InvoiceAddress": {  # Factuuradres
-                    "Company": order['billing'].get('company', ''),
-                    "FirstName": order['billing']['first_name'],
-                    "LastName": order['billing']['last_name'],
-                    "Street": order['billing']['address_1'].split()[0],
-                    "HouseNumber": order['billing']['address_1'].split()[1] if len(order['billing']['address_1'].split()) > 1 else "",
-                    "HouseNumberAddition": order['billing']['address_2'] or "",
-                    "PostalCode": order['billing']['postcode'],
-                    "City": order['billing']['city'],
-                    "CountryCode": order['billing']['country'],
-                    "PhoneNumber": order['billing'].get('phone', ''),
-                    "EmailAddress": order['billing']['email']
-                },
-                "B2B": False,  # Standaard B2C
-                "CommunicationLanguageCode": "NL"  # Nederlands als standaard
+            "orderNumber": str(order['id']),
+            "shipmentDate": shipment_date,
+            "status": "blocked",  # Zet order standaard op geblokkeerd
+            "shipping": {
+                "company": order['shipping'].get('company', ''),
+                "firstName": order['shipping']['first_name'],
+                "lastName": order['shipping']['last_name'],
+                "street": order['shipping']['address_1'].split()[0],
+                "houseNo": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
+                "addition": order['shipping']['address_2'] or "",
+                "postalCode": order['shipping']['postcode'],
+                "city": order['shipping']['city'],
+                "country": order['shipping']['country'],
+                "email": order['billing']['email']
             },
-            "PlannedShipmentDate": f"{shipment_date}T{future_time}Z",  # ISO 8601 formaat met tijd + 2 uur
-            "ShipOnPlannedShipmentDate": True,  # Verzend op de geplande datum
-            "Blocked": True,  # Zet order standaard op geblokkeerd
-            "BlockedMessage": "Order geblokkeerd voor controle",
-            "Lines": []  # Order regels
+            "billing": {
+                "company": order['billing'].get('company', ''),
+                "firstName": order['billing']['first_name'],
+                "lastName": order['billing']['last_name'],
+                "street": order['billing']['address_1'].split()[0],
+                "houseNo": order['billing']['address_1'].split()[1] if len(order['billing']['address_1'].split()) > 1 else "",
+                "addition": order['billing']['address_2'] or "",
+                "postalCode": order['billing']['postcode'],
+                "city": order['billing']['city'],
+                "country": order['billing']['country'],
+                "email": order['billing']['email']
+            },
+            "items": []
         }
         
         # Voeg producten toe
         for item in order.get('line_items', []):
-            monta_data['Lines'].append({
-                "Sku": item.get('sku', ''),
-                "Description": item['name'],
-                "OrderedQuantity": item['quantity']
+            monta_data['items'].append({
+                "sku": item.get('sku', ''),
+                "name": item['name'],
+                "quantity": item['quantity']
             })
             
         # Stuur order door naar Monta
@@ -1164,7 +1151,7 @@ def forward_order_to_monta(order_id):
             'meta_data': [
                 {
                     'key': '_monta_order_id',
-                    'value': result.get('MontaEorderId')  # Gebruik het juiste veld uit de response
+                    'value': result['id']
                 },
                 {
                     'key': '_monta_order_status',
@@ -1183,37 +1170,15 @@ def forward_order_to_monta(order_id):
         if update_result.status_code != 200:
             logger.error(f"Fout bij updaten WooCommerce order met Monta gegevens: {update_result.text}")
             
-        # Maak een duidelijk bericht met de details
-        success_message = (
-            f"Order #{order_id} is succesvol doorgestuurd naar Monta.\n"
-            f"Monta order ID: {result.get('MontaEorderId')}\n"
-            f"Verzenddatum: {shipment_date}\n"
-            f"Status: Geblokkeerd"
-        )
-        
         return jsonify({
             "success": True,
-            "message": success_message,
-            "monta_order_id": result.get('MontaEorderId'),
-            "flash": {
-                "type": "success",
-                "title": "Order doorgestuurd",
-                "message": success_message
-            }
+            "message": "Order is succesvol doorgestuurd naar het distributiecentrum",
+            "monta_order_id": result['id']
         })
         
     except Exception as e:
-        error_message = f"Fout bij doorsturen order: {str(e)}"
-        logger.error(error_message)
-        return jsonify({
-            "success": False,
-            "error": error_message,
-            "flash": {
-                "type": "error",
-                "title": "Fout bij doorsturen",
-                "message": error_message
-            }
-        }), 500
+        logger.error(f"Onverwachte fout bij doorsturen order: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000

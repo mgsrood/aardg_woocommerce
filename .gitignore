@@ -10,3 +10,8 @@ __pycache__/
 config.cfg       
 flask_monitoringdashboard.db
 sub_venv
+venv/
+__pycache__/
+*.pyc
+.env
+*.db
