@@ -1,26 +1,82 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="col-md-6 col-lg-4">
+        <div class="text-center mb-4">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="AARD'G" style="height: 40px; width: auto;">
+        </div>
         <div class="card">
-            <div class="card-body">
+            <div class="card-body p-4">
                 <h2 class="card-title text-center mb-4">Inloggen</h2>
                 <form method="POST">
                     <div class="mb-3">
                         <label for="username" class="form-label">Gebruikersnaam</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: var(--aardg-pink); border: none;">
+                                <i class="bi bi-person" style="color: var(--aardg-red);"></i>
+                            </span>
+                            <input type="text" class="form-control" id="username" name="username" required 
+                                   style="border-left: none; padding-left: 0;">
+                        </div>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <label for="password" class="form-label">Wachtwoord</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: var(--aardg-pink); border: none;">
+                                <i class="bi bi-lock" style="color: var(--aardg-red);"></i>
+                            </span>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                   style="border-left: none; padding-left: 0;">
+                        </div>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Inloggen</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>
+                            Inloggen
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .input-group {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .input-group-text {
+        border-radius: 10px 0 0 10px !important;
+        padding: 12px 16px;
+    }
+    
+    .form-control {
+        border-radius: 0 10px 10px 0 !important;
+    }
+    
+    .form-control:focus {
+        border-color: var(--aardg-red);
+        box-shadow: none;
+    }
+    
+    .input-group:focus-within {
+        box-shadow: 0 0 0 0.2rem rgba(255, 0, 70, 0.15);
+    }
+    
+    .card {
+        background: white;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn {
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 14px;
+    }
+</style>
 {% endblock %} 
