@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_caching import Cache
 from utils.woocommerce import search_subscriptions_by_id as wc_search_by_id, get_order_by_id as wc_get_order_by_id
 from utils.woocommerce import get_subscription_statistics as wc_get_subscription_statistics
@@ -24,6 +24,8 @@ from utils.woocommerce import (
 )
 from utils.monta_api import MontaAPI
 from utils.sqlite_db import update_order_monta_status
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from models import User
 
 # Configureer logging
 logger = logging.getLogger(__name__)
@@ -42,6 +44,49 @@ cache = Cache(app, config={
 
 # Bepaal welke databron te gebruiken
 USE_SQLITE = os.getenv('USE_SQLITE', 'true').lower() == 'true'
+
+# Na het maken van de Flask app
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Log in om toegang te krijgen tot deze pagina.'
+login_manager.login_message_category = 'warning'
+
+@login_manager.user_loader
+def load_user(user_id):
+    # Hier zou je normaal de database gebruiken
+    if user_id == '1':  # Admin user
+        return User(1, 'admin', 'dummy_hash')  # Het echte hash zit in get_user_by_username
+    return None
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        remember = 'remember' in request.form
+        
+        user = User.get_user_by_username(username)
+        
+        if user and user.check_password(password):
+            login_user(user, remember=remember)
+            next_page = request.args.get('next')
+            flash('Je bent succesvol ingelogd!', 'success')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Ongeldige gebruikersnaam of wachtwoord', 'danger')
+            
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Je bent uitgelogd', 'info')
+    return redirect(url_for('login'))
 
 def get_db_connection():
     """Maak een database connectie"""
@@ -147,6 +192,7 @@ def get_monthly_order_stats():
         conn.close()
 
 @app.route('/')
+@login_required
 def index():
     """Homepage met zoekformulier en statistieken"""
     view_type = request.args.get('view', 'subscriptions')  # 'subscriptions' of 'orders'
@@ -179,6 +225,7 @@ def index():
                              recent_orders=recent_orders)
 
 @app.route('/search')
+@login_required
 def search():
     """Zoek abonnement of order op ID, e-mail of naam"""
     search_type = request.args.get('type', 'subscription')
@@ -432,6 +479,7 @@ def subscription_details(subscription_id):
                             today=date.today().isoformat())
 
 @app.route('/order/<int:order_id>')
+@login_required
 def order_details(order_id):
     """Toon details van een specifieke order"""
     try:
