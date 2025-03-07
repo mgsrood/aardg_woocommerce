@@ -19,11 +19,10 @@ from utils.woocommerce import (
     update_subscription_next_payment_date,
     update_subscription_shipping_address,
     update_subscription_billing_address,
-    get_subscription_products,
+    update_subscription_expiry_date,
     wcapi
 )
 from utils.monta_api import MontaAPI
-from utils.sqlite_db import update_order_monta_status
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import User
 
@@ -54,7 +53,32 @@ login_manager.login_message_category = 'warning'
 
 @login_manager.user_loader
 def load_user(user_id):
-    # Hier zou je normaal de database gebruiken
+    try:
+        # Pad naar de database
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
+        
+        # Verbinding maken met de database
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Gebruiker ophalen
+        cursor.execute('SELECT id, username, password_hash FROM users WHERE id = ?', (user_id,))
+        user_data = cursor.fetchone()
+        
+        # Verbinding sluiten
+        conn.close()
+        
+        # Als gebruiker gevonden is, maak een User object
+        if user_data:
+            return User(
+                id=user_data[0],
+                username=user_data[1],
+                password_hash=user_data[2]
+            )
+    except Exception as e:
+        print(f"Database error in load_user: {e}")
+    
+    # Fallback naar hardgecodeerde gebruiker
     if user_id == '1':  # Admin user
         return User(1, 'admin', 'dummy_hash')  # Het echte hash zit in get_user_by_username
     return None

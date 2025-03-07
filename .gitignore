@@ -6,7 +6,6 @@ invoicing_venv
 subscription_venv
 webhook_venv
 .key
-__pycache__/
 config.cfg       
 flask_monitoringdashboard.db
 sub_venv
@@ -15,4 +14,18 @@ __pycache__/
 *.pyc
 .env
 *.db
+
+
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Database bestanden
+*.db
+*.sqlite
+*.sqlite3
+
+# Specifiek voor dit project
+users.db
 woocommerce.db
