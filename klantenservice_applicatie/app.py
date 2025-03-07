@@ -22,6 +22,8 @@ from utils.woocommerce import (
     get_subscription_products,
     wcapi
 )
+from utils.monta_api import MontaAPI
+from utils.sqlite_db import update_order_monta_status
 
 # Configureer logging
 logger = logging.getLogger(__name__)
@@ -30,7 +32,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
-app.config.from_object('config')
+app.config.from_object('config.Config')  # Zorg dat we de Config class gebruiken
 
 # Configureer caching
 cache = Cache(app, config={
@@ -1064,6 +1066,154 @@ def adjust_time(time_str):
         return f"{adjusted_hours:02d}:{minutes:02d}"
     except:
         return time_str
+
+@app.route('/order/<int:order_id>/forward_to_monta', methods=['POST'])
+def forward_order_to_monta(order_id):
+    """Stuur een order door naar het distributiecentrum"""
+    try:
+        # Haal verzendmoment op uit request
+        data = request.get_json()
+        if not data or 'shipment_date' not in data:
+            return jsonify({"error": "Geen verzenddatum opgegeven"}), 400
+            
+        shipment_date = data['shipment_date']
+        
+        # Haal order op via WooCommerce API
+        wcapi.timeout = 60  # Verhoog timeout voor betrouwbaarheid
+        result = wcapi.get(f"orders/{order_id}")
+        
+        if result.status_code != 200:
+            return jsonify({"error": f"Order niet gevonden: {result.text}"}), 404
+            
+        order = result.json()
+        
+        # Controleer order status
+        if order['status'] not in ['pending', 'on-hold']:
+            return jsonify({
+                "error": f"Order kan niet worden doorgestuurd. Status moet 'In afwachting' of 'On-hold' zijn, maar is: {order['status']}"
+            }), 400
+            
+        # Controleer of order al is doorgestuurd
+        if order.get('meta_data'):
+            for meta in order['meta_data']:
+                if meta.get('key') == '_monta_order_id' and meta.get('value'):
+                    return jsonify({"error": "Order is al doorgestuurd naar het distributiecentrum"}), 400
+            
+        # Maak Monta order data
+        from datetime import datetime, timedelta
+        future_time = (datetime.utcnow() + timedelta(hours=2)).strftime("%H:%M:%S")
+        
+        monta_data = {
+            "WebshopOrderId": str(order['id']),  # Verplicht veld
+            "Reference": str(order['id']),  # Gebruik order ID als referentie
+            "Origin": "aardg.nl",  # Webshop naam
+            "ConsumerDetails": {  # Verplicht veld
+                "DeliveryAddress": {  # Verplicht veld voor verzendadres
+                    "Company": order['shipping'].get('company', ''),
+                    "FirstName": order['shipping']['first_name'],
+                    "LastName": order['shipping']['last_name'],
+                    "Street": order['shipping']['address_1'].split()[0],
+                    "HouseNumber": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
+                    "HouseNumberAddition": order['shipping']['address_2'] or "",
+                    "PostalCode": order['shipping']['postcode'],
+                    "City": order['shipping']['city'],
+                    "CountryCode": order['shipping']['country'],
+                    "PhoneNumber": order['billing'].get('phone', ''),
+                    "EmailAddress": order['billing']['email']
+                },
+                "InvoiceAddress": {  # Factuuradres
+                    "Company": order['billing'].get('company', ''),
+                    "FirstName": order['billing']['first_name'],
+                    "LastName": order['billing']['last_name'],
+                    "Street": order['billing']['address_1'].split()[0],
+                    "HouseNumber": order['billing']['address_1'].split()[1] if len(order['billing']['address_1'].split()) > 1 else "",
+                    "HouseNumberAddition": order['billing']['address_2'] or "",
+                    "PostalCode": order['billing']['postcode'],
+                    "City": order['billing']['city'],
+                    "CountryCode": order['billing']['country'],
+                    "PhoneNumber": order['billing'].get('phone', ''),
+                    "EmailAddress": order['billing']['email']
+                },
+                "B2B": False,  # Standaard B2C
+                "CommunicationLanguageCode": "NL"  # Nederlands als standaard
+            },
+            "PlannedShipmentDate": f"{shipment_date}T{future_time}Z",  # ISO 8601 formaat met tijd + 2 uur
+            "ShipOnPlannedShipmentDate": True,  # Verzend op de geplande datum
+            "Blocked": True,  # Zet order standaard op geblokkeerd
+            "BlockedMessage": "Order geblokkeerd voor controle",
+            "Lines": []  # Order regels
+        }
+        
+        # Voeg producten toe
+        for item in order.get('line_items', []):
+            monta_data['Lines'].append({
+                "Sku": item.get('sku', ''),
+                "Description": item['name'],
+                "OrderedQuantity": item['quantity']
+            })
+            
+        # Stuur order door naar Monta
+        monta_api = MontaAPI()
+        result = monta_api.create_order(monta_data)
+        
+        if 'error' in result:
+            return jsonify({"error": f"Fout bij aanmaken order in distributiecentrum: {result['error']}"}), 500
+            
+        # Update WooCommerce met Monta order ID en status
+        update_data = {
+            'meta_data': [
+                {
+                    'key': '_monta_order_id',
+                    'value': result.get('MontaEorderId')  # Gebruik het juiste veld uit de response
+                },
+                {
+                    'key': '_monta_order_status',
+                    'value': 'blocked'
+                },
+                {
+                    'key': '_monta_shipment_date',
+                    'value': shipment_date
+                }
+            ]
+        }
+        
+        # Update de order in WooCommerce
+        update_result = wcapi.put(f"orders/{order_id}", update_data)
+        
+        if update_result.status_code != 200:
+            logger.error(f"Fout bij updaten WooCommerce order met Monta gegevens: {update_result.text}")
+            
+        # Maak een duidelijk bericht met de details
+        success_message = (
+            f"Order #{order_id} is succesvol doorgestuurd naar Monta.\n"
+            f"Monta order ID: {result.get('MontaEorderId')}\n"
+            f"Verzenddatum: {shipment_date}\n"
+            f"Status: Geblokkeerd"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": success_message,
+            "monta_order_id": result.get('MontaEorderId'),
+            "flash": {
+                "type": "success",
+                "title": "Order doorgestuurd",
+                "message": success_message
+            }
+        })
+        
+    except Exception as e:
+        error_message = f"Fout bij doorsturen order: {str(e)}"
+        logger.error(error_message)
+        return jsonify({
+            "success": False,
+            "error": error_message,
+            "flash": {
+                "type": "error",
+                "title": "Fout bij doorsturen",
+                "message": error_message
+            }
+        }), 500
 
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000

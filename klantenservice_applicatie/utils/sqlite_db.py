@@ -383,12 +383,14 @@ def get_order_by_id(order_id):
         # Converteer naar dictionary
         order = dict(order_row)
         
-        # Verwerk meta_data
-        if order['meta_data']:
+        # Verwerk meta_data als het bestaat
+        if order.get('meta_data'):
             try:
                 order['meta_data'] = json.loads(order['meta_data'])
             except:
                 order['meta_data'] = []
+        else:
+            order['meta_data'] = []
         
         # Voeg billing en shipping objecten toe voor compatibiliteit met WooCommerce API
         order['billing'] = {
@@ -400,7 +402,19 @@ def get_order_by_id(order_id):
             'address_2': order['billing_address_2'],
             'postcode': order['billing_postcode'],
             'city': order['billing_city'],
-            'country': order['billing_country']
+            'country': order['billing_country'],
+            'company': order.get('billing_company', '')
+        }
+        
+        order['shipping'] = {
+            'first_name': order['shipping_first_name'],
+            'last_name': order['shipping_last_name'],
+            'address_1': order['shipping_address_1'],
+            'address_2': order['shipping_address_2'],
+            'postcode': order['shipping_postcode'],
+            'city': order['shipping_city'],
+            'country': order['shipping_country'],
+            'company': order.get('shipping_company', '')
         }
         
         # Voeg leesbare status toe
@@ -414,9 +428,14 @@ def get_order_by_id(order_id):
             'refunded': 'Terugbetaald'
         }.get(order['status'], order['status'])
         
-        # Formateer datums
-        if order.get('date_created'):
-            order['date_created_formatted'] = order['date_created'].split('T')[0] if 'T' in order['date_created'] else order['date_created']
+        # Parse line_items JSON als het bestaat
+        if order.get('line_items'):
+            try:
+                order['line_items'] = json.loads(order['line_items'])
+            except:
+                order['line_items'] = []
+        else:
+            order['line_items'] = []
         
         logger.info(f"Order gevonden: {order_id}")
         return {"success": True, "data": order}
@@ -606,4 +625,53 @@ def get_subscription_statistics():
         return {
             'success': False,
             'error': f"Fout bij ophalen abonnementsstatistieken: {str(e)}"
-        } 
+        }
+
+def init_db():
+    """Initialiseer de database tabellen"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+        
+    try:
+        cursor = conn.cursor()
+        
+        # Voeg Monta order tracking toe aan orders tabel
+        cursor.execute("""
+            ALTER TABLE orders ADD COLUMN monta_order_id TEXT;
+            ALTER TABLE orders ADD COLUMN monta_order_status TEXT;
+            ALTER TABLE orders ADD COLUMN monta_order_created_at TIMESTAMP;
+            ALTER TABLE orders ADD COLUMN monta_shipment_date DATE;
+        """)
+        
+        conn.commit()
+        return True
+    except sqlite3.OperationalError:
+        # Kolommen bestaan mogelijk al
+        return True
+    finally:
+        conn.close()
+
+def update_order_monta_status(order_id, monta_order_id, status, shipment_date=None):
+    """Update de Monta order status voor een order"""
+    conn = get_db_connection()
+    if not conn:
+        return {"error": "Kan geen verbinding maken met de database"}
+        
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE orders 
+            SET monta_order_id = ?, 
+                monta_order_status = ?,
+                monta_order_created_at = CURRENT_TIMESTAMP,
+                monta_shipment_date = ?
+            WHERE id = ?
+        """, (monta_order_id, status, shipment_date, order_id))
+        
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close() 

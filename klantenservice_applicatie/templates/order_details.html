@@ -25,6 +25,53 @@
             }
         });
     });
+
+    // Functie om mooie notificaties te tonen
+    function showNotification(type, title, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-alert`;
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.maxWidth = '400px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        
+        const titleElement = document.createElement('strong');
+        titleElement.textContent = title;
+        
+        const messageElement = document.createElement('div');
+        messageElement.style.whiteSpace = 'pre-line';
+        messageElement.textContent = message;
+        
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.setAttribute('data-bs-dismiss', 'alert');
+        closeButton.setAttribute('aria-label', 'Close');
+        
+        alertDiv.appendChild(titleElement);
+        alertDiv.appendChild(document.createElement('hr'));
+        alertDiv.appendChild(messageElement);
+        alertDiv.appendChild(closeButton);
+        
+        // Verwijder bestaande notificaties
+        document.querySelectorAll('.notification-alert').forEach(alert => alert.remove());
+        
+        document.body.appendChild(alertDiv);
+        
+        // Automatisch verwijderen na 5 seconden
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }, 5000);
+    }
+
+    // Functie voor eenvoudige alerts (backward compatibility)
+    function showAlert(type, message) {
+        const title = type === 'success' ? 'Succes!' : 'Fout';
+        showNotification(type === 'danger' ? 'danger' : type, title, message);
+    }
 </script>
 
 <div class="container mt-4">
@@ -130,10 +177,82 @@
                         </table>
                     </div>
                     {% endif %}
+
+                    {% if (order.status == 'pending' or order.status == 'on-hold') and not order.monta_order_id %}
+                    <div class="mb-3">
+                        <div class="row align-items-end">
+                            <div class="col-md-4">
+                                <label for="shipmentDate" class="form-label">Verzendmoment</label>
+                                <input type="date" class="form-control" id="shipmentDate" min="{{ today }}">
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-primary" id="forwardToMontaBtn">
+                                    <i class="bi bi-box-arrow-right"></i> Doorsturen naar distributiecentrum
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if order.monta_order_id %}
+                    <div class="alert alert-info">
+                        <strong>Monta Order ID:</strong> {{ order.monta_order_id }}<br>
+                        <strong>Status:</strong> {{ order.monta_order_status }}<br>
+                        <strong>Doorgestuurd op:</strong> {{ order.monta_order_created_at }}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+// Voeg event listener toe voor Monta doorsturen
+document.getElementById('forwardToMontaBtn')?.addEventListener('click', async function() {
+    const shipmentDate = document.getElementById('shipmentDate').value;
+    if (!shipmentDate) {
+        showNotification('warning', 'Let op', 'Selecteer eerst een verzendmoment voordat je de order doorstuurt.');
+        return;
+    }
+    
+    if (!confirm('Weet je zeker dat je deze order wilt doorsturen naar het distributiecentrum?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/order/{{ order.id }}/forward_to_monta`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                shipment_date: shipmentDate
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            if (result.flash) {
+                showNotification(result.flash.type, result.flash.title, result.flash.message);
+            } else {
+                showAlert('success', result.message);
+            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            if (result.flash) {
+                showNotification(result.flash.type, result.flash.title, result.flash.message);
+            } else {
+                showAlert('danger', result.error || 'Er is een fout opgetreden bij het doorsturen van de order');
+            }
+        }
+    } catch (error) {
+        showNotification('danger', 'Fout', 'Er is een onverwachte fout opgetreden bij het doorsturen van de order.');
+    }
+});
+</script>
 {% endblock %} 
