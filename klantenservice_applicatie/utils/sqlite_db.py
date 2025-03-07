@@ -95,6 +95,10 @@ def search_subscriptions_by_id(subscription_id):
         if subscription.get('next_payment_date'):
             subscription['next_payment_date_formatted'] = subscription['next_payment_date'].split('T')[0] if 'T' in subscription['next_payment_date'] else subscription['next_payment_date']
         
+        # Formateer vervaldatum als deze beschikbaar is
+        if subscription.get('end_date'):
+            subscription['end_date_formatted'] = subscription['end_date'].split('T')[0] if 'T' in subscription['end_date'] else subscription['end_date']
+        
         logger.info(f"Abonnement gevonden: {subscription_id}")
         return {"success": True, "data": [subscription]}
     

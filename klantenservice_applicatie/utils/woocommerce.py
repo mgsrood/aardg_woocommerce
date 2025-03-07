@@ -48,6 +48,10 @@ def search_subscriptions_by_id(subscription_id):
             if subscription.get('next_payment_date_gmt'):
                 subscription['next_payment_date_formatted'] = subscription['next_payment_date_gmt'].split('T')[0]
             
+            # Formateer vervaldatum als deze beschikbaar is
+            if subscription.get('end_date_gmt'):
+                subscription['end_date_formatted'] = subscription['end_date_gmt'].split('T')[0]
+            
             # Verzendkosten verwerken
             shipping_lines = subscription.get('shipping_lines', [])
             total_shipping = 0
@@ -595,4 +599,37 @@ def get_subscription_products():
         print(error_message)
         import traceback
         print(f"Stacktrace: {traceback.format_exc()}")
+        return {"error": error_message, "status": 500}
+
+def update_subscription_expiry_date(subscription_id, expiry_date, expiry_time=None):
+    """
+    Update de vervaldatum van een abonnement.
+    expiry_date moet in YYYY-MM-DD formaat zijn
+    expiry_time moet in HH:mm formaat zijn (optioneel, standaard 00:00)
+    """
+    try:
+        # Als er geen tijd is opgegeven, gebruik dan 00:00
+        time_str = expiry_time if expiry_time else "00:00"
+        
+        # Combineer datum en tijd
+        expiry_datetime = f"{expiry_date} {time_str}:00"
+        
+        print(f"Updating subscription {subscription_id} expiry date to: {expiry_datetime}")
+        
+        data = {
+            'end_date': expiry_datetime
+        }
+        
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        
+        if response.status_code != 200:
+            error_message = f"Fout bij updaten vervaldatum abonnement: {response.status_code} - {response.text}"
+            print(error_message)
+            return {"error": error_message, "status": response.status_code}
+            
+        return {"success": True, "data": response.json()}
+        
+    except Exception as e:
+        error_message = f"Onverwachte fout bij updaten vervaldatum: {str(e)}"
+        print(error_message)
         return {"error": error_message, "status": 500}

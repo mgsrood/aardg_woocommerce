@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+app.config.from_object('config')
 
 # Configureer caching
 cache = Cache(app, config={
@@ -1026,6 +1027,43 @@ def update_subscription_addresses_route(subscription_id):
     except Exception as e:
         print(f"Error in update_addresses: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/<int:subscription_id>/update_expiry_date', methods=['POST'])
+def update_subscription_expiry_date_route(subscription_id):
+    """Update de vervaldatum van een abonnement"""
+    try:
+        # Haal de nieuwe vervaldatum op uit het formulier
+        expiry_date = request.form.get('expiry_date')
+        expiry_time = request.form.get('expiry_time', '00:00')
+        
+        # Valideer de datum
+        if not expiry_date:
+            return jsonify({"success": False, "error": "Geen vervaldatum opgegeven"})
+        
+        # Update de vervaldatum
+        from utils.woocommerce import update_subscription_expiry_date
+        result = update_subscription_expiry_date(subscription_id, expiry_date, expiry_time)
+        
+        if 'error' in result:
+            return jsonify({"success": False, "error": result['error']})
+        
+        return jsonify({"success": True, "message": "Vervaldatum succesvol bijgewerkt"})
+        
+    except Exception as e:
+        logger.error(f"Fout bij updaten vervaldatum: {str(e)}")
+        return jsonify({"success": False, "error": f"Er is een fout opgetreden: {str(e)}"})
+
+# Voeg de adjust_time filter toe
+@app.template_filter('adjust_time')
+def adjust_time(time_str):
+    if not time_str:
+        return '00:00'
+    try:
+        hours, minutes = map(int, time_str.split(':'))
+        adjusted_hours = (hours + 1) % 24
+        return f"{adjusted_hours:02d}:{minutes:02d}"
+    except:
+        return time_str
 
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000

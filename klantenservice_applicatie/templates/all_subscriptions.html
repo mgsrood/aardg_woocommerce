@@ -51,6 +51,7 @@
                                     <th>Status</th>
                                     <th>Start datum</th>
                                     <th>Volgende betaling</th>
+                                    <th>Vervaldatum</th>
                                     <th>Totaal</th>
                                     <th>Acties</th>
                                 </tr>
@@ -73,6 +74,15 @@
                                     <td>
                                         <span class="format-date" data-date="{{ subscription.next_payment_date }}">
                                             {{ subscription.next_payment_date_formatted }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ subscription.end_date }}">
+                                            {% if subscription.end_date %}
+                                                {{ subscription.end_date.split('T')[0] if 'T' in subscription.end_date else subscription.end_date }}
+                                            {% else %}
+                                                --
+                                            {% endif %}
                                         </span>
                                     </td>
                                     <td>€{{ subscription.total }}</td>

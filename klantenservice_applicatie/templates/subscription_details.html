@@ -68,8 +68,20 @@
                                         value="{{ subscription.next_payment_date_gmt.split('T')[0] if subscription.next_payment_date_gmt else '' }}"
                                         min="{{ today }}" required>
                                     <input type="time" class="form-control form-control-sm d-inline-block" style="width: auto;" id="nextPaymentTime" name="next_payment_time" 
-                                        value="{{ subscription.next_payment_date_gmt.split('T')[1][:5] if subscription.next_payment_date_gmt else '00:00' }}"
+                                        value="{{ (subscription.next_payment_date_gmt.split('T')[1][:5] if subscription.next_payment_date_gmt else '00:00')|adjust_time }}"
                                         required>
+                                </div>
+                            </div>
+
+                            <!-- Vervaldatum -->
+                            <div class="mb-3">
+                                <strong>Vervaldatum:</strong>
+                                <div class="d-inline-block ms-2">
+                                    <input type="date" class="form-control form-control-sm d-inline-block" style="width: auto;" id="expiryDate" name="expiry_date" 
+                                        value="{{ subscription.end_date.split('T')[0] if subscription.end_date else '' }}"
+                                        min="{{ today }}">
+                                    <input type="time" class="form-control form-control-sm d-inline-block" style="width: auto;" id="expiryTime" name="expiry_time" 
+                                        value="{{ (subscription.end_date.split('T')[1][:5] if subscription.end_date else '00:00')|adjust_time }}">
                                 </div>
                             </div>
 
@@ -455,6 +467,42 @@ document.addEventListener('DOMContentLoaded', function() {
         element.textContent = formatDate(originalDate);
     });
 
+    // Functie om te valideren of een datum en tijd minimaal een uur in de toekomst liggen
+    function validateDateTime(dateField, timeField) {
+        const dateValue = dateField.value;
+        const timeValue = timeField.value;
+        
+        if (!dateValue) return; // Geen datum ingevuld
+        
+        const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+        const selectedDateTime = new Date(`${dateValue}T${timeValue}`);
+        
+        if (selectedDateTime < oneHourFromNow) {
+            // Zet de datum en tijd op een uur vanaf nu
+            const adjustedDateTime = new Date(oneHourFromNow);
+            dateField.value = adjustedDateTime.toISOString().split('T')[0];
+            timeField.value = adjustedDateTime.toTimeString().substring(0, 5);
+            
+            // Toon een melding
+            showAlert('warning', `De geselecteerde datum en tijd moeten minimaal een uur in de toekomst liggen. De datum is automatisch aangepast.`);
+        }
+    }
+    
+    // Event listeners voor datum- en tijdvelden
+    const nextPaymentDateField = document.getElementById('nextPaymentDate');
+    const nextPaymentTimeField = document.getElementById('nextPaymentTime');
+    const expiryDateField = document.getElementById('expiryDate');
+    const expiryTimeField = document.getElementById('expiryTime');
+    
+    // Valideer volgende betaaldatum bij wijziging
+    nextPaymentDateField.addEventListener('change', () => validateDateTime(nextPaymentDateField, nextPaymentTimeField));
+    nextPaymentTimeField.addEventListener('change', () => validateDateTime(nextPaymentDateField, nextPaymentTimeField));
+    
+    // Valideer vervaldatum bij wijziging
+    expiryDateField.addEventListener('change', () => validateDateTime(expiryDateField, expiryTimeField));
+    expiryTimeField.addEventListener('change', () => validateDateTime(expiryDateField, expiryTimeField));
+
     // Functie om factuuradres naar verzendadres te kopiëren
     function copyBillingToShipping(e) {
         const fieldName = e.target.name;
@@ -485,6 +533,14 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
         alertsContainer.appendChild(alertDiv);
+        
+        // Laat de alert automatisch verdwijnen na 5 seconden
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 300); // Wacht op de fade-out animatie
+        }, 5000);
     }
 
     const searchInput = document.getElementById('productSearch');
@@ -973,37 +1029,121 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        // Valideer de datums (niet binnen een uur van nu)
+        const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+        
+        // Valideer volgende betaaldatum
+        const nextPaymentDate = document.getElementById('nextPaymentDate').value;
+        const nextPaymentTime = document.getElementById('nextPaymentTime').value;
+        let nextPaymentDateTime = new Date(`${nextPaymentDate}T${nextPaymentTime}`);
+        
+        // Valideer vervaldatum
+        const expiryDate = document.getElementById('expiryDate').value;
+        const expiryTime = document.getElementById('expiryTime').value;
+        let expiryDateTime = null;
+        if (expiryDate) {
+            expiryDateTime = new Date(`${expiryDate}T${expiryTime}`);
+        }
+        
+        // Controleer of de datums binnen een uur van nu vallen
+        let dateAdjusted = false;
+        let adjustmentMessage = "";
+        
+        if (nextPaymentDateTime < oneHourFromNow) {
+            // Zet de volgende betaaldatum op een uur vanaf nu
+            nextPaymentDateTime = new Date(oneHourFromNow);
+            document.getElementById('nextPaymentDate').value = nextPaymentDateTime.toISOString().split('T')[0];
+            document.getElementById('nextPaymentTime').value = nextPaymentDateTime.toTimeString().substring(0, 5);
+            dateAdjusted = true;
+            adjustmentMessage += "De volgende betaaldatum moet minimaal een uur in de toekomst liggen. ";
+        }
+        
+        if (expiryDateTime && expiryDateTime < oneHourFromNow) {
+            // Zet de vervaldatum op een uur vanaf nu
+            expiryDateTime = new Date(oneHourFromNow);
+            document.getElementById('expiryDate').value = expiryDateTime.toISOString().split('T')[0];
+            document.getElementById('expiryTime').value = expiryDateTime.toTimeString().substring(0, 5);
+            dateAdjusted = true;
+            adjustmentMessage += "De vervaldatum moet minimaal een uur in de toekomst liggen. ";
+        }
+        
+        if (dateAdjusted) {
+            // Toon een melding dat de datums zijn aangepast
+            showAlert('warning', `${adjustmentMessage}De datum(s) zijn automatisch aangepast naar een uur in de toekomst.`);
+            // Geef de gebruiker tijd om de melding te lezen
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+        
         // Toon laad-indicator
         updateButton.disabled = true;
         updateButtonText.textContent = 'Bijwerken...';
         updateSpinner.style.display = 'inline-block';
         
         try {
-            // Update adressen eerst
-            await updateAddresses();
+            // Update adressen alleen als er wijzigingen zijn
+            const hasAddressChanges = await updateAddresses();
 
-            // Update status
-            const status = document.getElementById('newStatus').value;
-            await updateSubscriptionField('status', { status });
+            // Update status alleen als deze is gewijzigd
+            const newStatus = document.getElementById('newStatus').value;
+            const currentStatus = "{{ subscription.status }}";
+            if (newStatus !== currentStatus) {
+                await updateSubscriptionField('status', { status: newStatus });
+            }
             
-            // Update volgende betaaldatum
-            const nextPaymentDate = document.getElementById('nextPaymentDate').value;
-            const nextPaymentTime = document.getElementById('nextPaymentTime').value;
-            await updateSubscriptionField('next_payment', { 
-                next_payment_date: nextPaymentDate,
-                next_payment_time: nextPaymentTime
-            });
+            // Update volgende betaaldatum alleen als deze is gewijzigd
+            const currentNextPayment = "{{ subscription.next_payment_date_gmt }}";
+            const newNextPayment = `${nextPaymentDate}T${nextPaymentTime}`;
+            if (currentNextPayment !== newNextPayment) {
+                // Trek 1 uur af van de ingevoerde tijd
+                const [hours, minutes] = nextPaymentTime.split(':');
+                const adjustedHours = (parseInt(hours) - 1 + 24) % 24; // Zorg ervoor dat we niet onder 0 komen
+                const adjustedTime = `${adjustedHours.toString().padStart(2, '0')}:${minutes}`;
+                
+                await updateSubscriptionField('next_payment', { 
+                    next_payment_date: nextPaymentDate,
+                    next_payment_time: adjustedTime
+                });
+            }
             
-            // Update betalingsinterval
-            const billingInterval = document.getElementById('billingInterval').value;
-            const billingPeriod = document.getElementById('billingPeriod').value;
-            await updateSubscriptionField('interval', {
-                billing_interval: billingInterval,
-                billing_period: billingPeriod
-            });
+            // Update vervaldatum alleen als deze is gewijzigd en ingevuld
+            const currentExpiry = "{{ subscription.end_date }}";
+            const newExpiry = expiryDate ? `${expiryDate}T${expiryTime}` : '';
+            if (currentExpiry !== newExpiry) {
+                if (newExpiry) {
+                    // Trek 1 uur af van de ingevoerde tijd
+                    const [hours, minutes] = expiryTime.split(':');
+                    const adjustedHours = (parseInt(hours) - 1 + 24) % 24; // Zorg ervoor dat we niet onder 0 komen
+                    const adjustedTime = `${adjustedHours.toString().padStart(2, '0')}:${minutes}`;
+                    
+                    await updateSubscriptionField('expiry', {
+                        expiry_date: expiryDate,
+                        expiry_time: adjustedTime
+                    });
+                }
+            }
             
-            // Ververs de pagina met een success parameter
-            window.location.href = window.location.pathname + '?success=true';
+            // Update betalingsinterval alleen als deze is gewijzigd
+            const currentInterval = "{{ subscription.billing_interval }}";
+            const currentPeriod = "{{ subscription.billing_period }}";
+            const newInterval = document.getElementById('billingInterval').value;
+            const newPeriod = document.getElementById('billingPeriod').value;
+            
+            if (currentInterval !== newInterval || currentPeriod !== newPeriod) {
+                await updateSubscriptionField('interval', {
+                    billing_interval: newInterval,
+                    billing_period: newPeriod
+                });
+            }
+            
+            // Toon success notificatie
+            showAlert('success', 'Abonnement succesvol bijgewerkt');
+            
+            // Wacht 1.5 seconden voordat de pagina wordt ververst
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Ververs de pagina
+            window.location.reload();
             
         } catch (error) {
             console.error('Update error:', error);
