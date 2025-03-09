@@ -1268,5 +1268,5 @@ def forward_order_to_monta(order_id):
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000
     port = int(os.getenv('PORT', 5000))
-    app.run(debug=True, port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)
     sync_products_to_sqlite()  # Synchroniseer producten bij opstarten 
