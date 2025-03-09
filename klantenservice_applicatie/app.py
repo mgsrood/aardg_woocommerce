@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_caching import Cache
 from utils.woocommerce import search_subscriptions_by_id as wc_search_by_id, get_order_by_id as wc_get_order_by_id
-from utils.woocommerce import get_subscription_statistics as wc_get_subscription_statistics
+from utils.woocommerce import get_subscription_statistics as wc_get_subscription_statistics, get_subscription_products
 from utils.sqlite_db import search_subscriptions_by_id as db_search_by_id
 from utils.sqlite_db import search_subscriptions_by_email, get_all_subscriptions, get_orders_by_email, search_subscriptions_by_name
 from utils.sqlite_db import get_order_by_id as db_get_order_by_id, search_orders_by_name, get_subscription_statistics
@@ -20,6 +20,7 @@ from utils.woocommerce import (
     update_subscription_shipping_address,
     update_subscription_billing_address,
     update_subscription_expiry_date,
+    get_subscription_products,
     wcapi
 )
 from utils.monta_api import MontaAPI
@@ -799,10 +800,22 @@ def get_available_subscription_products():
     """
     Endpoint om beschikbare abonnementsproducten op te halen
     """
-    result = get_subscription_products()
-    if result.get("error"):
-        return jsonify(result), result.get("status", 500)
-    return jsonify(result)
+    try:
+        print("Ophalen van beschikbare abonnementsproducten")
+        result = get_subscription_products()
+        
+        if result.get("error"):
+            print(f"Fout bij ophalen producten: {result.get('error')}")
+            return jsonify(result), result.get("status", 500)
+            
+        print(f"Succesvol {len(result.get('data', []))} producten opgehaald")
+        return jsonify(result)
+    except Exception as e:
+        error_message = f"Onverwachte fout bij ophalen beschikbare producten: {str(e)}"
+        print(error_message)
+        import traceback
+        print(f"Stacktrace: {traceback.format_exc()}")
+        return jsonify({"error": error_message, "status": 500}), 500
 
 @app.route('/subscription/<int:subscription_id>/update_products', methods=['POST'])
 def update_subscription_products(subscription_id):

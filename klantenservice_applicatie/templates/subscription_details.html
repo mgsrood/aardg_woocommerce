@@ -602,16 +602,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Zoek producten via API
     async function searchProducts(query) {
         try {
+            console.log("Zoeken naar producten met query:", query);
             searchResults.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Laden...</span></div></div>';
             
             const response = await fetch('/subscription/available_products');
+            console.log("API response status:", response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
+            console.log("API response data:", result);
             
             if (result.success) {
                 // Haal alle huidige product IDs op
                 const currentProductIds = Array.from(document.querySelectorAll('.product-item')).map(
                     item => parseInt(item.dataset.productId)
                 );
+                console.log("Huidige product IDs:", currentProductIds);
                 
                 // Filter producten die al in het abonnement zitten eruit
                 const filteredProducts = result.data.filter(product => 
@@ -620,13 +629,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         (product.sku && product.sku.toLowerCase().includes(query.toLowerCase()))
                     )
                 );
+                console.log("Gefilterde producten:", filteredProducts);
                 displaySearchResults(filteredProducts);
             } else {
-                searchResults.innerHTML = '<div class="alert alert-danger">Fout bij het zoeken naar producten</div>';
+                console.error("API error:", result.error);
+                searchResults.innerHTML = `<div class="alert alert-danger">Fout bij het zoeken naar producten: ${result.error || 'Onbekende fout'}</div>`;
             }
         } catch (error) {
             console.error('Error:', error);
-            searchResults.innerHTML = '<div class="alert alert-danger">Er is een fout opgetreden bij het zoeken naar producten</div>';
+            searchResults.innerHTML = `<div class="alert alert-danger">Er is een fout opgetreden bij het zoeken naar producten: ${error.message}</div>`;
         }
     }
 

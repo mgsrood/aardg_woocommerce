@@ -568,30 +568,39 @@ def get_subscription_products():
             "type": "subscription",
             "status": "publish",
             "per_page": 100  # Maximaal aantal per pagina
-        })
+        })  # Verwijder de timeout parameter
+        
+        print(f"WooCommerce API response status: {response.status_code}")
         
         if response.status_code != 200:
             error_message = f"Fout bij ophalen producten: {response.status_code} - {response.text}"
             print(error_message)
             return {"error": error_message, "status": response.status_code}
-            
+        
         products = response.json()
+        print(f"Aantal opgehaalde producten: {len(products)}")
         
         # Verwerk de producten voor eenvoudiger gebruik
-        formatted_products = [{
-            'id': product['id'],
-            'name': product['name'],
-            'price': product['price'],
-            'regular_price': product['regular_price'],
-            'description': product['short_description'],
-            'sku': product['sku'],
-            'stock_status': product['stock_status'],
-            'stock_quantity': product.get('stock_quantity'),
-            'images': [img['src'] for img in product.get('images', [])],
-            'attributes': product.get('attributes', [])
-        } for product in products]
+        formatted_products = []
+        for product in products:
+            try:
+                formatted_product = {
+                    'id': product['id'],
+                    'name': product['name'],
+                    'price': product.get('price', '0.00'),
+                    'regular_price': product.get('regular_price', '0.00'),
+                    'description': product.get('short_description', ''),
+                    'sku': product.get('sku', ''),
+                    'stock_status': product.get('stock_status', 'instock'),
+                    'stock_quantity': product.get('stock_quantity'),
+                    'images': [img['src'] for img in product.get('images', [])],
+                    'attributes': product.get('attributes', [])
+                }
+                formatted_products.append(formatted_product)
+            except Exception as e:
+                print(f"Fout bij verwerken product {product.get('id')}: {str(e)}")
         
-        print(f"{len(formatted_products)} abonnementsproducten opgehaald")
+        print(f"{len(formatted_products)} abonnementsproducten opgehaald en verwerkt")
         return {"success": True, "data": formatted_products}
         
     except Exception as e:
