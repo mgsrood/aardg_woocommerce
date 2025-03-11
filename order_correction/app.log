@@ -562,3 +562,75 @@ Job ID: 0b903a74-5b4c-4ad9-b7e7-59920bde8e3f
 2025-03-11 15:32:35 - INFO - Query uitgevoerd
 2025-03-11 15:32:40 - INFO - Update uitgevoerd voor order ID 107762
 2025-03-11 15:32:40 - INFO - Script ended in 0:15:07
+2025-03-11 16:05:15 - INFO - Logboek is geconfigureerd.
+2025-03-11 16:05:18 - INFO - Order verwerken in BigQuery
+2025-03-11 16:05:19 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:05:20 - INFO - Query uitgevoerd
+2025-03-11 16:05:23 - INFO - Update uitgevoerd voor order ID 107958
+2025-03-11 16:05:23 - INFO - Order verwerken in BigQuery
+2025-03-11 16:05:23 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:05:25 - INFO - Query uitgevoerd
+2025-03-11 16:05:32 - INFO - Update uitgevoerd voor order ID 107945
+2025-03-11 16:05:32 - INFO - Order verwerken in BigQuery
+2025-03-11 16:05:32 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:05:34 - INFO - Query uitgevoerd
+2025-03-11 16:05:39 - INFO - Update uitgevoerd voor order ID 107937
+2025-03-11 16:05:39 - INFO - Order verwerken in BigQuery
+2025-03-11 16:05:40 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:05:41 - INFO - Query uitgevoerd
+2025-03-11 16:05:55 - INFO - Logboek is geconfigureerd.
+2025-03-11 16:05:59 - INFO - Order verwerken in BigQuery
+2025-03-11 16:05:59 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:06:01 - INFO - Query uitgevoerd
+2025-03-11 16:06:04 - INFO - Update uitgevoerd voor order ID 107958
+2025-03-11 16:06:04 - INFO - Order verwerken in BigQuery
+2025-03-11 16:06:04 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:06:06 - INFO - Query uitgevoerd
+2025-03-11 16:06:46 - INFO - Logboek is geconfigureerd.
+2025-03-11 16:06:51 - INFO - Order verwerken in BigQuery
+2025-03-11 16:06:52 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:06:53 - INFO - Query uitgevoerd
+2025-03-11 16:06:56 - INFO - Update uitgevoerd voor order ID 107960
+2025-03-11 16:06:56 - INFO - Order verwerken in BigQuery
+2025-03-11 16:06:56 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:06:58 - INFO - Query uitgevoerd
+2025-03-11 16:07:01 - INFO - Insert uitgevoerd voor order ID 107959
+2025-03-11 16:07:01 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:01 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:03 - INFO - Query uitgevoerd
+2025-03-11 16:07:05 - INFO - Update uitgevoerd voor order ID 107958
+2025-03-11 16:07:05 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:06 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:08 - INFO - Query uitgevoerd
+2025-03-11 16:07:10 - INFO - Insert uitgevoerd voor order ID 107957
+2025-03-11 16:07:10 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:11 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:12 - INFO - Query uitgevoerd
+2025-03-11 16:07:15 - INFO - Insert uitgevoerd voor order ID 107956
+2025-03-11 16:07:15 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:16 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:17 - INFO - Query uitgevoerd
+2025-03-11 16:07:20 - INFO - Insert uitgevoerd voor order ID 107955
+2025-03-11 16:07:20 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:20 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:22 - INFO - Query uitgevoerd
+2025-03-11 16:07:24 - INFO - Insert uitgevoerd voor order ID 107954
+2025-03-11 16:07:24 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:25 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:26 - INFO - Query uitgevoerd
+2025-03-11 16:07:33 - INFO - Update uitgevoerd voor order ID 107953
+2025-03-11 16:07:33 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:33 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:35 - INFO - Query uitgevoerd
+2025-03-11 16:07:40 - INFO - Update uitgevoerd voor order ID 107952
+2025-03-11 16:07:40 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:41 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:42 - INFO - Query uitgevoerd
+2025-03-11 16:07:50 - INFO - Update uitgevoerd voor order ID 107951
+2025-03-11 16:07:50 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:50 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:52 - INFO - Query uitgevoerd
+2025-03-11 16:07:57 - INFO - Update uitgevoerd voor order ID 107950
+2025-03-11 16:07:57 - INFO - Order verwerken in BigQuery
+2025-03-11 16:07:57 - INFO - Table orders in dataset woocommerce gevonden.
+2025-03-11 16:07:59 - INFO - Query uitgevoerd

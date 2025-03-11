@@ -59,7 +59,6 @@ def main():
 
         while True:
             response = wcapi.get("orders", params={
-                "status": "completed",
                 "after": seven_days_ago,
                 "per_page": 100,
                 "page": page
