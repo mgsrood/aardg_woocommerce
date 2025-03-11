@@ -10,7 +10,7 @@ def update_or_insert_order_to_bigquery(order_id, wcapi):
     client = bigquery.Client()
 
     # Verwijs naar de dataset en tabel waarin je de gegevens wilt invoegen
-    dataset_id = "woocommerce_data"
+    dataset_id = "woocommerce"
     table_id = "orders"
 
     # Bouw de volledige tabelreferentie
