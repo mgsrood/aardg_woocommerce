@@ -13,6 +13,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 def main():
+    # Zorg ervoor dat de database locatie correct is ingesteld
+    db_path = os.getenv('SQLITE_DB_PATH', '/home/maxrood/aardg/projecten/woocommerce/klantenservice_applicatie/data/woocommerce.db')
+    os.environ['SQLITE_DB_PATH'] = db_path
+    
+    # Log de database locatie
+    logger.info(f"Database locatie: {db_path}")
+    
     # Voer synchronisatie uit
     success = sync_data_from_bigquery()
     
