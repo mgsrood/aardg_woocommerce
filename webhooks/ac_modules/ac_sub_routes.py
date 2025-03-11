@@ -7,7 +7,7 @@ import traceback
 import logging
 import time
 
-def ac_abo_field_updater(greit_connection_string, klant, wcapi, secret_key, active_campaign_api_url, active_campaign_api_token):
+def ac_abo_field_updater(greit_connection_string, klant, secret_key, active_campaign_api_url, active_campaign_api_token):
     
     # Configuratie
     start_time = time.time()
