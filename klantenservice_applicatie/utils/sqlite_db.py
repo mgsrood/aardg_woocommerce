@@ -628,19 +628,45 @@ def init_db():
     try:
         cursor = conn.cursor()
         
+        # Voeg shipping kolommen toe aan orders tabel
+        shipping_columns = [
+            "shipping_first_name TEXT",
+            "shipping_last_name TEXT",
+            "shipping_address_1 TEXT",
+            "shipping_address_2 TEXT",
+            "shipping_postcode TEXT",
+            "shipping_city TEXT",
+            "shipping_country TEXT",
+            "shipping_company TEXT"
+        ]
+        
+        for column in shipping_columns:
+            try:
+                cursor.execute(f"ALTER TABLE orders ADD COLUMN {column};")
+            except sqlite3.OperationalError:
+                # Kolom bestaat mogelijk al
+                continue
+        
         # Voeg Monta order tracking toe aan orders tabel
-        cursor.execute("""
-            ALTER TABLE orders ADD COLUMN monta_order_id TEXT;
-            ALTER TABLE orders ADD COLUMN monta_order_status TEXT;
-            ALTER TABLE orders ADD COLUMN monta_order_created_at TIMESTAMP;
-            ALTER TABLE orders ADD COLUMN monta_shipment_date DATE;
-        """)
+        monta_columns = [
+            "monta_order_id TEXT",
+            "monta_order_status TEXT",
+            "monta_order_created_at TIMESTAMP",
+            "monta_shipment_date DATE"
+        ]
+        
+        for column in monta_columns:
+            try:
+                cursor.execute(f"ALTER TABLE orders ADD COLUMN {column};")
+            except sqlite3.OperationalError:
+                # Kolom bestaat mogelijk al
+                continue
         
         conn.commit()
         return True
-    except sqlite3.OperationalError:
-        # Kolommen bestaan mogelijk al
-        return True
+    except Exception as e:
+        logger.error(f"Fout bij initialiseren database: {str(e)}")
+        return False
     finally:
         conn.close()
 

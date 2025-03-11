@@ -5,6 +5,7 @@ from utils.woocommerce import get_subscription_statistics as wc_get_subscription
 from utils.sqlite_db import search_subscriptions_by_id as db_search_by_id
 from utils.sqlite_db import search_subscriptions_by_email, get_all_subscriptions, get_orders_by_email, search_subscriptions_by_name
 from utils.sqlite_db import get_order_by_id as db_get_order_by_id, search_orders_by_name, get_subscription_statistics
+from utils.sqlite_db import init_db
 from utils.bigquery_import import get_order_margin
 import os
 import sqlite3
@@ -35,6 +36,9 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object('config.Config')  # Zorg dat we de Config class gebruiken
+
+# Initialiseer de database
+init_db()
 
 # Configureer caching
 cache = Cache(app, config={
