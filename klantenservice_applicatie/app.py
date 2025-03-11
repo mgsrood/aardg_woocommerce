@@ -358,6 +358,14 @@ def search_orders():
     recent_orders = get_recent_orders(5)
     
     if order_id:
+        # Valideer order_id formaat
+        if not order_id.isdigit():
+            return render_template('index.html', 
+                                error="Order ID moet een geldig nummer zijn.",
+                                view_type='orders',
+                                order_stats=order_stats,
+                                recent_orders=recent_orders)
+        
         try:
             order_id = int(order_id)
             
@@ -385,9 +393,10 @@ def search_orders():
                                 order_stats=order_stats,
                                 recent_orders=recent_orders)
             
-        except ValueError:
+        except Exception as e:
+            logger.error(f"Fout bij zoeken order op ID {order_id}: {str(e)}")
             return render_template('index.html', 
-                                error="Ongeldig order-ID. Voer een geldig nummer in.",
+                                error="Er is een fout opgetreden bij het zoeken van de order.",
                                 view_type='orders',
                                 order_stats=order_stats,
                                 recent_orders=recent_orders)
@@ -415,6 +424,13 @@ def search_orders():
                             recent_orders=recent_orders)
     
     elif name:
+        if not name.strip():
+            return render_template('index.html', 
+                                error="Voer een geldige naam in om te zoeken.",
+                                view_type='orders',
+                                order_stats=order_stats,
+                                recent_orders=recent_orders)
+        
         if USE_SQLITE:
             result = search_orders_by_name(name)
             

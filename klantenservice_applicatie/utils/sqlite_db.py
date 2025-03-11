@@ -461,33 +461,18 @@ def search_orders_by_name(name):
     try:
         logger.info(f"Zoeken naar orders voor naam: {name}")
         
-        # Controleer of de naam mogelijk een volledige naam is (voornaam + achternaam)
-        name_parts = name.strip().split()
+        # Maak de zoekterm case-insensitive en verwijder extra spaties
+        search_term = name.strip().lower()
         
-        if len(name_parts) > 1:
-            # Als er meerdere delen zijn, probeer te zoeken op voornaam + achternaam
-            first_name = name_parts[0]
-            # Combineer de rest als achternaam (voor namen met tussenvoegsel zoals "van der")
-            last_name = ' '.join(name_parts[1:])
-            
-            logger.info(f"Zoeken op volledige naam: voornaam '{first_name}' en achternaam '{last_name}'")
-            
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT * FROM orders 
-                WHERE (billing_first_name LIKE ? AND billing_last_name LIKE ?)
-                OR billing_first_name LIKE ? 
-                OR billing_last_name LIKE ?
-                ORDER BY date_created DESC
-            """, (f"%{first_name}%", f"%{last_name}%", f"%{name}%", f"%{name}%"))
-        else:
-            # Zoek op enkele naam (alleen voornaam of alleen achternaam)
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT * FROM orders 
-                WHERE billing_first_name LIKE ? OR billing_last_name LIKE ?
-                ORDER BY date_created DESC
-            """, (f"%{name}%", f"%{name}%"))
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM orders 
+            WHERE LOWER(billing_first_name || ' ' || billing_last_name) LIKE ?
+            OR LOWER(billing_first_name) LIKE ?
+            OR LOWER(billing_last_name) LIKE ?
+            ORDER BY date_created DESC
+            LIMIT 50
+        """, (f"%{search_term}%", f"%{search_term}%", f"%{search_term}%"))
         
         orders_rows = cursor.fetchall()
         
@@ -501,11 +486,18 @@ def search_orders_by_name(name):
             order = dict(row)
             
             # Verwerk meta_data
-            if order['meta_data']:
+            if order.get('meta_data'):
                 try:
                     order['meta_data'] = json.loads(order['meta_data'])
                 except:
                     order['meta_data'] = []
+            
+            # Parse line_items JSON als het bestaat
+            if order.get('line_items'):
+                try:
+                    order['line_items'] = json.loads(order['line_items'])
+                except:
+                    order['line_items'] = []
             
             # Voeg billing object toe voor consistentie
             order['billing'] = {
