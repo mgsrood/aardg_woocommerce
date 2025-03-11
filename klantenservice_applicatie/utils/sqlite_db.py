@@ -394,26 +394,26 @@ def get_order_by_id(order_id):
         
         # Voeg billing en shipping objecten toe voor compatibiliteit met WooCommerce API
         order['billing'] = {
-            'first_name': order['billing_first_name'],
-            'last_name': order['billing_last_name'],
-            'email': order['billing_email'],
-            'phone': order['billing_phone'],
-            'address_1': order['billing_address_1'],
-            'address_2': order['billing_address_2'],
-            'postcode': order['billing_postcode'],
-            'city': order['billing_city'],
-            'country': order['billing_country'],
+            'first_name': order.get('billing_first_name', ''),
+            'last_name': order.get('billing_last_name', ''),
+            'email': order.get('billing_email', ''),
+            'phone': order.get('billing_phone', ''),
+            'address_1': order.get('billing_address_1', ''),
+            'address_2': order.get('billing_address_2', ''),
+            'postcode': order.get('billing_postcode', ''),
+            'city': order.get('billing_city', ''),
+            'country': order.get('billing_country', ''),
             'company': order.get('billing_company', '')
         }
         
         order['shipping'] = {
-            'first_name': order['shipping_first_name'],
-            'last_name': order['shipping_last_name'],
-            'address_1': order['shipping_address_1'],
-            'address_2': order['shipping_address_2'],
-            'postcode': order['shipping_postcode'],
-            'city': order['shipping_city'],
-            'country': order['shipping_country'],
+            'first_name': order.get('shipping_first_name', ''),
+            'last_name': order.get('shipping_last_name', ''),
+            'address_1': order.get('shipping_address_1', ''),
+            'address_2': order.get('shipping_address_2', ''),
+            'postcode': order.get('shipping_postcode', ''),
+            'city': order.get('shipping_city', ''),
+            'country': order.get('shipping_country', ''),
             'company': order.get('shipping_company', '')
         }
         
@@ -426,7 +426,7 @@ def get_order_by_id(order_id):
             'pending': 'In afwachting',
             'failed': 'Mislukt',
             'refunded': 'Terugbetaald'
-        }.get(order['status'], order['status'])
+        }.get(order.get('status', ''), order.get('status', ''))
         
         # Parse line_items JSON als het bestaat
         if order.get('line_items'):
@@ -470,7 +470,7 @@ def search_orders_by_name(name):
             WHERE LOWER(billing_first_name || ' ' || billing_last_name) LIKE ?
             OR LOWER(billing_first_name) LIKE ?
             OR LOWER(billing_last_name) LIKE ?
-            ORDER BY date_created DESC
+            ORDER BY created_date DESC
             LIMIT 50
         """, (f"%{search_term}%", f"%{search_term}%", f"%{search_term}%"))
         
@@ -501,15 +501,15 @@ def search_orders_by_name(name):
             
             # Voeg billing object toe voor consistentie
             order['billing'] = {
-                'first_name': order['billing_first_name'],
-                'last_name': order['billing_last_name'],
-                'email': order['billing_email'],
-                'phone': order['billing_phone'],
-                'address_1': order['billing_address_1'],
-                'address_2': order['billing_address_2'],
-                'postcode': order['billing_postcode'],
-                'city': order['billing_city'],
-                'country': order['billing_country']
+                'first_name': order.get('billing_first_name', ''),
+                'last_name': order.get('billing_last_name', ''),
+                'email': order.get('billing_email', ''),
+                'phone': order.get('billing_phone', ''),
+                'address_1': order.get('billing_address_1', ''),
+                'address_2': order.get('billing_address_2', ''),
+                'postcode': order.get('billing_postcode', ''),
+                'city': order.get('billing_city', ''),
+                'country': order.get('billing_country', '')
             }
             
             # Voeg leesbare status toe
@@ -521,11 +521,11 @@ def search_orders_by_name(name):
                 'pending': 'In afwachting',
                 'failed': 'Mislukt',
                 'refunded': 'Terugbetaald'
-            }.get(order['status'], order['status'])
+            }.get(order.get('status', ''), order.get('status', ''))
             
             # Formateer datums
-            if order.get('date_created'):
-                order['date_created_formatted'] = order['date_created'].split('T')[0] if 'T' in order['date_created'] else order['date_created']
+            if order.get('created_date'):
+                order['date_created_formatted'] = order['created_date'].split('T')[0] if 'T' in order['created_date'] else order['created_date']
             
             orders.append(order)
         
