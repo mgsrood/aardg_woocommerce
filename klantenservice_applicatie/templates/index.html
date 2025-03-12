@@ -51,7 +51,8 @@
     }
 
     // Functie om productdetails te tonen in modal
-    function showProductDetails(products) {
+    function showProductDetails(element) {
+        const products = JSON.parse(element.getAttribute('data-products'));
         const modalBody = document.getElementById('productDetailsBody');
         modalBody.innerHTML = '';
 
@@ -345,7 +346,10 @@
                                 <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
                                 <td>{{ order.billing_email }}</td>
                                 <td>
-                                    <a href="javascript:void(0)" onclick="showProductDetails(JSON.parse('{{ order.line_items|tojson|safe }}'))" class="text-primary">
+                                    <a href="javascript:void(0)" 
+                                       onclick="showProductDetails(this)" 
+                                       data-products='{{ order.line_items|default([])|tojson|safe }}'
+                                       class="text-primary">
                                         {% if order.line_items %}
                                             {{ order.line_items|length }} product{% if order.line_items|length != 1 %}en{% endif %}
                                         {% else %}
