@@ -67,12 +67,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    ${products.map(item => `
-                        <tr>
-                            <td>${item.quantity}x</td>
-                            <td>${item.name}</td>
-                        </tr>
-                    `).join('')}
+                    ${products.map(item => {
+                        // Split de productnaam als het een gecombineerd product is
+                        const productNames = item.name.split(',');
+                        return productNames.map(name => `
+                            <tr>
+                                <td>1x</td>
+                                <td>${name.trim()}</td>
+                            </tr>
+                        `).join('');
+                    }).join('')}
                 </tbody>
             `;
             modalBody.appendChild(table);
@@ -351,7 +355,12 @@
                                        data-products='{{ order.line_items|default([])|tojson|safe }}'
                                        class="text-primary">
                                         {% if order.line_items %}
-                                            {{ order.line_items|length }} product{% if order.line_items|length != 1 %}en{% endif %}
+                                            {% set total_products = namespace(count=0) %}
+                                            {% for item in order.line_items %}
+                                                {% set product_count = item.name.split(',')|length %}
+                                                {% set total_products.count = total_products.count + product_count %}
+                                            {% endfor %}
+                                            {{ total_products.count }} product{% if total_products.count != 1 %}en{% endif %}
                                         {% else %}
                                             Geen producten
                                         {% endif %}
