@@ -27,5 +27,6 @@ __pycache__/
 *.sqlite3
 
 # Specifiek voor dit project
+klantenservice_applicatie/data/users.db
 users.db
-woocommerce.db
+klantenservice_applicatie/data/woocommerce.db
