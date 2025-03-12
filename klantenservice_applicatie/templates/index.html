@@ -49,44 +49,6 @@
             }
         });
     }
-
-    // Functie om productdetails te tonen in modal
-    function showProductDetails(element) {
-        const products = JSON.parse(element.getAttribute('data-products'));
-        const modalBody = document.getElementById('productDetailsBody');
-        modalBody.innerHTML = '';
-
-        if (products && products.length > 0) {
-            const table = document.createElement('table');
-            table.className = 'table table-striped';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Aantal</th>
-                        <th>Product</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${products.map(item => {
-                        // Split de productnaam als het een gecombineerd product is
-                        const productNames = item.name.split(',');
-                        return productNames.map(name => `
-                            <tr>
-                                <td>1x</td>
-                                <td>${name.trim()}</td>
-                            </tr>
-                        `).join('');
-                    }).join('')}
-                </tbody>
-            `;
-            modalBody.appendChild(table);
-        } else {
-            modalBody.innerHTML = '<p>Geen producten gevonden</p>';
-        }
-
-        const productModal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
-        productModal.show();
-    }
 </script>
 
 <div class="container mt-4">
@@ -336,7 +298,6 @@
                                 <th>Order ID</th>
                                 <th>Naam</th>
                                 <th>E-mailadres</th>
-                                <th>Product Array</th>
                                 <th>Totaal Prijs</th>
                                 <th>Datum Aangemaakt</th>
                                 <th>Datum Afgerond</th>
@@ -349,23 +310,6 @@
                                 <td>{{ order.id }}</td>
                                 <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
                                 <td>{{ order.billing_email }}</td>
-                                <td>
-                                    <a href="javascript:void(0)" 
-                                       onclick="showProductDetails(this)" 
-                                       data-products='{{ order.line_items|default([])|tojson|safe }}'
-                                       class="text-primary">
-                                        {% if order.line_items %}
-                                            {% set total_products = namespace(count=0) %}
-                                            {% for item in order.line_items %}
-                                                {% set product_count = item.name.split(',')|length %}
-                                                {% set total_products.count = total_products.count + product_count %}
-                                            {% endfor %}
-                                            {{ total_products.count }} product{% if total_products.count != 1 %}en{% endif %}
-                                        {% else %}
-                                            Geen producten
-                                        {% endif %}
-                                    </a>
-                                </td>
                                 <td>€{{ order.total }}</td>
                                 <td>
                                     <span class="format-date" data-date="{{ order.created_date }}">
@@ -418,7 +362,6 @@
                                 <th>Order ID</th>
                                 <th>Naam</th>
                                 <th>E-mailadres</th>
-                                <th>Product Array</th>
                                 <th>Totaal Prijs</th>
                                 <th>Datum Aangemaakt</th>
                                 <th>Datum Afgerond</th>
@@ -435,13 +378,6 @@
                                 </td>
                                 <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
                                 <td>{{ order.billing_email }}</td>
-                                <td>
-                                    {% if order.line_items %}
-                                        {% for item in order.line_items %}
-                                            {{ item.quantity }}x {{ item.name }}<br>
-                                        {% endfor %}
-                                    {% endif %}
-                                </td>
                                 <td>€{{ order.total }}</td>
                                 <td>
                                     <span class="format-date" data-date="{{ order.created_date }}">
@@ -531,25 +467,6 @@
         </div>
     {% endif %}
 </div>
-
-<!-- Product Details Modal -->
-<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="productDetailsModalLabel">Productdetails</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Sluiten"></button>
-            </div>
-            <div class="modal-body" id="productDetailsBody">
-                <!-- Product details will be inserted here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
 
 {% block scripts %}
 <script>
