@@ -12,10 +12,6 @@ sub_venv
 venv/
 __pycache__/
 *.pyc
-.env
-*.db
-
-
 
 # Python bytecode
 __pycache__/
@@ -26,7 +22,10 @@ __pycache__/
 *.sqlite
 *.sqlite3
 
-# Specifiek voor dit project
-klantenservice_applicatie/data/users.db
-users.db
+# Specifieke database bestanden
 klantenservice_applicatie/data/woocommerce.db
+klantenservice_applicatie/data/subscriptions.db
+klantenservice_applicatie/woocommerce.db
+klantenservice_applicatie/subscriptions.db
+klantenservice_applicatie/users.db
+klantenservice_applicatie/data/users.db
