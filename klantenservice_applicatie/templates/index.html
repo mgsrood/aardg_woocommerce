@@ -49,6 +49,39 @@
             }
         });
     }
+
+    // Functie om productdetails te tonen in modal
+    function showProductDetails(products) {
+        const modalBody = document.getElementById('productDetailsBody');
+        modalBody.innerHTML = '';
+
+        if (products && products.length > 0) {
+            const table = document.createElement('table');
+            table.className = 'table table-striped';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Aantal</th>
+                        <th>Product</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${products.map(item => `
+                        <tr>
+                            <td>${item.quantity}x</td>
+                            <td>${item.name}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            modalBody.appendChild(table);
+        } else {
+            modalBody.innerHTML = '<p>Geen producten gevonden</p>';
+        }
+
+        const productModal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
+        productModal.show();
+    }
 </script>
 
 <div class="container mt-4">
@@ -312,11 +345,13 @@
                                 <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
                                 <td>{{ order.billing_email }}</td>
                                 <td>
-                                    {% if order.line_items %}
-                                        {% for item in order.line_items %}
-                                            {{ item.quantity }}x {{ item.name }}<br>
-                                        {% endfor %}
-                                    {% endif %}
+                                    <a href="javascript:void(0)" onclick="showProductDetails(JSON.parse('{{ order.line_items|tojson|safe }}'))" class="text-primary">
+                                        {% if order.line_items %}
+                                            {{ order.line_items|length }} product{% if order.line_items|length != 1 %}en{% endif %}
+                                        {% else %}
+                                            Geen producten
+                                        {% endif %}
+                                    </a>
                                 </td>
                                 <td>€{{ order.total }}</td>
                                 <td>
@@ -482,6 +517,24 @@
             <a href="{{ url_for('all_orders') }}" class="btn btn-lg btn-danger">Toon Alle Orders</a>
         </div>
     {% endif %}
+</div>
+
+<!-- Product Details Modal -->
+<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productDetailsModalLabel">Productdetails</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Sluiten"></button>
+            </div>
+            <div class="modal-body" id="productDetailsBody">
+                <!-- Product details will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
