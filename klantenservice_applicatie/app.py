@@ -1172,20 +1172,17 @@ def adjust_time(time_str):
     except:
         return time_str
 
-@app.template_filter('datetime')
-def format_datetime(date_str):
+@app.template_filter('format_date')
+def format_date(date_str):
     if not date_str:
-        return 'Niet beschikbaar'
+        return ''
     try:
-        # Verwijder eventuele tijd component als die er is
-        date_str = date_str.split('T')[0]
         # Converteer de datum string naar een datetime object
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
         # Formatteer de datum naar het gewenste formaat
         return date_obj.strftime('%d %B %Y %H:%M')
-    except Exception as e:
-        logger.error(f"Fout bij formatteren datum {date_str}: {str(e)}")
-        return 'Niet beschikbaar'
+    except:
+        return date_str
 
 @app.route('/order/<int:order_id>/forward_to_monta', methods=['POST'])
 def forward_order_to_monta(order_id):
