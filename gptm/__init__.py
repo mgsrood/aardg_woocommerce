@@ -1,0 +1,3 @@
+"""
+GP TeamManager optimalisatie package.
+""" 

@@ -1206,6 +1206,7 @@ def forward_order_to_monta(order_id):
             
         # Maak Monta order data
         monta_data = {
+            "webshopOrderId": str(order['id']),
             "orderNumber": str(order['id']),
             "shipmentDate": shipment_date,
             "status": "blocked",  # Zet order standaard op geblokkeerd
