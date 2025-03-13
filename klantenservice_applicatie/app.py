@@ -1214,13 +1214,30 @@ def forward_order_to_monta(order_id):
             
         # Helper functie om adres te splitsen
         def split_address(address):
+            # Verwijder eventuele komma's en extra spaties
+            address = address.replace(',', '').strip()
             parts = address.split()
-            if len(parts) > 1:
-                street = parts[0]
-                house_number = parts[1]
-                addition = ' '.join(parts[2:]) if len(parts) > 2 else ""
+            
+            if len(parts) <= 1:
+                return address, "", ""
+                
+            # Als het laatste deel een huisnummer is
+            if parts[-1].replace('-', '').isdigit():
+                house_number = parts[-1]
+                street = ' '.join(parts[:-1])
+                return street, house_number, ""
+            
+            # Als het voorlaatste deel een huisnummer is
+            if len(parts) >= 2 and parts[-2].replace('-', '').isdigit():
+                house_number = parts[-2]
+                addition = parts[-1]
+                street = ' '.join(parts[:-2])
                 return street, house_number, addition
-            return address, "", ""
+            
+            # Als er geen huisnummer gevonden is, neem het laatste deel als huisnummer
+            house_number = parts[-1]
+            street = ' '.join(parts[:-1])
+            return street, house_number, ""
             
         # Splits verzendadres
         shipping_street, shipping_number, shipping_addition = split_address(order['shipping']['address_1'])
@@ -1233,7 +1250,7 @@ def forward_order_to_monta(order_id):
             "InternalWebshopOrderId": str(order['id']),
             "WebshopOrderId": str(order['id']),
             "Reference": str(order['id']),
-            "Origin": "WooCommerce",  # Correcte Origin waarde
+            "Origin": "WooCommerce",
             "ConsumerDetails": {
                 "DeliveryAddress": {
                     "FirstName": order['shipping']['first_name'],
@@ -1258,7 +1275,7 @@ def forward_order_to_monta(order_id):
                 "B2B": bool(order['billing'].get('company')),
                 "CommunicationLanguageCode": "NL"
             },
-            "PlannedShipmentDate": f"{shipment_date}T00:00:00.000Z",
+            "PlannedShipmentDate": f"{shipment_date}T22:00:00.000Z",  # Tijd op 22:00:00.000Z gezet
             "ShipOnPlannedShipmentDate": True,
             "Blocked": True,
             "Lines": []
