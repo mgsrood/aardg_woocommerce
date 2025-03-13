@@ -144,7 +144,12 @@
                         <div class="row align-items-end">
                             <div class="col-md-4">
                                 <label for="shipmentDate" class="form-label">Verzendmoment</label>
-                                <input type="date" class="form-control" id="shipmentDate" min="{{ today }}" value="{{ today }}">
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="shipmentDate" 
+                                       min="{{ today.strftime('%Y-%m-%d') }}" 
+                                       value="{{ today.strftime('%Y-%m-%d') }}"
+                                       placeholder="dd-mm-jjjj">
                             </div>
                             <div class="col-md-4">
                                 <button type="button" class="btn btn-primary" id="forwardToMontaBtn">
