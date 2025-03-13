@@ -628,6 +628,17 @@ def init_db():
     try:
         cursor = conn.cursor()
         
+        # Maak order_margin_data tabel
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_margin_data (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                margin DECIMAL(10,2),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (order_id) REFERENCES orders(id)
+            )
+        """)
+        
         # Voeg shipping kolommen toe aan orders tabel
         shipping_columns = [
             "shipping_first_name TEXT",

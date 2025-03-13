@@ -1206,43 +1206,46 @@ def forward_order_to_monta(order_id):
             
         # Maak Monta order data
         monta_data = {
-            "webshopOrderId": str(order['id']),
-            "orderNumber": str(order['id']),
-            "shipmentDate": shipment_date,
-            "status": "blocked",  # Zet order standaard op geblokkeerd
-            "consumerDetails": {
-                "company": order['billing'].get('company', ''),
-                "firstName": order['billing']['first_name'],
-                "lastName": order['billing']['last_name'],
-                "street": order['billing']['address_1'].split()[0],
-                "houseNo": order['billing']['address_1'].split()[1] if len(order['billing']['address_1'].split()) > 1 else "",
-                "addition": order['billing']['address_2'] or "",
-                "postalCode": order['billing']['postcode'],
-                "city": order['billing']['city'],
-                "country": order['billing']['country'],
-                "email": order['billing']['email']
+            "InternalWebshopOrderId": str(order['id']),
+            "WebshopOrderId": str(order['id']),
+            "Reference": str(order['id']),
+            "Origin": "WooCommerce",
+            "ConsumerDetails": {
+                "DeliveryAddress": {
+                    "FirstName": order['shipping']['first_name'],
+                    "LastName": order['shipping']['last_name'],
+                    "Street": order['shipping']['address_1'].split()[0],
+                    "HouseNumber": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
+                    "HouseNumberAddition": order['shipping']['address_2'] or "",
+                    "PostalCode": order['shipping']['postcode'],
+                    "City": order['shipping']['city'],
+                    "CountryCode": order['shipping']['country']
+                },
+                "InvoiceAddress": {
+                    "FirstName": order['billing']['first_name'],
+                    "LastName": order['billing']['last_name'],
+                    "Street": order['billing']['address_1'].split()[0],
+                    "HouseNumber": order['billing']['address_1'].split()[1] if len(order['billing']['address_1'].split()) > 1 else "",
+                    "HouseNumberAddition": order['billing']['address_2'] or "",
+                    "PostalCode": order['billing']['postcode'],
+                    "City": order['billing']['city'],
+                    "CountryCode": order['billing']['country']
+                },
+                "B2B": bool(order['billing'].get('company')),
+                "CommunicationLanguageCode": "NL"
             },
-            "shipping": {
-                "company": order['shipping'].get('company', ''),
-                "firstName": order['shipping']['first_name'],
-                "lastName": order['shipping']['last_name'],
-                "street": order['shipping']['address_1'].split()[0],
-                "houseNo": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
-                "addition": order['shipping']['address_2'] or "",
-                "postalCode": order['shipping']['postcode'],
-                "city": order['shipping']['city'],
-                "country": order['shipping']['country'],
-                "email": order['shipping']['email']
-            },
-            "items": []
+            "PlannedShipmentDate": f"{shipment_date}T00:00:00.000Z",
+            "ShipOnPlannedShipmentDate": True,
+            "Blocked": True,
+            "Lines": []
         }
         
         # Voeg producten toe
         for item in order.get('line_items', []):
-            monta_data['items'].append({
-                "sku": item.get('sku', ''),
-                "name": item['name'],
-                "quantity": item['quantity']
+            monta_data['Lines'].append({
+                "Sku": item.get('sku', ''),
+                "OrderedQuantity": item['quantity'],
+                "Description": item['name']
             })
             
         # Stuur order door naar Monta
