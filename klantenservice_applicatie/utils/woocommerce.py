@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 import json
 import requests
+from datetime import datetime
 
 load_dotenv()
 
@@ -642,3 +643,76 @@ def update_subscription_expiry_date(subscription_id, expiry_date, expiry_time=No
         error_message = f"Onverwachte fout bij updaten vervaldatum: {str(e)}"
         print(error_message)
         return {"error": error_message, "status": 500}
+
+def get_subscription_details(subscription_id: int) -> dict:
+    """Haal details op van een abonnement"""
+    try:
+        response = wcapi.get(f"subscriptions/{subscription_id}")
+        if response.status_code != 200:
+            return None
+            
+        subscription = response.json()
+        return {
+            'id': subscription['id'],
+            'email': subscription['billing']['email'],
+            'next_payment_date': subscription['next_payment_date'],
+            'status': subscription['status']
+        }
+    except Exception as e:
+        logger.error(f"Fout bij ophalen abonnementsdetails: {str(e)}")
+        return None
+
+def update_next_delivery_date(subscription_id: int, new_date: datetime) -> bool:
+    """Update de volgende leverdatum van een abonnement"""
+    try:
+        data = {
+            'next_payment_date': new_date.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Fout bij updaten volgende leverdatum: {str(e)}")
+        return False
+
+def get_next_payment_date(subscription_id: int) -> datetime:
+    """Haal de volgende betaaldatum op van een abonnement"""
+    try:
+        response = wcapi.get(f"subscriptions/{subscription_id}")
+        if response.status_code != 200:
+            return None
+            
+        subscription = response.json()
+        return datetime.strptime(subscription['next_payment_date'], '%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        logger.error(f"Fout bij ophalen volgende betaaldatum: {str(e)}")
+        return None
+
+def update_next_payment_date(subscription_id: int, new_date: datetime) -> bool:
+    """Update de volgende betaaldatum van een abonnement"""
+    try:
+        data = {
+            'next_payment_date': new_date.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        response = wcapi.put(f"subscriptions/{subscription_id}", data)
+        return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Fout bij updaten volgende betaaldatum: {str(e)}")
+        return False
+
+def get_order_ids_for_email(email: str) -> list:
+    """Haal alle order IDs op voor een emailadres"""
+    try:
+        # Zoek orders met het gegeven emailadres
+        response = wcapi.get("orders", params={
+            'email': email,
+            'per_page': 100  # Haal maximaal 100 orders op
+        })
+        
+        if response.status_code != 200:
+            return []
+            
+        orders = response.json()
+        return [order['id'] for order in orders]
+    except Exception as e:
+        logger.error(f"Fout bij ophalen orders voor email {email}: {str(e)}")
+        return []

@@ -22,7 +22,12 @@ from utils.woocommerce import (
     update_subscription_billing_address,
     update_subscription_expiry_date,
     get_subscription_products,
-    wcapi
+    wcapi,
+    get_subscription_details,
+    update_next_delivery_date,
+    get_next_payment_date,
+    update_next_payment_date,
+    get_order_ids_for_email
 )
 from utils.monta_api import MontaAPI
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
