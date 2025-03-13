@@ -55,7 +55,7 @@
                         <div class="col-md-6">
                             <h6 class="mb-3">Ordergegevens</h6>
                             <p>
-                                <strong>Datum:</strong> {{ order.date_created|format_datetime }}<br>
+                                <strong>Datum:</strong> <span class="format-date" data-date="{{ order.date_created }}">{{ order.date_created_formatted }}</span><br>
                                 <strong>Betaalmethode:</strong> {{ order.payment_method_title }}<br>
                                 <strong>E-mail:</strong> {{ order.billing.email }}<br>
                                 <strong>Telefoon:</strong> {{ order.billing.phone or 'Niet opgegeven' }}
@@ -151,9 +151,23 @@
                     <div class="alert alert-info">
                         <strong>Monta Order ID:</strong> {{ order.monta_order_id }}<br>
                         <strong>Status:</strong> {{ order.monta_order_status }}<br>
-                        <strong>Doorgestuurd op:</strong> {{ order.monta_order_created_at|format_datetime }}
+                        <strong>Doorgestuurd op:</strong> {{ order.monta_order_created_at }}
                     </div>
                     {% endif %}
+
+                    <h6 class="mb-3 mt-4">Ordergegevens</h6>
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th>Datum Aangemaakt:</th>
+                                <td>{{ order.created_date.split('T')[0]|datetime or 'Niet beschikbaar' }}</td>
+                            </tr>
+                            <tr>
+                                <th>Datum Afgerond:</th>
+                                <td>{{ order.completed_date.split('T')[0]|datetime or 'Niet beschikbaar' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
             {% endif %}

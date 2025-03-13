@@ -1,6 +1,32 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script>
+    // Functie om datum te formatteren naar dd maandnaam yyyy
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const months = [
+            'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+            'juli', 'augustus', 'september', 'oktober', 'november', 'december'
+        ];
+        const day = date.getDate();
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day} ${month} ${year}`;
+    }
+
+    // Formatteer alle datums bij het laden van de pagina
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateElements = document.querySelectorAll('.format-date');
+        dateElements.forEach(element => {
+            const originalDate = element.getAttribute('data-date');
+            if (originalDate) {
+                element.textContent = formatDate(originalDate);
+            }
+        });
+    });
+</script>
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-12">
@@ -40,9 +66,25 @@
                                             {{ subscription.status_display }}
                                         </span>
                                     </td>
-                                    <td>{{ subscription.start_date|format_datetime }}</td>
-                                    <td>{{ subscription.next_payment_date|format_datetime }}</td>
-                                    <td>{{ subscription.end_date|format_datetime }}</td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ subscription.start_date }}">
+                                            {{ subscription.start_date_formatted }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ subscription.next_payment_date }}">
+                                            {{ subscription.next_payment_date_formatted }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="format-date" data-date="{{ subscription.end_date }}">
+                                            {% if subscription.end_date %}
+                                                {{ subscription.end_date.split('T')[0] if 'T' in subscription.end_date else subscription.end_date }}
+                                            {% else %}
+                                                --
+                                            {% endif %}
+                                        </span>
+                                    </td>
                                     <td>€{{ subscription.total }}</td>
                                     <td>
                                         <a href="{{ url_for('subscription_details', subscription_id=subscription.id) }}" class="btn btn-sm btn-primary">Details</a>

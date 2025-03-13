@@ -2,6 +2,36 @@
 
 {% block content %}
 <script>
+    // Functie om datum te formatteren naar dd maandnaam yyyy
+    function formatDate(dateString) {
+        if (!dateString) return '-';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+            
+            const months = [
+                'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+                'juli', 'augustus', 'september', 'oktober', 'november', 'december'
+            ];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        } catch (e) {
+            return '-';
+        }
+    }
+
+    // Formatteer alle datums bij het laden van de pagina
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateElements = document.querySelectorAll('.format-date');
+        dateElements.forEach(element => {
+            const originalDate = element.getAttribute('data-date');
+            element.textContent = formatDate(originalDate);
+        });
+    });
+
     // Zoekfunctionaliteit
     function searchOrders() {
         const searchInput = document.getElementById('searchInput').value.toLowerCase();
@@ -93,8 +123,16 @@
                                 <td>{{ subscription.billing.first_name }} {{ subscription.billing.last_name }}</td>
                                 <td>{{ subscription.billing.email }}</td>
                                 <td>€{{ subscription.total if subscription.total != None else '0.00' }}</td>
-                                <td>{{ subscription.start_date|format_datetime }}</td>
-                                <td>{{ subscription.next_payment_date|format_datetime }}</td>
+                                <td>
+                                    <span class="format-date" data-date="{{ subscription.start_date }}">
+                                        {{ subscription.start_date_formatted or '-' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="format-date" data-date="{{ subscription.next_payment_date }}">
+                                        {{ subscription.next_payment_date_formatted or '-' }}
+                                    </span>
+                                </td>
                                 <td>
                                     <span class="badge {% if subscription.status == 'active' %}bg-success
                                         {% elif subscription.status == 'on-hold' %}bg-warning
@@ -144,8 +182,16 @@
                                 <td>{{ subscription.billing.first_name }} {{ subscription.billing.last_name }}</td>
                                 <td>{{ subscription.billing.email }}</td>
                                 <td>€{{ subscription.total if subscription.total != None else '0.00' }}</td>
-                                <td>{{ subscription.start_date|format_datetime }}</td>
-                                <td>{{ subscription.next_payment_date|format_datetime }}</td>
+                                <td>
+                                    <span class="format-date" data-date="{{ subscription.start_date }}">
+                                        {{ subscription.start_date_formatted or '-' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="format-date" data-date="{{ subscription.next_payment_date }}">
+                                        {{ subscription.next_payment_date_formatted or '-' }}
+                                    </span>
+                                </td>
                                 <td>
                                     <span class="badge {% if subscription.status == 'active' %}bg-success
                                         {% elif subscription.status == 'on-hold' %}bg-warning
@@ -265,8 +311,8 @@
                                 <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
                                 <td>{{ order.billing_email }}</td>
                                 <td>€{{ order.total }}</td>
-                                <td>{{ order.created_date|format_datetime }}</td>
-                                <td>{{ order.completed_date|format_datetime }}</td>
+                                <td>{{ order.created_date.split('T')[0]|datetime or 'Niet beschikbaar' }}</td>
+                                <td>{{ order.completed_date.split('T')[0]|datetime or 'Niet beschikbaar' }}</td>
                                 <td>
                                     <span class="badge {% if order.status == 'completed' %}bg-success
                                         {% elif order.status == 'processing' %}bg-primary
@@ -325,8 +371,8 @@
                                 <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
                                 <td>{{ order.billing_email }}</td>
                                 <td>€{{ order.total }}</td>
-                                <td>{{ order.created_date|format_datetime }}</td>
-                                <td>{{ order.completed_date|format_datetime }}</td>
+                                <td>{{ order.created_date.split('T')[0]|datetime or 'Niet beschikbaar' }}</td>
+                                <td>{{ order.completed_date.split('T')[0]|datetime or 'Niet beschikbaar' }}</td>
                                 <td>
                                     <span class="badge {% if order.status == 'completed' %}bg-success
                                         {% elif order.status == 'processing' %}bg-primary

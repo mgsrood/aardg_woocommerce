@@ -1172,49 +1172,17 @@ def adjust_time(time_str):
     except:
         return time_str
 
-# Voeg de format_datetime filter toe
-@app.template_filter('format_datetime')
-def format_datetime(datetime_str):
-    if not datetime_str:
-        return ''
+@app.template_filter('datetime')
+def format_datetime(date_str):
+    if not date_str:
+        return '-'
     try:
-        # Probeer eerst als datetime object
-        if isinstance(datetime_str, datetime):
-            dt = datetime_str
-        else:
-            # Probeer verschillende formaten
-            formats = [
-                '%Y-%m-%d %H:%M:%S',
-                '%Y-%m-%dT%H:%M:%S',
-                '%Y-%m-%dT%H:%M:%S.%fZ',
-                '%Y-%m-%d'
-            ]
-            dt = None
-            for fmt in formats:
-                try:
-                    dt = datetime.strptime(datetime_str, fmt)
-                    break
-                except ValueError:
-                    continue
-            
-            if not dt:
-                return datetime_str
-        
-        # Maandnamen in het Nederlands
-        maanden = {
-            1: 'januari', 2: 'februari', 3: 'maart', 4: 'april',
-            5: 'mei', 6: 'juni', 7: 'juli', 8: 'augustus',
-            9: 'september', 10: 'oktober', 11: 'november', 12: 'december'
-        }
-        
-        # Format de datum en tijd
-        datum = f"{dt.day:02d} {maanden[dt.month]} {dt.year}"
-        tijd = f"{dt.hour:02d}:{dt.minute:02d}"
-        
-        return f"{datum} {tijd}"
-    except Exception as e:
-        logger.error(f"Fout bij formatteren datetime: {str(e)}")
-        return datetime_str
+        # Converteer de datum string naar een datetime object
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        # Formatteer de datum naar het gewenste formaat
+        return date_obj.strftime('%d %B %Y %H:%M')
+    except:
+        return date_str
 
 @app.route('/order/<int:order_id>/forward_to_monta', methods=['POST'])
 def forward_order_to_monta(order_id):
