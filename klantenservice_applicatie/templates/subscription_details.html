@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<meta name="subscription-id" content="{{ subscription.id }}">
 <div class="row justify-content-center">
     <div class="col-md-10">
         <!-- Alerts container -->
@@ -1217,14 +1218,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            const response = await fetch(`/subscription/{{ subscription.id }}/rush_delivery`, {
+            console.log('Start spoedlevering proces...');
+            const subscriptionId = document.querySelector('meta[name="subscription-id"]').content;
+            console.log('Subscription ID:', subscriptionId);
+            
+            const response = await fetch(`/subscription/${subscriptionId}/rush_delivery`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
             
+            console.log('Response status:', response.status);
             const result = await response.json();
+            console.log('Response data:', result);
+            
+            if (!response.ok) {
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+            }
             
             if (result.success) {
                 showAlert('success', `
@@ -1236,9 +1247,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Ververs de pagina na 2 seconden
                 setTimeout(() => location.reload(), 2000);
             } else {
-                showAlert('danger', result.message);
+                console.error('Error in response:', result);
+                showAlert('danger', result.message || 'Er is een fout opgetreden bij het inplannen van de spoedlevering');
+                if (result.details) {
+                    console.error('Error details:', result.details);
+                }
             }
         } catch (error) {
+            console.error('Error in rush delivery:', error);
             showAlert('danger', 'Er is een fout opgetreden bij het inplannen van de spoedlevering');
         }
     });
