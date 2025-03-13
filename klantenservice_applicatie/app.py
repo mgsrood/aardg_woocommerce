@@ -1175,14 +1175,14 @@ def adjust_time(time_str):
 @app.template_filter('datetime')
 def format_datetime(date_str):
     if not date_str:
-        return '-'
+        return 'Niet beschikbaar'
     try:
         # Converteer de datum string naar een datetime object
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
         # Formatteer de datum naar het gewenste formaat
         return date_obj.strftime('%d %B %Y %H:%M')
     except:
-        return date_str
+        return 'Niet beschikbaar'
 
 @app.route('/order/<int:order_id>/forward_to_monta', methods=['POST'])
 def forward_order_to_monta(order_id):
