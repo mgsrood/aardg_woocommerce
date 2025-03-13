@@ -1177,11 +1177,14 @@ def format_datetime(date_str):
     if not date_str:
         return 'Niet beschikbaar'
     try:
+        # Verwijder eventuele tijd component als die er is
+        date_str = date_str.split('T')[0]
         # Converteer de datum string naar een datetime object
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
         # Formatteer de datum naar het gewenste formaat
         return date_obj.strftime('%d %B %Y %H:%M')
-    except:
+    except Exception as e:
+        logger.error(f"Fout bij formatteren datum {date_str}: {str(e)}")
         return 'Niet beschikbaar'
 
 @app.route('/order/<int:order_id>/forward_to_monta', methods=['POST'])
