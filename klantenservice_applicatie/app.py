@@ -1183,6 +1183,14 @@ def forward_order_to_monta(order_id):
             
         shipment_date = data['shipment_date']
         
+        # Valideer verzenddatum
+        try:
+            shipment_datetime = datetime.strptime(shipment_date, '%Y-%m-%d')
+            if shipment_datetime.date() < datetime.now().date():
+                return jsonify({"error": "Verzenddatum kan niet in het verleden liggen"}), 400
+        except ValueError:
+            return jsonify({"error": "Ongeldig datumformaat. Gebruik YYYY-MM-DD"}), 400
+        
         # Haal order op via WooCommerce API
         wcapi.timeout = 60  # Verhoog timeout voor betrouwbaarheid
         result = wcapi.get(f"orders/{order_id}")
@@ -1204,19 +1212,35 @@ def forward_order_to_monta(order_id):
                 if meta.get('key') == '_monta_order_id' and meta.get('value'):
                     return jsonify({"error": "Order is al doorgestuurd naar het distributiecentrum"}), 400
             
+        # Helper functie om adres te splitsen
+        def split_address(address):
+            parts = address.split()
+            if len(parts) > 1:
+                street = parts[0]
+                house_number = parts[1]
+                addition = ' '.join(parts[2:]) if len(parts) > 2 else ""
+                return street, house_number, addition
+            return address, "", ""
+            
+        # Splits verzendadres
+        shipping_street, shipping_number, shipping_addition = split_address(order['shipping']['address_1'])
+        
+        # Splits factuuradres
+        billing_street, billing_number, billing_addition = split_address(order['billing']['address_1'])
+            
         # Maak Monta order data
         monta_data = {
             "InternalWebshopOrderId": str(order['id']),
             "WebshopOrderId": str(order['id']),
             "Reference": str(order['id']),
-            "Origin": "WooCommerce",
+            "Origin": "WooCommerce",  # Correcte Origin waarde
             "ConsumerDetails": {
                 "DeliveryAddress": {
                     "FirstName": order['shipping']['first_name'],
                     "LastName": order['shipping']['last_name'],
-                    "Street": order['shipping']['address_1'].split()[0],
-                    "HouseNumber": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
-                    "HouseNumberAddition": order['shipping']['address_2'] or "",
+                    "Street": shipping_street,
+                    "HouseNumber": shipping_number,
+                    "HouseNumberAddition": shipping_addition or order['shipping']['address_2'] or "",
                     "PostalCode": order['shipping']['postcode'],
                     "City": order['shipping']['city'],
                     "CountryCode": order['shipping']['country']
@@ -1224,9 +1248,9 @@ def forward_order_to_monta(order_id):
                 "InvoiceAddress": {
                     "FirstName": order['billing']['first_name'],
                     "LastName": order['billing']['last_name'],
-                    "Street": order['billing']['address_1'].split()[0],
-                    "HouseNumber": order['billing']['address_1'].split()[1] if len(order['billing']['address_1'].split()) > 1 else "",
-                    "HouseNumberAddition": order['billing']['address_2'] or "",
+                    "Street": billing_street,
+                    "HouseNumber": billing_number,
+                    "HouseNumberAddition": billing_addition or order['billing']['address_2'] or "",
                     "PostalCode": order['billing']['postcode'],
                     "City": order['billing']['city'],
                     "CountryCode": order['billing']['country']
