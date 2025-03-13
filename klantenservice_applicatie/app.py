@@ -1172,6 +1172,50 @@ def adjust_time(time_str):
     except:
         return time_str
 
+# Voeg de format_datetime filter toe
+@app.template_filter('format_datetime')
+def format_datetime(datetime_str):
+    if not datetime_str:
+        return ''
+    try:
+        # Probeer eerst als datetime object
+        if isinstance(datetime_str, datetime):
+            dt = datetime_str
+        else:
+            # Probeer verschillende formaten
+            formats = [
+                '%Y-%m-%d %H:%M:%S',
+                '%Y-%m-%dT%H:%M:%S',
+                '%Y-%m-%dT%H:%M:%S.%fZ',
+                '%Y-%m-%d'
+            ]
+            dt = None
+            for fmt in formats:
+                try:
+                    dt = datetime.strptime(datetime_str, fmt)
+                    break
+                except ValueError:
+                    continue
+            
+            if not dt:
+                return datetime_str
+        
+        # Maandnamen in het Nederlands
+        maanden = {
+            1: 'januari', 2: 'februari', 3: 'maart', 4: 'april',
+            5: 'mei', 6: 'juni', 7: 'juli', 8: 'augustus',
+            9: 'september', 10: 'oktober', 11: 'november', 12: 'december'
+        }
+        
+        # Format de datum en tijd
+        datum = f"{dt.day:02d} {maanden[dt.month]} {dt.year}"
+        tijd = f"{dt.hour:02d}:{dt.minute:02d}"
+        
+        return f"{datum} {tijd}"
+    except Exception as e:
+        logger.error(f"Fout bij formatteren datetime: {str(e)}")
+        return datetime_str
+
 @app.route('/order/<int:order_id>/forward_to_monta', methods=['POST'])
 def forward_order_to_monta(order_id):
     """Stuur een order door naar het distributiecentrum"""
@@ -1179,10 +1223,11 @@ def forward_order_to_monta(order_id):
         # Haal verzendmoment op uit request
         data = request.get_json()
         if not data or 'shipment_date' not in data:
-            return jsonify({"error": "Geen verzenddatum opgegeven"}), 400
+            # Gebruik vandaag als standaard datum
+            shipment_date = datetime.now().strftime('%Y-%m-%d')
+        else:
+            shipment_date = data['shipment_date']
             
-        shipment_date = data['shipment_date']
-        
         # Valideer verzenddatum
         try:
             shipment_datetime = datetime.strptime(shipment_date, '%Y-%m-%d')
@@ -1277,7 +1322,7 @@ def forward_order_to_monta(order_id):
             },
             "PlannedShipmentDate": f"{shipment_date}T22:00:00.000Z",  # Tijd op 22:00:00.000Z gezet
             "ShipOnPlannedShipmentDate": True,
-            "Blocked": True,
+            "Blocked": False,
             "Lines": []
         }
         
@@ -1301,7 +1346,7 @@ def forward_order_to_monta(order_id):
             'meta_data': [
                 {
                     'key': '_monta_order_id',
-                    'value': result['id']
+                    'value': result['WebshopOrderId']
                 },
                 {
                     'key': '_monta_order_status',
@@ -1322,8 +1367,9 @@ def forward_order_to_monta(order_id):
             
         return jsonify({
             "success": True,
-            "message": "Order is succesvol doorgestuurd naar het distributiecentrum",
-            "monta_order_id": result['id']
+            "message": f"Order #{order['id']} is succesvol doorgestuurd naar het distributiecentrum voor verzending op {shipment_date} om 22:00 uur",
+            "monta_order_id": result['WebshopOrderId'],
+            "shipment_date": shipment_date
         })
         
     except Exception as e:

@@ -70,6 +70,7 @@
                                     <input type="time" class="form-control form-control-sm d-inline-block" style="width: auto;" id="nextPaymentTime" name="next_payment_time" 
                                         value="{{ (subscription.next_payment_date_gmt.split('T')[1][:5] if subscription.next_payment_date_gmt else '00:00')|adjust_time }}"
                                         required>
+                                    <span class="ms-2">{{ subscription.next_payment_date_gmt|format_datetime }}</span>
                                 </div>
                             </div>
 
@@ -82,6 +83,7 @@
                                         min="{{ today }}">
                                     <input type="time" class="form-control form-control-sm d-inline-block" style="width: auto;" id="expiryTime" name="expiry_time" 
                                         value="{{ (subscription.end_date.split('T')[1][:5] if subscription.end_date else '00:00')|adjust_time }}">
+                                    <span class="ms-2">{{ subscription.end_date|format_datetime }}</span>
                                 </div>
                             </div>
 
