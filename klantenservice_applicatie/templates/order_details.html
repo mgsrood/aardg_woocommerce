@@ -144,7 +144,7 @@
                         <div class="row align-items-end">
                             <div class="col-md-4">
                                 <label for="shipmentDate" class="form-label">Verzendmoment</label>
-                                <input type="date" class="form-control" id="shipmentDate" min="{{ today }}">
+                                <input type="date" class="form-control" id="shipmentDate" min="{{ today }}" value="{{ today }}">
                             </div>
                             <div class="col-md-4">
                                 <button type="button" class="btn btn-primary" id="forwardToMontaBtn">
@@ -172,9 +172,22 @@
 <script>
 // Voeg event listener toe voor Monta doorsturen
 document.getElementById('forwardToMontaBtn')?.addEventListener('click', async function() {
-    const shipmentDate = document.getElementById('shipmentDate').value;
+    const shipmentDateInput = document.getElementById('shipmentDate');
+    const shipmentDate = shipmentDateInput.value || shipmentDateInput.getAttribute('value');
+    
     if (!shipmentDate) {
         showAlert('danger', 'Selecteer een verzendmoment');
+        return;
+    }
+
+    // Check of de datum niet in het verleden ligt
+    const selectedDate = new Date(shipmentDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+        showAlert('danger', 'De geselecteerde datum mag niet in het verleden liggen');
         return;
     }
     
