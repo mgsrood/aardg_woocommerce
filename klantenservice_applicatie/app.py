@@ -1210,19 +1210,7 @@ def forward_order_to_monta(order_id):
             "orderNumber": str(order['id']),
             "shipmentDate": shipment_date,
             "status": "blocked",  # Zet order standaard op geblokkeerd
-            "shipping": {
-                "company": order['shipping'].get('company', ''),
-                "firstName": order['shipping']['first_name'],
-                "lastName": order['shipping']['last_name'],
-                "street": order['shipping']['address_1'].split()[0],
-                "houseNo": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
-                "addition": order['shipping']['address_2'] or "",
-                "postalCode": order['shipping']['postcode'],
-                "city": order['shipping']['city'],
-                "country": order['shipping']['country'],
-                "email": order['billing']['email']
-            },
-            "billing": {
+            "consumerDetails": {
                 "company": order['billing'].get('company', ''),
                 "firstName": order['billing']['first_name'],
                 "lastName": order['billing']['last_name'],
@@ -1233,6 +1221,18 @@ def forward_order_to_monta(order_id):
                 "city": order['billing']['city'],
                 "country": order['billing']['country'],
                 "email": order['billing']['email']
+            },
+            "shipping": {
+                "company": order['shipping'].get('company', ''),
+                "firstName": order['shipping']['first_name'],
+                "lastName": order['shipping']['last_name'],
+                "street": order['shipping']['address_1'].split()[0],
+                "houseNo": order['shipping']['address_1'].split()[1] if len(order['shipping']['address_1'].split()) > 1 else "",
+                "addition": order['shipping']['address_2'] or "",
+                "postalCode": order['shipping']['postcode'],
+                "city": order['shipping']['city'],
+                "country": order['shipping']['country'],
+                "email": order['shipping']['email']
             },
             "items": []
         }

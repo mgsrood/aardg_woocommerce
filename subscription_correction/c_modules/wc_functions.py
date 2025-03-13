@@ -11,12 +11,12 @@ def process_subscription_batch(subscriptions_batch, wcapi, client, dataset_id, t
     
     for subscription_id in subscriptions_batch:
         try:
-            customer_data = get_woocommerce_subscription_data(subscription_id, wcapi)
-            
-            def escape_string(s):
-                if s is None:
-                    return None
-                return str(s).replace("'", "\\'")
+    customer_data = get_woocommerce_subscription_data(subscription_id, wcapi)
+
+    def escape_string(s):
+        if s is None:
+            return None
+        return str(s).replace("'", "\\'")
 
             # Controleer of de subscription al bestaat
             check_query = f"SELECT COUNT(*) FROM `{dataset_id}.{table_id}` WHERE subscription_id = {subscription_id}"
@@ -25,65 +25,65 @@ def process_subscription_batch(subscriptions_batch, wcapi, client, dataset_id, t
 
             # Bereid de data voor
             row = {
-                "subscription_id": customer_data["id"],
-                "parent_id": customer_data["parent_id"],
-                "status": escape_string(customer_data["status"]),
-                "number": customer_data["number"],
-                "currency": escape_string(customer_data["currency"]),
-                "date_created": escape_string(customer_data["date_created"]),
-                "date_modified": escape_string(customer_data["date_modified"]),
-                "customer_id": customer_data["customer_id"],
+        "subscription_id": customer_data["id"],
+        "parent_id": customer_data["parent_id"],
+        "status": escape_string(customer_data["status"]),
+        "number": customer_data["number"],
+        "currency": escape_string(customer_data["currency"]),
+        "date_created": escape_string(customer_data["date_created"]),
+        "date_modified": escape_string(customer_data["date_modified"]),
+        "customer_id": customer_data["customer_id"],
                 "discount_total": float(customer_data["discount_total"]),
                 "total": float(customer_data["total"]),
-                "billing_company": escape_string(customer_data["billing"]["company"]),
-                "billing_city": escape_string(customer_data["billing"]["city"]),
-                "billing_state": escape_string(customer_data["billing"]["state"]),
-                "billing_postcode": escape_string(customer_data["billing"]["postcode"]),
-                "billing_country": escape_string(customer_data["billing"]["country"]),
-                "billing_email": escape_string(customer_data["billing"]["email"]),
-                "billing_first_name": escape_string(customer_data["billing"]["first_name"]),
-                "billing_last_name": escape_string(customer_data["billing"]["last_name"]),
-                "billing_address_1": escape_string(customer_data["billing"]["address_1"]),
-                "billing_address_2": escape_string(customer_data["billing"]["address_2"]),
-                "shipping_company": escape_string(customer_data["shipping"]["company"]),
-                "shipping_city": escape_string(customer_data["shipping"]["city"]),
-                "shipping_state": escape_string(customer_data["shipping"]["state"]),
-                "shipping_postcode": escape_string(customer_data["shipping"]["postcode"]),
-                "shipping_country": escape_string(customer_data["shipping"]["country"]),
-                "shipping_first_name": escape_string(customer_data["shipping"]["first_name"]),
-                "shipping_last_name": escape_string(customer_data["shipping"]["last_name"]),
-                "shipping_address_1": escape_string(customer_data["shipping"]["address_1"]),
+        "billing_company": escape_string(customer_data["billing"]["company"]),
+        "billing_city": escape_string(customer_data["billing"]["city"]),
+        "billing_state": escape_string(customer_data["billing"]["state"]),
+        "billing_postcode": escape_string(customer_data["billing"]["postcode"]),
+        "billing_country": escape_string(customer_data["billing"]["country"]),
+        "billing_email": escape_string(customer_data["billing"]["email"]),
+        "billing_first_name": escape_string(customer_data["billing"]["first_name"]),
+        "billing_last_name": escape_string(customer_data["billing"]["last_name"]),
+        "billing_address_1": escape_string(customer_data["billing"]["address_1"]),
+        "billing_address_2": escape_string(customer_data["billing"]["address_2"]),
+        "shipping_company": escape_string(customer_data["shipping"]["company"]),
+        "shipping_city": escape_string(customer_data["shipping"]["city"]),
+        "shipping_state": escape_string(customer_data["shipping"]["state"]),
+        "shipping_postcode": escape_string(customer_data["shipping"]["postcode"]),
+        "shipping_country": escape_string(customer_data["shipping"]["country"]),
+        "shipping_first_name": escape_string(customer_data["shipping"]["first_name"]),
+        "shipping_last_name": escape_string(customer_data["shipping"]["last_name"]),
+        "shipping_address_1": escape_string(customer_data["shipping"]["address_1"]),
                 "shipping_address_2": escape_string(customer_data["shipping"].get("address_2")),
-                "payment_method": escape_string(customer_data["payment_method"]),
-                "payment_method_title": escape_string(customer_data["payment_method_title"]),
-                "transaction_id": None,
-                "customer_ip_address": escape_string(customer_data["customer_ip_address"]),
-                "customer_user_agent": escape_string(customer_data["customer_user_agent"]),
-                "created_via": escape_string(customer_data["created_via"]),
-                "customer_note": escape_string(customer_data["customer_note"]),
-                "date_completed": escape_string(customer_data["date_completed"]),
-                "date_paid": escape_string(customer_data["date_paid"]),
-                "cart_hash": "",
+        "payment_method": escape_string(customer_data["payment_method"]),
+        "payment_method_title": escape_string(customer_data["payment_method_title"]),
+        "transaction_id": None,
+        "customer_ip_address": escape_string(customer_data["customer_ip_address"]),
+        "customer_user_agent": escape_string(customer_data["customer_user_agent"]),
+        "created_via": escape_string(customer_data["created_via"]),
+        "customer_note": escape_string(customer_data["customer_note"]),
+        "date_completed": escape_string(customer_data["date_completed"]),
+        "date_paid": escape_string(customer_data["date_paid"]),
+        "cart_hash": "",
                 "lineitems_quantity": [item.get("quantity", 0) for item in customer_data.get("line_items", [])],
                 "lineitems_subtotal": [float(item.get("subtotal", 0.0)) for item in customer_data.get("line_items", [])],
                 "lineitems_total": [float(item.get("total", 0.0)) for item in customer_data.get("line_items", [])],
                 "lineitems_price": [float(item.get("price", 0.0)) for item in customer_data.get("line_items", [])],
                 "lineitems_product_id": [int(item.get("product_id", 0)) for item in customer_data.get("line_items", [])],
-                "billing_period": escape_string(customer_data["billing_period"]),
+        "billing_period": escape_string(customer_data["billing_period"]),
                 "billing_interval": customer_data["billing_interval"],
-                "start_date": escape_string(customer_data["start_date_gmt"]),
-                "next_payment_date": escape_string(customer_data["next_payment_date_gmt"]),
-                "end_date": escape_string(customer_data["end_date_gmt"]),
+        "start_date": escape_string(customer_data["start_date_gmt"]),
+        "next_payment_date": escape_string(customer_data["next_payment_date_gmt"]),
+        "end_date": escape_string(customer_data["end_date_gmt"]),
                 "shipping_total": float(customer_data["shipping_total"])
             }
 
             # Bouw de MERGE query
             merge_query = f"""
-            MERGE `{dataset_id}.{table_id}` T
+    MERGE `{dataset_id}.{table_id}` T
             USING (SELECT {subscription_id} as subscription_id) S
-            ON T.subscription_id = S.subscription_id
-            WHEN MATCHED THEN
-                UPDATE SET
+    ON T.subscription_id = S.subscription_id
+    WHEN MATCHED THEN
+        UPDATE SET
                     parent_id = {row["parent_id"]},
                     status = '{row["status"]}',
                     number = {row["number"]},
@@ -133,19 +133,19 @@ def process_subscription_batch(subscriptions_batch, wcapi, client, dataset_id, t
                     next_payment_date = '{row["next_payment_date"]}',
                     end_date = '{row["end_date"]}',
                     shipping_total = {row["shipping_total"]}
-            WHEN NOT MATCHED THEN
-                INSERT (
-                    subscription_id, parent_id, status, number, currency, date_created, date_modified,
-                    customer_id, discount_total, total, billing_company, billing_city, billing_state,
-                    billing_postcode, billing_country, billing_email, billing_first_name, billing_last_name,
-                    billing_address_1, billing_address_2, shipping_company, shipping_city, shipping_state,
-                    shipping_postcode, shipping_country, shipping_first_name, shipping_last_name, shipping_address_1,
-                    shipping_address_2, payment_method, payment_method_title, transaction_id, customer_ip_address,
-                    customer_user_agent, created_via, customer_note, date_completed, date_paid, cart_hash,
-                    lineitems_quantity, lineitems_subtotal, lineitems_total, lineitems_price, lineitems_product_id,
-                    billing_period, billing_interval, start_date, next_payment_date, end_date, shipping_total
-                )
-                VALUES (
+    WHEN NOT MATCHED THEN
+        INSERT (
+            subscription_id, parent_id, status, number, currency, date_created, date_modified, 
+            customer_id, discount_total, total, billing_company, billing_city, billing_state, 
+            billing_postcode, billing_country, billing_email, billing_first_name, billing_last_name,
+            billing_address_1, billing_address_2, shipping_company, shipping_city, shipping_state, 
+            shipping_postcode, shipping_country, shipping_first_name, shipping_last_name, shipping_address_1, 
+            shipping_address_2, payment_method, payment_method_title, transaction_id, customer_ip_address,
+            customer_user_agent, created_via, customer_note, date_completed, date_paid, cart_hash, 
+            lineitems_quantity, lineitems_subtotal, lineitems_total, lineitems_price, lineitems_product_id, 
+            billing_period, billing_interval, start_date, next_payment_date, end_date, shipping_total
+        )
+        VALUES (
                     {subscription_id}, {row["parent_id"]}, '{row["status"]}', {row["number"]},
                     '{row["currency"]}', '{row["date_created"]}', '{row["date_modified"]}',
                     {row["customer_id"]}, {row["discount_total"]}, {row["total"]},
@@ -180,7 +180,7 @@ def process_subscription_batch(subscriptions_batch, wcapi, client, dataset_id, t
                 logging.error(f"Fout bij {action} van subscription {subscription_id}: {str(e)}")
                 continue
             
-        except Exception as e:
+    except Exception as e:
             logging.error(f"Fout bij verwerken van subscription {subscription_id}: {str(e)}")
             continue
         
