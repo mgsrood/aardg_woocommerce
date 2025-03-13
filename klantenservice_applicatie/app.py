@@ -27,6 +27,8 @@ from utils.woocommerce import (
 from utils.monta_api import MontaAPI
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import User
+import time
+import threading
 
 # Configureer logging
 logger = logging.getLogger(__name__)
@@ -1343,6 +1345,85 @@ def forward_order_to_monta(order_id):
     except Exception as e:
         logger.error(f"Onverwachte fout bij doorsturen order: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription/<int:subscription_id>/rush_delivery', methods=['POST'])
+def handle_rush_delivery(subscription_id):
+    """Handle spoedlevering van een abonnement"""
+    try:
+        # Haal eerst het emailadres op van het abonnement
+        subscription = get_subscription_details(subscription_id)
+        if not subscription or not subscription.get('email'):
+            raise ValueError("Geen geldig emailadres gevonden voor dit abonnement")
+        
+        customer_email = subscription['email']
+        current_order_ids = get_order_ids_for_email(customer_email)
+        
+        # 1. Vervroeg volgende order naar over 1 uur
+        next_delivery = datetime.now() + timedelta(hours=1)
+        update_next_delivery_date(subscription_id, next_delivery)
+        
+        # Start een achtergrond taak die over een uur de order zal doorsturen
+        def schedule_forward():
+            # Wacht 65 minuten
+            time.sleep(65 * 60)
+            
+            try:
+                # Haal alle orders op voor dit emailadres
+                new_order_ids = get_order_ids_for_email(customer_email)
+                
+                # Vind de nieuwe order (die niet in de oude lijst zat)
+                new_orders = [order_id for order_id in new_order_ids 
+                            if order_id not in current_order_ids]
+                
+                if not new_orders:
+                    log_error(f"Geen nieuwe order gevonden voor email {customer_email}")
+                    return
+                
+                # Gebruik de meest recente nieuwe order
+                new_order_id = new_orders[-1]
+                
+                # Stuur door naar Monta
+                shipment_date = next_delivery.strftime('%Y-%m-%d')
+                forward_order_to_monta(new_order_id, shipment_date)
+                
+                # Nu pas de betaaldatum aanpassen
+                try:
+                    current_payment_date = get_next_payment_date(subscription_id)
+                    new_payment_date = current_payment_date - timedelta(days=7)
+                    update_next_payment_date(subscription_id, new_payment_date)
+                    
+                    log_success(
+                        f"Order {new_order_id} voor {customer_email} doorgestuurd naar Monta en "
+                        f"betaaldatum aangepast naar {new_payment_date.strftime('%d-%m-%Y')}"
+                    )
+                except Exception as payment_error:
+                    log_error(
+                        f"Order {new_order_id} wel doorgestuurd, maar fout bij aanpassen betaaldatum: "
+                        f"{str(payment_error)}"
+                    )
+                    
+            except Exception as e:
+                log_error(f"Fout bij doorsturen order voor {customer_email}: {str(e)}")
+        
+        # Start de achtergrond taak
+        threading.Thread(target=schedule_forward).start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Spoedlevering ingepland',
+            'email': customer_email,
+            'delivery_date': next_delivery.strftime('%d %B %Y %H:%M'),
+            'note': (
+                'De order zal automatisch worden doorgestuurd zodra deze is aangemaakt '
+                '(over ongeveer 1 uur). De betaaldatum wordt daarna 7 dagen vervroegd.'
+            )
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Fout bij inplannen spoedlevering: {str(e)}'
+        }), 400
 
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000

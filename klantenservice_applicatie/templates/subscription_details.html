@@ -275,6 +275,23 @@
             </div>
         </div>
         
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Spoedlevering</h5>
+            </div>
+            <div class="card-body">
+                <p>Deze actie zal:</p>
+                <ul>
+                    <li>Een nieuwe order inplannen voor over 1 uur</li>
+                    <li>De volgende betaaldatum 7 dagen vervroegen</li>
+                    <li>Zodra de order is aangemaakt (na ongeveer 1 uur), wordt deze automatisch doorgestuurd naar het distributiecentrum</li>
+                </ul>
+                <button id="rushDeliveryBtn" class="btn btn-warning">
+                    Start Spoedlevering
+                </button>
+            </div>
+        </div>
+
         <div id="orders-section" class="card mt-4">
             <div class="card-header">
                 <h5 class="mb-0">Orders</h5>
@@ -1193,6 +1210,38 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return response.json();
     }
+
+    document.getElementById('rushDeliveryBtn')?.addEventListener('click', async function() {
+        if (!confirm('Weet je zeker dat je een spoedlevering wilt inplannen?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/subscription/{{ subscription.id }}/rush_delivery`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', `
+                    Spoedlevering succesvol ingepland:<br>
+                    - Verwachte levering op: ${result.delivery_date}<br>
+                    - Let op: ${result.note}
+                `);
+                
+                // Ververs de pagina na 2 seconden
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('danger', result.message);
+            }
+        } catch (error) {
+            showAlert('danger', 'Er is een fout opgetreden bij het inplannen van de spoedlevering');
+        }
+    });
 });
 </script>
 {% endblock %} 
