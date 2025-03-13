@@ -1355,62 +1355,107 @@ def forward_order_to_monta(order_id):
 def handle_rush_delivery(subscription_id):
     """Handle spoedlevering van een abonnement"""
     try:
+        logger.info(f"Start spoedlevering proces voor abonnement {subscription_id}")
+        
         # Haal eerst het emailadres op van het abonnement
+        logger.info(f"Ophalen details voor abonnement {subscription_id}")
         subscription = get_subscription_details(subscription_id)
-        if not subscription or not subscription.get('email'):
+        if not subscription:
+            logger.error(f"Geen abonnementsdetails gevonden voor ID {subscription_id}")
+            raise ValueError("Geen abonnementsdetails gevonden")
+            
+        if not subscription.get('email'):
+            logger.error(f"Geen emailadres gevonden voor abonnement {subscription_id}")
             raise ValueError("Geen geldig emailadres gevonden voor dit abonnement")
         
         customer_email = subscription['email']
+        logger.info(f"Emailadres gevonden: {customer_email}")
+        
+        # Haal huidige orders op
+        logger.info(f"Ophalen huidige orders voor email {customer_email}")
         current_order_ids = get_order_ids_for_email(customer_email)
+        logger.info(f"Huidige order IDs: {current_order_ids}")
         
         # 1. Vervroeg volgende order naar over 1 uur
         next_delivery = datetime.now() + timedelta(hours=1)
-        update_next_delivery_date(subscription_id, next_delivery)
+        logger.info(f"Updaten volgende leverdatum naar: {next_delivery}")
+        delivery_update_result = update_next_delivery_date(subscription_id, next_delivery)
+        if not delivery_update_result:
+            logger.error(f"Fout bij updaten leverdatum voor abonnement {subscription_id}")
+            raise ValueError("Kon leverdatum niet updaten")
+        logger.info("Leverdatum succesvol bijgewerkt")
         
         # Start een achtergrond taak die over een uur de order zal doorsturen
         def schedule_forward():
-            # Wacht 65 minuten
+            logger.info(f"Start achtergrond taak voor {customer_email}")
+            logger.info("Wachten 65 minuten...")
             time.sleep(65 * 60)
+            logger.info("Wachttijd voorbij, start doorsturen order")
             
             try:
                 # Haal alle orders op voor dit emailadres
+                logger.info(f"Ophalen nieuwe orders voor email {customer_email}")
                 new_order_ids = get_order_ids_for_email(customer_email)
+                logger.info(f"Nieuwe order IDs: {new_order_ids}")
                 
                 # Vind de nieuwe order (die niet in de oude lijst zat)
                 new_orders = [order_id for order_id in new_order_ids 
                             if order_id not in current_order_ids]
+                logger.info(f"Gevonden nieuwe orders: {new_orders}")
                 
                 if not new_orders:
-                    log_error(f"Geen nieuwe order gevonden voor email {customer_email}")
+                    logger.error(f"Geen nieuwe order gevonden voor email {customer_email}")
                     return
                 
                 # Gebruik de meest recente nieuwe order
                 new_order_id = new_orders[-1]
+                logger.info(f"Gebruik order ID: {new_order_id}")
                 
                 # Stuur door naar Monta
                 shipment_date = next_delivery.strftime('%Y-%m-%d')
-                forward_order_to_monta(new_order_id, shipment_date)
+                logger.info(f"Doorsturen order {new_order_id} naar Monta voor datum {shipment_date}")
+                
+                # Haal de order op om te controleren
+                order_result = wcapi.get(f"orders/{new_order_id}")
+                if order_result.status_code != 200:
+                    logger.error(f"Kon order {new_order_id} niet ophalen: {order_result.text}")
+                    return
+                    
+                order = order_result.json()
+                logger.info(f"Order status: {order.get('status')}")
+                
+                # Stuur door naar Monta
+                forward_result = forward_order_to_monta(new_order_id, shipment_date)
+                logger.info(f"Monta doorstuur resultaat: {forward_result}")
                 
                 # Nu pas de betaaldatum aanpassen
                 try:
+                    logger.info("Ophalen huidige betaaldatum")
                     current_payment_date = get_next_payment_date(subscription_id)
+                    if not current_payment_date:
+                        logger.error("Kon huidige betaaldatum niet ophalen")
+                        return
+                        
                     new_payment_date = current_payment_date - timedelta(days=7)
-                    update_next_payment_date(subscription_id, new_payment_date)
+                    logger.info(f"Updaten betaaldatum naar: {new_payment_date}")
                     
-                    log_success(
-                        f"Order {new_order_id} voor {customer_email} doorgestuurd naar Monta en "
-                        f"betaaldatum aangepast naar {new_payment_date.strftime('%d-%m-%Y')}"
-                    )
+                    payment_update_result = update_next_payment_date(subscription_id, new_payment_date)
+                    if not payment_update_result:
+                        logger.error("Kon betaaldatum niet updaten")
+                        return
+                        
+                    logger.info("Betaaldatum succesvol bijgewerkt")
+                    
                 except Exception as payment_error:
-                    log_error(
-                        f"Order {new_order_id} wel doorgestuurd, maar fout bij aanpassen betaaldatum: "
-                        f"{str(payment_error)}"
-                    )
+                    logger.error(f"Fout bij aanpassen betaaldatum: {str(payment_error)}")
                     
             except Exception as e:
-                log_error(f"Fout bij doorsturen order voor {customer_email}: {str(e)}")
+                logger.error(f"Fout in achtergrond taak: {str(e)}")
+                import traceback
+                logger.error(f"Stacktrace: {traceback.format_exc()}")
         
         # Start de achtergrond taak
+        logger.info("Starten achtergrond taak")
         threading.Thread(target=schedule_forward).start()
         
         return jsonify({
@@ -1425,6 +1470,9 @@ def handle_rush_delivery(subscription_id):
         })
         
     except Exception as e:
+        logger.error(f"Fout in handle_rush_delivery: {str(e)}")
+        import traceback
+        logger.error(f"Stacktrace: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'message': f'Fout bij inplannen spoedlevering: {str(e)}'
