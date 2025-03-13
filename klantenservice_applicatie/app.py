@@ -1250,7 +1250,7 @@ def forward_order_to_monta(order_id):
             "InternalWebshopOrderId": str(order['id']),
             "WebshopOrderId": str(order['id']),
             "Reference": str(order['id']),
-            "Origin": "WooCommerce",
+            "Origin": "aardg.nl",
             "ConsumerDetails": {
                 "DeliveryAddress": {
                     "FirstName": order['shipping']['first_name'],
