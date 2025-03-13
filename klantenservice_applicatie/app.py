@@ -1361,12 +1361,22 @@ def handle_rush_delivery(subscription_id):
         logger.info(f"Ophalen details voor abonnement {subscription_id}")
         subscription = get_subscription_details(subscription_id)
         if not subscription:
-            logger.error(f"Geen abonnementsdetails gevonden voor ID {subscription_id}")
-            raise ValueError("Geen abonnementsdetails gevonden")
+            error_msg = "Geen abonnementsdetails gevonden"
+            logger.error(f"{error_msg} voor ID {subscription_id}")
+            return jsonify({
+                'success': False,
+                'message': error_msg,
+                'details': 'Het abonnement kon niet worden gevonden in het systeem.'
+            }), 404
             
         if not subscription.get('email'):
-            logger.error(f"Geen emailadres gevonden voor abonnement {subscription_id}")
-            raise ValueError("Geen geldig emailadres gevonden voor dit abonnement")
+            error_msg = "Geen geldig emailadres gevonden"
+            logger.error(f"{error_msg} voor abonnement {subscription_id}")
+            return jsonify({
+                'success': False,
+                'message': error_msg,
+                'details': 'Er is geen emailadres gekoppeld aan dit abonnement.'
+            }), 400
         
         customer_email = subscription['email']
         logger.info(f"Emailadres gevonden: {customer_email}")
@@ -1381,8 +1391,13 @@ def handle_rush_delivery(subscription_id):
         logger.info(f"Updaten volgende leverdatum naar: {next_delivery}")
         delivery_update_result = update_next_delivery_date(subscription_id, next_delivery)
         if not delivery_update_result:
-            logger.error(f"Fout bij updaten leverdatum voor abonnement {subscription_id}")
-            raise ValueError("Kon leverdatum niet updaten")
+            error_msg = "Kon leverdatum niet updaten"
+            logger.error(f"{error_msg} voor abonnement {subscription_id}")
+            return jsonify({
+                'success': False,
+                'message': error_msg,
+                'details': 'Er is een fout opgetreden bij het aanpassen van de leverdatum.'
+            }), 500
         logger.info("Leverdatum succesvol bijgewerkt")
         
         # Start een achtergrond taak die over een uur de order zal doorsturen
@@ -1404,7 +1419,8 @@ def handle_rush_delivery(subscription_id):
                 logger.info(f"Gevonden nieuwe orders: {new_orders}")
                 
                 if not new_orders:
-                    logger.error(f"Geen nieuwe order gevonden voor email {customer_email}")
+                    error_msg = "Geen nieuwe order gevonden"
+                    logger.error(f"{error_msg} voor email {customer_email}")
                     return
                 
                 # Gebruik de meest recente nieuwe order
@@ -1418,7 +1434,8 @@ def handle_rush_delivery(subscription_id):
                 # Haal de order op om te controleren
                 order_result = wcapi.get(f"orders/{new_order_id}")
                 if order_result.status_code != 200:
-                    logger.error(f"Kon order {new_order_id} niet ophalen: {order_result.text}")
+                    error_msg = f"Kon order {new_order_id} niet ophalen"
+                    logger.error(f"{error_msg}: {order_result.text}")
                     return
                     
                 order = order_result.json()
@@ -1433,7 +1450,8 @@ def handle_rush_delivery(subscription_id):
                     logger.info("Ophalen huidige betaaldatum")
                     current_payment_date = get_next_payment_date(subscription_id)
                     if not current_payment_date:
-                        logger.error("Kon huidige betaaldatum niet ophalen")
+                        error_msg = "Kon huidige betaaldatum niet ophalen"
+                        logger.error(error_msg)
                         return
                         
                     new_payment_date = current_payment_date - timedelta(days=7)
@@ -1441,16 +1459,19 @@ def handle_rush_delivery(subscription_id):
                     
                     payment_update_result = update_next_payment_date(subscription_id, new_payment_date)
                     if not payment_update_result:
-                        logger.error("Kon betaaldatum niet updaten")
+                        error_msg = "Kon betaaldatum niet updaten"
+                        logger.error(error_msg)
                         return
                         
                     logger.info("Betaaldatum succesvol bijgewerkt")
                     
                 except Exception as payment_error:
-                    logger.error(f"Fout bij aanpassen betaaldatum: {str(payment_error)}")
+                    error_msg = f"Fout bij aanpassen betaaldatum: {str(payment_error)}"
+                    logger.error(error_msg)
                     
             except Exception as e:
-                logger.error(f"Fout in achtergrond taak: {str(e)}")
+                error_msg = f"Fout in achtergrond taak: {str(e)}"
+                logger.error(error_msg)
                 import traceback
                 logger.error(f"Stacktrace: {traceback.format_exc()}")
         
@@ -1470,13 +1491,15 @@ def handle_rush_delivery(subscription_id):
         })
         
     except Exception as e:
-        logger.error(f"Fout in handle_rush_delivery: {str(e)}")
+        error_msg = f"Onverwachte fout in handle_rush_delivery: {str(e)}"
+        logger.error(error_msg)
         import traceback
         logger.error(f"Stacktrace: {traceback.format_exc()}")
         return jsonify({
             'success': False,
-            'message': f'Fout bij inplannen spoedlevering: {str(e)}'
-        }), 400
+            'message': 'Er is een fout opgetreden bij het inplannen van de spoedlevering',
+            'details': str(e)
+        }), 500
 
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000
