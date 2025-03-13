@@ -1354,6 +1354,7 @@ def forward_order_to_monta(order_id):
 @app.route('/subscription/<int:subscription_id>/rush_delivery', methods=['POST'])
 def handle_rush_delivery(subscription_id):
     """Handle spoedlevering van een abonnement"""
+    logger.info(f"Handle spoedlevering voor abonnement {subscription_id}")
     try:
         logger.info(f"Start spoedlevering proces voor abonnement {subscription_id}")
         
