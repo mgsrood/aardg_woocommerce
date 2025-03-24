@@ -432,6 +432,26 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const subscriptionId = "{{ subscription.id }}";
+    const csrfToken = "{{ csrf_token() }}";  // Haal CSRF token op
+
+    // Functie om fetch requests te maken met CSRF token
+    async function fetchWithCSRF(url, options = {}) {
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        };
+
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Er is een fout opgetreden');
+        }
+        
+        return response.json();
+    }
 
     // Functie om datum te formatteren naar dd maandnaam yyyy
     function formatDate(dateString) {
@@ -790,18 +810,13 @@ document.addEventListener('DOMContentLoaded', function() {
             saveButton.disabled = true;
             
             try {
-                const response = await fetch(`/subscription/${subscriptionId}/update_products`, {
+                const result = await fetchWithCSRF(`/subscription/${subscriptionId}/update_products`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                     body: JSON.stringify({ 
                         products: products,
                         shipping_lines: shipping
                     })
                 });
-                
-                const result = await response.json();
                 
                 if (result.success) {
                     showAlert('success', 'Producten zijn succesvol bijgewerkt');
@@ -976,15 +991,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             console.log('Sending address update:', formData);
-            const response = await fetch(`/subscription/${subscriptionId}/update_addresses`, {
+            const result = await fetchWithCSRF(`/subscription/${subscriptionId}/update_addresses`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(formData)
             });
-
-            const result = await response.json();
+            
             console.log('Address update response:', result);
             
             if (result.success) {
@@ -1144,20 +1155,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     async function updateSubscriptionField(field, data) {
-        const response = await fetch(`/subscription/{{ subscription.id }}/update_${field}`, {
+        return await fetchWithCSRF(`/subscription/${subscriptionId}/update_${field}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(data)
         });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Er is een fout opgetreden');
-        }
-        
-        return response.json();
     }
 });
 </script>

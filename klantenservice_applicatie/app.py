@@ -27,15 +27,28 @@ from utils.woocommerce import (
 from utils.monta_api import MontaAPI
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import User
+from flask_wtf.csrf import CSRFProtect
 
 # Configureer logging
 logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
 
+# Log startup informatie
+logger.info("Applicatie start...")
+logger.info(f"Database pad: {os.path.join(os.path.dirname(__file__), 'data', 'woocommerce.db')}")
 # Laad environment variables
 load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object('config.Config')  # Zorg dat we de Config class gebruiken
+csrf = CSRFProtect(app)  # Voeg CSRF bescherming toe
 
 # Initialiseer de database
 init_db()
