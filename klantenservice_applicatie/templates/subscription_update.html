@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="alert alert-success">
+            Abonnement succesvol geupdatet.
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Wijzigingen overzicht</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% if changes.status %}
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Status gewijzigd van <strong>{{ changes.status.old }}</strong> naar <strong>{{ changes.status.new }}</strong>
+                    </li>
+                    {% endif %}
+                    
+                    {% if changes.next_payment %}
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Volgende betaaldatum gewijzigd van <strong>{{ changes.next_payment.old }}</strong> naar <strong>{{ changes.next_payment.new }}</strong>
+                    </li>
+                    {% endif %}
+                    
+                    {% if changes.expiry %}
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Vervaldatum gewijzigd van <strong>{{ changes.expiry.old }}</strong> naar <strong>{{ changes.expiry.new }}</strong>
+                    </li>
+                    {% endif %}
+                    
+                    {% if changes.billing_interval %}
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Betalingsperiode gewijzigd van <strong>{{ changes.billing_interval.old }}</strong> naar <strong>{{ changes.billing_interval.new }}</strong>
+                    </li>
+                    {% endif %}
+                    
+                    {% if changes.addresses %}
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Adresgegevens bijgewerkt
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">&larr; Terug naar zoeken</a>
+            <a href="{{ url_for('subscription_details', subscription_id=subscription_id) }}" class="btn btn-primary">Bekijk abonnement</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

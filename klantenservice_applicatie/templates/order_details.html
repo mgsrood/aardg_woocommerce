@@ -42,6 +42,17 @@
                 <a href="{{ url_for('index') }}" class="btn btn-outline-primary">&larr; Terug naar zoeken</a>
             </div>
 
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             {% if error %}
             <div class="alert alert-danger">
                 {{ error }}
@@ -187,13 +198,20 @@ document.getElementById('forwardToMontaBtn')?.addEventListener('click', async fu
     today.setHours(0, 0, 0, 0);
     
     if (selectedDate < today) {
-        showAlert('danger', 'De geselecteerde datum mag niet in het verleden liggen');
+        showAlert('danger', 'De geselecteerde datum mag niet in het verleden liggen. Selecteer een datum vanaf vandaag.');
+        shipmentDateInput.focus(); // Focus op het datumveld
         return;
     }
     
     if (!confirm('Weet je zeker dat je deze order wilt doorsturen naar het distributiecentrum?')) {
         return;
     }
+    
+    // Toon laad-indicator
+    const button = document.getElementById('forwardToMontaBtn');
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Bezig met doorsturen...';
     
     try {
         const response = await fetch(`/order/{{ order.id }}/forward_to_monta`, {
@@ -209,16 +227,32 @@ document.getElementById('forwardToMontaBtn')?.addEventListener('click', async fu
         const result = await response.json();
         
         if (result.success) {
-            showAlert('success', result.message);
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            // Ververs de pagina met een GET request om de flash message te behouden
+            window.location.href = window.location.href;
         } else {
             showAlert('danger', result.error || 'Er is een fout opgetreden bij het doorsturen van de order');
+            // Reset de knop
+            button.disabled = false;
+            button.innerHTML = originalText;
         }
     } catch (error) {
         showAlert('danger', 'Er is een fout opgetreden bij het doorsturen van de order');
+        // Reset de knop
+        button.disabled = false;
+        button.innerHTML = originalText;
     }
 });
+
+// Functie om alerts te tonen
+function showAlert(type, message) {
+    const alertsContainer = document.getElementById('alertsContainer');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    alertsContainer.appendChild(alertDiv);
+}
 </script>
 {% endblock %} 

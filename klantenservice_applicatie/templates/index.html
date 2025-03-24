@@ -109,7 +109,7 @@
                                 <th>Naam</th>
                                 <th>E-mailadres</th>
                                 <th>Totaal Prijs</th>
-                                <th>Begindatum</th>
+                                <th>Laatste Besteldatum</th>
                                 <th>Volgende Besteldatum</th>
                                 <th>Status</th>
                             </tr>
@@ -122,26 +122,29 @@
                                         {{ subscription.id }}
                                     </a>
                                 </td>
-                                <td>{{ subscription.billing.first_name }} {{ subscription.billing.last_name }}</td>
-                                <td>{{ subscription.billing.email }}</td>
+                                <td>{{ subscription.customer_name }}</td>
+                                <td>{{ subscription.billing_email }}</td>
                                 <td>€{{ subscription.total if subscription.total != None else '0.00' }}</td>
                                 <td>
-                                    <span class="format-date" data-date="{{ subscription.start_date }}">
-                                        {{ subscription.start_date_formatted or '-' }}
-                                    </span>
+                                    {% if subscription.last_order_date_formatted %}
+                                        <span class="format-date" data-date="{{ subscription.last_order_date }}">
+                                            {{ subscription.last_order_date_formatted }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    <span class="format-date" data-date="{{ subscription.next_payment_date }}">
-                                        {{ subscription.next_payment_date_formatted or '-' }}
-                                    </span>
+                                    {% if subscription.next_payment_date %}
+                                        <span class="format-date" data-date="{{ subscription.next_payment_date }}">
+                                            {{ subscription.next_payment_date_formatted or '-' }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge {% if subscription.status == 'active' %}bg-success
-                                        {% elif subscription.status == 'on-hold' %}bg-warning
-                                        {% elif subscription.status == 'cancelled' %}bg-danger
-                                        {% elif subscription.status == 'pending' %}bg-secondary
-                                        {% elif subscription.status == 'expired' %}bg-dark
-                                        {% else %}bg-secondary{% endif %}">
+                                    <span class="badge {% if subscription.status == 'active' %}bg-success{% elif subscription.status == 'on-hold' %}bg-warning{% elif subscription.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
                                         {{ subscription.status_display }}
                                     </span>
                                 </td>
@@ -168,7 +171,7 @@
                                 <th>Naam</th>
                                 <th>E-mailadres</th>
                                 <th>Totaal Prijs</th>
-                                <th>Begindatum</th>
+                                <th>Laatste Besteldatum</th>
                                 <th>Volgende Besteldatum</th>
                                 <th>Status</th>
                             </tr>
@@ -181,26 +184,29 @@
                                         {{ subscription.id }}
                                     </a>
                                 </td>
-                                <td>{{ subscription.billing.first_name }} {{ subscription.billing.last_name }}</td>
-                                <td>{{ subscription.billing.email }}</td>
+                                <td>{{ subscription.customer_name }}</td>
+                                <td>{{ subscription.billing_email }}</td>
                                 <td>€{{ subscription.total if subscription.total != None else '0.00' }}</td>
                                 <td>
-                                    <span class="format-date" data-date="{{ subscription.start_date }}">
-                                        {{ subscription.start_date_formatted or '-' }}
-                                    </span>
+                                    {% if subscription.last_order_date_formatted %}
+                                        <span class="format-date" data-date="{{ subscription.last_order_date }}">
+                                            {{ subscription.last_order_date_formatted }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    <span class="format-date" data-date="{{ subscription.next_payment_date }}">
-                                        {{ subscription.next_payment_date_formatted or '-' }}
-                                    </span>
+                                    {% if subscription.next_payment_date %}
+                                        <span class="format-date" data-date="{{ subscription.next_payment_date }}">
+                                            {{ subscription.next_payment_date_formatted or '-' }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge {% if subscription.status == 'active' %}bg-success
-                                        {% elif subscription.status == 'on-hold' %}bg-warning
-                                        {% elif subscription.status == 'cancelled' %}bg-danger
-                                        {% elif subscription.status == 'pending' %}bg-secondary
-                                        {% elif subscription.status == 'expired' %}bg-dark
-                                        {% else %}bg-secondary{% endif %}">
+                                    <span class="badge {% if subscription.status == 'active' %}bg-success{% elif subscription.status == 'on-hold' %}bg-warning{% elif subscription.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
                                         {{ subscription.status_display }}
                                     </span>
                                 </td>
@@ -334,9 +340,6 @@
                                         {% else %}bg-secondary{% endif %}">
                                         {{ order.status_display or order.status }}
                                     </span>
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('order_details', order_id=order.id) }}" class="btn btn-sm btn-primary">Details</a>
                                 </td>
                             </tr>
                             {% endfor %}

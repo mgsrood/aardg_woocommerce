@@ -394,16 +394,10 @@
                                     <input type="number" class="form-control shipping-cost" step="0.01" min="0" 
                                            value="{{ shipping.total }}" placeholder="Kosten">
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger remove-shipping">
-                                    <i class="bi bi-trash"></i>
-                                </button>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addShippingMethod">
-                        <i class="bi bi-plus"></i> Verzendmethode toevoegen
-                    </button>
                 </div>
 
                 <!-- Totaal -->
@@ -570,18 +564,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Verwijder verzendmethode event listener
-    shippingMethods.addEventListener('click', function(e) {
-        const removeButton = e.target.closest('.remove-shipping');
-        if (removeButton) {
-            const shippingMethod = removeButton.closest('.shipping-method');
-            if (shippingMethod) {
-                shippingMethod.remove();
-                updateTotal();
-            }
-        }
-    });
-
     // Zoekfunctionaliteit
     searchButton.addEventListener('click', function() {
         const query = searchInput.value.trim();
@@ -732,9 +714,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="number" class="form-control shipping-cost" step="0.01" min="0" value="0" 
                                placeholder="Kosten">
                     </div>
-                    <button type="button" class="btn btn-sm btn-danger remove-shipping">
-                        <i class="bi bi-trash"></i>
-                    </button>
                 </div>
             `;
             shippingMethods.appendChild(newMethod);
@@ -890,24 +869,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Definieer de volgorde van statussen
-        const statusOrder = {
-            'active': 1,
-            'on-hold': 2,
-            'cancelled': 3
-        };
-        
         // Sorteer de orders
         const sortedOrders = orders.sort((a, b) => {
-            // Eerst op status
-            const statusA = statusOrder[a.status] || 999;
-            const statusB = statusOrder[b.status] || 999;
-            if (statusA !== statusB) {
-                return statusA - statusB;
-            }
-            
-            // Dan op ID (DESC)
-            return parseInt(b.id) - parseInt(a.id);
+            // Sorteer op aanmaakdatum (DESC)
+            const dateA = new Date(a.date_created);
+            const dateB = new Date(b.date_created);
+            return dateB - dateA;
         });
         
         const tbody = document.createElement('tbody');
@@ -1092,69 +1059,68 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSpinner.style.display = 'inline-block';
         
         try {
-            // Update adressen alleen als er wijzigingen zijn
-            const hasAddressChanges = await updateAddresses();
-
-            // Update status alleen als deze is gewijzigd
+            // Verzamel alle wijzigingen
+            const changes = {};
+            
+            // Status wijziging
             const newStatus = document.getElementById('newStatus').value;
             const currentStatus = "{{ subscription.status }}";
             if (newStatus !== currentStatus) {
-                await updateSubscriptionField('status', { status: newStatus });
+                changes.status = {
+                    old: currentStatus,
+                    new: newStatus
+                };
             }
             
-            // Update volgende betaaldatum alleen als deze is gewijzigd
+            // Volgende betaaldatum wijziging
             const currentNextPayment = "{{ subscription.next_payment_date_gmt }}";
             const newNextPayment = `${nextPaymentDate}T${nextPaymentTime}`;
             if (currentNextPayment !== newNextPayment) {
-                // Trek 1 uur af van de ingevoerde tijd
-                const [hours, minutes] = nextPaymentTime.split(':');
-                const adjustedHours = (parseInt(hours) - 1 + 24) % 24; // Zorg ervoor dat we niet onder 0 komen
-                const adjustedTime = `${adjustedHours.toString().padStart(2, '0')}:${minutes}`;
-                
-                await updateSubscriptionField('next_payment', { 
-                    next_payment_date: nextPaymentDate,
-                    next_payment_time: adjustedTime
-                });
+                changes.next_payment = {
+                    old: currentNextPayment,
+                    new: newNextPayment
+                };
             }
             
-            // Update vervaldatum alleen als deze is gewijzigd en ingevuld
+            // Vervaldatum wijziging
             const currentExpiry = "{{ subscription.end_date }}";
             const newExpiry = expiryDate ? `${expiryDate}T${expiryTime}` : '';
             if (currentExpiry !== newExpiry) {
-                if (newExpiry) {
-                    // Trek 1 uur af van de ingevoerde tijd
-                    const [hours, minutes] = expiryTime.split(':');
-                    const adjustedHours = (parseInt(hours) - 1 + 24) % 24; // Zorg ervoor dat we niet onder 0 komen
-                    const adjustedTime = `${adjustedHours.toString().padStart(2, '0')}:${minutes}`;
-                    
-                    await updateSubscriptionField('expiry', {
-                        expiry_date: expiryDate,
-                        expiry_time: adjustedTime
-                    });
-                }
+                changes.expiry = {
+                    old: currentExpiry,
+                    new: newExpiry
+                };
             }
             
-            // Update betalingsinterval alleen als deze is gewijzigd
+            // Betalingsinterval wijziging
             const currentInterval = "{{ subscription.billing_interval }}";
             const currentPeriod = "{{ subscription.billing_period }}";
             const newInterval = document.getElementById('billingInterval').value;
             const newPeriod = document.getElementById('billingPeriod').value;
             
             if (currentInterval !== newInterval || currentPeriod !== newPeriod) {
-                await updateSubscriptionField('interval', {
-                    billing_interval: newInterval,
-                    billing_period: newPeriod
-                });
+                changes.billing_interval = {
+                    old: `${currentInterval} ${currentPeriod}`,
+                    new: `${newInterval} ${newPeriod}`
+                };
+            }
+            
+            // Adres wijzigingen
+            const hasAddressChanges = await updateAddresses();
+            if (hasAddressChanges) {
+                changes.addresses = {
+                    updated: true
+                };
             }
             
             // Toon success notificatie
             showAlert('success', 'Abonnement succesvol bijgewerkt');
             
-            // Wacht 1.5 seconden voordat de pagina wordt ververst
+            // Wacht 1.5 seconden voordat de gebruiker wordt doorgestuurd
             await new Promise(resolve => setTimeout(resolve, 1500));
             
-            // Ververs de pagina
-            window.location.reload();
+            // Stuur door naar de subscription_update pagina met subscription_id en wijzigingen
+            window.location.href = `/subscription_update?subscription_id=${subscriptionId}&changes=${encodeURIComponent(JSON.stringify(changes))}`;
             
         } catch (error) {
             console.error('Update error:', error);

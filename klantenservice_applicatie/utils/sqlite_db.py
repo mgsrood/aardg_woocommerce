@@ -53,7 +53,13 @@ def search_subscriptions_by_id(subscription_id):
         
         # Haal het abonnement op
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM subscriptions WHERE id = ?", (subscription_id,))
+        cursor.execute("""
+            SELECT s.*, 
+                   s.billing_first_name || ' ' || s.billing_last_name as customer_name
+            FROM subscriptions s
+            WHERE s.id = ?
+        """, (subscription_id,))
+        
         subscription_row = cursor.fetchone()
         
         if not subscription_row:
@@ -63,50 +69,49 @@ def search_subscriptions_by_id(subscription_id):
         # Converteer naar dictionary
         subscription = dict(subscription_row)
         
-        # Verwerk meta_data
-        if subscription['meta_data']:
-            try:
-                subscription['meta_data'] = json.loads(subscription['meta_data'])
-            except:
-                subscription['meta_data'] = []
+        # Haal de laatste order datum op voor het e-mailadres
+        if subscription.get('billing_email'):
+            last_order_date = get_last_order_date_by_email(subscription['billing_email'])
+            if last_order_date:
+                subscription['last_order_date'] = last_order_date
+                subscription['last_order_date_formatted'] = last_order_date.split('T')[0] if 'T' in last_order_date else last_order_date
         
-        # Voeg billing en shipping objecten toe voor compatibiliteit met WooCommerce API
+        # Voeg billing object toe voor compatibiliteit met WooCommerce API
         subscription['billing'] = {
-            'first_name': subscription['billing_first_name'],
-            'last_name': subscription['billing_last_name'],
-            'email': subscription['billing_email'],
-            'phone': subscription['billing_phone'],
-            'address_1': subscription['billing_address_1'],
-            'address_2': subscription['billing_address_2'],
-            'postcode': subscription['billing_postcode'],
-            'city': subscription['billing_city'],
-            'country': subscription['billing_country']
+            'first_name': subscription.get('billing_first_name', ''),
+            'last_name': subscription.get('billing_last_name', ''),
+            'email': subscription.get('billing_email', ''),
+            'phone': subscription.get('billing_phone', ''),
+            'address_1': subscription.get('billing_address_1', ''),
+            'address_2': subscription.get('billing_address_2', ''),
+            'postcode': subscription.get('billing_postcode', ''),
+            'city': subscription.get('billing_city', ''),
+            'country': subscription.get('billing_country', ''),
+            'company': subscription.get('billing_company', '')
         }
         
         # Voeg leesbare status toe
         subscription['status_display'] = {
             'active': 'Actief',
-            'on-hold': 'On-hold',
+            'on-hold': 'Gepauzeerd',
             'cancelled': 'Geannuleerd',
-            'pending': 'In afwachting'
-        }.get(subscription['status'], subscription['status'])
+            'pending': 'In afwachting',
+            'expired': 'Verlopen'
+        }.get(subscription.get('status', ''), subscription.get('status', ''))
         
         # Formateer datums
+        if subscription.get('start_date'):
+            subscription['start_date_formatted'] = subscription['start_date'].split('T')[0] if 'T' in subscription['start_date'] else subscription['start_date']
+        
         if subscription.get('next_payment_date'):
             subscription['next_payment_date_formatted'] = subscription['next_payment_date'].split('T')[0] if 'T' in subscription['next_payment_date'] else subscription['next_payment_date']
         
-        # Formateer vervaldatum als deze beschikbaar is
-        if subscription.get('end_date'):
-            subscription['end_date_formatted'] = subscription['end_date'].split('T')[0] if 'T' in subscription['end_date'] else subscription['end_date']
-        
-        logger.info(f"Abonnement gevonden: {subscription_id}")
+        logger.info(f"Abonnement gevonden: {subscription['id']}")
         return {"success": True, "data": [subscription]}
-    
+        
     except Exception as e:
         error_message = f"Fout bij zoeken naar abonnement: {str(e)}"
         logger.error(error_message)
-        import traceback
-        logger.error(f"Stacktrace: {traceback.format_exc()}")
         return {"error": error_message, "status": 500}
     
     finally:
@@ -125,19 +130,59 @@ def search_subscriptions_by_email(email):
         
         # Haal abonnementen op
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM subscriptions WHERE billing_email LIKE ?", (f"%{email}%",))
-        subscription_ids = [row['id'] for row in cursor.fetchall()]
+        cursor.execute("""
+            SELECT s.*, 
+                   s.billing_first_name || ' ' || s.billing_last_name as customer_name
+            FROM subscriptions s
+            WHERE s.billing_email LIKE ?
+        """, (f"%{email}%",))
         
-        if not subscription_ids:
+        subscriptions = []
+        for row in cursor.fetchall():
+            subscription = dict(row)
+            
+            # Haal de laatste order datum op voor het e-mailadres
+            if subscription.get('billing_email'):
+                last_order_date = get_last_order_date_by_email(subscription['billing_email'])
+                if last_order_date:
+                    subscription['last_order_date'] = last_order_date
+                    subscription['last_order_date_formatted'] = last_order_date.split('T')[0] if 'T' in last_order_date else last_order_date
+            
+            # Voeg billing object toe voor compatibiliteit met WooCommerce API
+            subscription['billing'] = {
+                'first_name': subscription.get('billing_first_name', ''),
+                'last_name': subscription.get('billing_last_name', ''),
+                'email': subscription.get('billing_email', ''),
+                'phone': subscription.get('billing_phone', ''),
+                'address_1': subscription.get('billing_address_1', ''),
+                'address_2': subscription.get('billing_address_2', ''),
+                'postcode': subscription.get('billing_postcode', ''),
+                'city': subscription.get('billing_city', ''),
+                'country': subscription.get('billing_country', ''),
+                'company': subscription.get('billing_company', '')
+            }
+            
+            # Voeg leesbare status toe
+            subscription['status_display'] = {
+                'active': 'Actief',
+                'on-hold': 'Gepauzeerd',
+                'cancelled': 'Geannuleerd',
+                'pending': 'In afwachting',
+                'expired': 'Verlopen'
+            }.get(subscription.get('status', ''), subscription.get('status', ''))
+            
+            # Formateer datums
+            if subscription.get('start_date'):
+                subscription['start_date_formatted'] = subscription['start_date'].split('T')[0] if 'T' in subscription['start_date'] else subscription['start_date']
+            
+            if subscription.get('next_payment_date'):
+                subscription['next_payment_date_formatted'] = subscription['next_payment_date'].split('T')[0] if 'T' in subscription['next_payment_date'] else subscription['next_payment_date']
+            
+            subscriptions.append(subscription)
+        
+        if not subscriptions:
             logger.warning(f"Geen abonnementen gevonden voor e-mail: {email}")
             return {"error": f"Geen abonnementen gevonden voor e-mail: {email}", "status": 404}
-        
-        # Haal details op voor elk abonnement
-        subscriptions = []
-        for subscription_id in subscription_ids:
-            result = search_subscriptions_by_id(subscription_id)
-            if result.get("success") and result.get("data"):
-                subscriptions.extend(result["data"])
         
         logger.info(f"{len(subscriptions)} abonnementen gevonden voor e-mail: {email}")
         return {"success": True, "data": subscriptions}
@@ -236,47 +281,65 @@ def get_customer_id_by_email(email):
     finally:
         conn.close()
 
-def get_all_subscriptions(limit=100, offset=0):
+def get_all_subscriptions(limit=None, offset=None):
     """
-    Haal alle abonnementen op met paginering.
+    Haal alle abonnementen op met optionele paginering.
     """
     conn = get_db_connection()
     if not conn:
-        return {"error": "Kan geen verbinding maken met de database", "status": 500}
+        return {"error": "Kan geen verbinding maken met de database"}
     
     try:
-        logger.info(f"Ophalen van abonnementen (limit: {limit}, offset: {offset})")
-        
-        # Haal abonnementen op
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM subscriptions ORDER BY id DESC LIMIT ? OFFSET ?", (limit, offset))
-        subscription_ids = [row['id'] for row in cursor.fetchall()]
         
-        # Haal details op voor elk abonnement
+        # Basis query
+        query = """
+            SELECT s.*, 
+                   s.billing_first_name || ' ' || s.billing_last_name as customer_name
+            FROM subscriptions s
+        """
+        
+        # Voeg ORDER BY en LIMIT/OFFSET toe als ze zijn opgegeven
+        query += " ORDER BY s.id DESC"
+        if limit is not None:
+            query += " LIMIT ?"
+            if offset is not None:
+                query += " OFFSET ?"
+        
+        # Voer de query uit
+        if limit is not None and offset is not None:
+            cursor.execute(query, (limit, offset))
+        elif limit is not None:
+            cursor.execute(query, (limit,))
+        else:
+            cursor.execute(query)
+        
         subscriptions = []
-        for subscription_id in subscription_ids:
-            result = search_subscriptions_by_id(subscription_id)
-            if result.get("success") and result.get("data"):
-                subscriptions.extend(result["data"])
+        for row in cursor.fetchall():
+            subscription = dict(row)
+            
+            # Haal de laatste order datum op voor het e-mailadres
+            if subscription.get('billing_email'):
+                last_order_date = get_last_order_date_by_email(subscription['billing_email'])
+                if last_order_date:
+                    subscription['last_order_date'] = last_order_date
+                    subscription['last_order_date_formatted'] = last_order_date.split('T')[0] if 'T' in last_order_date else last_order_date
+            
+            subscriptions.append(subscription)
         
-        # Haal totaal aantal op
+        # Haal totaal aantal abonnementen op
         cursor.execute("SELECT COUNT(*) as total FROM subscriptions")
         total = cursor.fetchone()['total']
         
-        logger.info(f"{len(subscriptions)} abonnementen opgehaald (totaal: {total})")
         return {
-            "success": True, 
+            "success": True,
             "data": subscriptions,
-            "total": total,
-            "limit": limit,
-            "offset": offset
+            "total": total
         }
-    
+        
     except Exception as e:
-        error_message = f"Fout bij ophalen abonnementen: {str(e)}"
-        logger.error(error_message)
-        return {"error": error_message, "status": 500}
-    
+        logger.error(f"Fout bij ophalen abonnementen: {str(e)}")
+        return {"error": str(e)}
     finally:
         conn.close()
 
@@ -703,4 +766,35 @@ def update_order_monta_status(order_id, monta_order_id, status, shipment_date=No
     except Exception as e:
         return {"error": str(e)}
     finally:
-        conn.close() 
+        conn.close()
+
+def get_last_order_date_by_email(email):
+    """Haal de datum van de laatste order op voor een specifiek e-mailadres"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return None
+            
+        cursor = conn.cursor()
+        
+        # Haal de datum van de laatste order op
+        cursor.execute("""
+            SELECT created_date
+            FROM orders
+            WHERE LOWER(billing_email) = LOWER(?)
+            ORDER BY created_date DESC
+            LIMIT 1
+        """, (email,))
+        
+        row = cursor.fetchone()
+        if row and row['created_date']:
+            return row['created_date']
+            
+        return None
+        
+    except Exception as e:
+        logger.error(f"Fout bij ophalen laatste order datum voor e-mail {email}: {str(e)}")
+        return None
+    finally:
+        if conn:
+            conn.close() 

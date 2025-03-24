@@ -4,15 +4,23 @@
 <script>
     // Functie om datum te formatteren naar dd maandnaam yyyy
     function formatDate(dateString) {
-        const date = new Date(dateString);
-        const months = [
-            'januari', 'februari', 'maart', 'april', 'mei', 'juni',
-            'juli', 'augustus', 'september', 'oktober', 'november', 'december'
-        ];
-        const day = date.getDate();
-        const month = months[date.getMonth()];
-        const year = date.getFullYear();
-        return `${day} ${month} ${year}`;
+        if (!dateString) return '-';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+            
+            const months = [
+                'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+                'juli', 'augustus', 'september', 'oktober', 'november', 'december'
+            ];
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        } catch (e) {
+            return '-';
+        }
     }
 
     // Formatteer alle datums bij het laden van de pagina
@@ -20,9 +28,7 @@
         const dateElements = document.querySelectorAll('.format-date');
         dateElements.forEach(element => {
             const originalDate = element.getAttribute('data-date');
-            if (originalDate) {
-                element.textContent = formatDate(originalDate);
-            }
+            element.textContent = formatDate(originalDate);
         });
     });
 </script>
@@ -49,51 +55,54 @@
                                     <th>Abonnement ID</th>
                                     <th>E-mail</th>
                                     <th>Status</th>
-                                    <th>Start datum</th>
-                                    <th>Volgende betaling</th>
-                                    <th>Vervaldatum</th>
+                                    <th>Laatste Besteldatum</th>
+                                    <th>Volgende Besteldatum</th>
                                     <th>Totaal</th>
-                                    <th>Acties</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for subscription in subscriptions %}
                                 <tr>
-                                    <td>{{ subscription.id }}</td>
-                                    <td>{{ subscription.billing.email }}</td>
+                                    <td><a href="{{ url_for('subscription_details', subscription_id=subscription.id) }}" class="text-decoration-none">{{ subscription.id }}</a></td>
+                                    <td>{{ subscription.billing_email }}</td>
                                     <td>
                                         <span class="badge {% if subscription.status == 'active' %}bg-success{% elif subscription.status == 'on-hold' %}bg-warning{% elif subscription.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
                                             {{ subscription.status_display }}
                                         </span>
                                     </td>
-                                    <td>
-                                        <span class="format-date" data-date="{{ subscription.start_date }}">
-                                            {{ subscription.start_date_formatted }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="format-date" data-date="{{ subscription.next_payment_date }}">
-                                            {{ subscription.next_payment_date_formatted }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="format-date" data-date="{{ subscription.end_date }}">
-                                            {% if subscription.end_date %}
-                                                {{ subscription.end_date.split('T')[0] if 'T' in subscription.end_date else subscription.end_date }}
-                                            {% else %}
-                                                --
-                                            {% endif %}
-                                        </span>
-                                    </td>
-                                    <td>€{{ subscription.total }}</td>
-                                    <td>
-                                        <a href="{{ url_for('subscription_details', subscription_id=subscription.id) }}" class="btn btn-sm btn-primary">Details</a>
-                                    </td>
+                                    <td class="format-date" data-date="{{ subscription.last_order_date_formatted }}">{{ subscription.last_order_date_formatted }}</td>
+                                    <td class="format-date" data-date="{{ subscription.next_payment_date_formatted }}">{{ subscription.next_payment_date_formatted }}</td>
+                                    <td>€ {{ "%.2f"|format(subscription.total|float) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Paginering -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('all_subscriptions', page=page-1) }}">Vorige</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for p in range(max(1, page-2), min(total_pages+1, page+3)) %}
+                            <li class="page-item {% if p == page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('all_subscriptions', page=p) }}">{{ p }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            {% if page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('all_subscriptions', page=page+1) }}">Volgende</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
                     {% else %}
                     <div class="alert alert-info">
                         Geen abonnementen gevonden.

@@ -586,7 +586,9 @@ def all_subscriptions():
                          subscriptions=subscriptions,
                          page=page,
                          total_pages=total_pages,
-                         total=total)
+                         total=total,
+                         max=max,
+                         min=min)
 
 @app.route('/all_orders')
 def all_orders():
@@ -920,27 +922,43 @@ def update_subscription_products(subscription_id):
         # Verwerk de verzendkosten
         if shipping_lines:
             print("Nieuwe verzendkosten ontvangen, deze worden toegepast:")
-            for shipping in shipping_lines:
-                print(f"Verzendkost: {shipping}")
-                if shipping.get('method_id'):
-                    shipping_line = {
-                        'method_id': shipping['method_id'],
-                        'method_title': shipping['method_title'],
-                        'total': str(shipping['total'])
-                    }
-                    print(f"Toegevoegde verzendkost: {shipping_line}")
-                    data['shipping_lines'].append(shipping_line)
+            # Haal het bestaande ID op van de huidige verzendkostenregel
+            existing_shipping_id = None
+            if current_data.get('shipping_lines'):
+                existing_shipping_id = current_data['shipping_lines'][0].get('id')
+            
+            # Gebruik de eerste verzendkostenregel of maak een nieuwe aan
+            shipping = shipping_lines[0]
+            shipping_line = {
+                'method_id': shipping.get('method_id', 'flat_rate'),
+                'method_title': shipping.get('method_title', 'Verzendkosten'),
+                'total': str(shipping.get('total', '0.00'))
+            }
+            
+            # Voeg het bestaande ID toe als die er is
+            if existing_shipping_id:
+                shipping_line['id'] = existing_shipping_id
+            
+            print(f"Toegevoegde verzendkost: {shipping_line}")
+            data['shipping_lines'] = [shipping_line]
         else:
             print("Geen nieuwe verzendkosten ontvangen, bestaande worden behouden:")
-            for shipping in current_data.get('shipping_lines', []):
-                if shipping.get('method_id'):
-                    print(f"Bestaande verzendkost: {shipping}")
-                    data['shipping_lines'].append({
-                        'id': shipping.get('id'),
-                        'method_id': shipping['method_id'],
-                        'method_title': shipping['method_title'],
-                        'total': str(shipping['total'])
-                    })
+            if current_data.get('shipping_lines'):
+                existing_shipping = current_data['shipping_lines'][0]
+                print(f"Bestaande verzendkost: {existing_shipping}")
+                data['shipping_lines'] = [{
+                    'id': existing_shipping.get('id'),
+                    'method_id': existing_shipping['method_id'],
+                    'method_title': existing_shipping['method_title'],
+                    'total': str(existing_shipping['total'])
+                }]
+            else:
+                # Als er geen bestaande verzendkosten zijn, maak een nieuwe aan
+                data['shipping_lines'] = [{
+                    'method_id': 'flat_rate',
+                    'method_title': 'Verzendkosten',
+                    'total': '0.00'
+                }]
         
         print(f"Data die naar WooCommerce wordt gestuurd: {data}")
         
@@ -1343,6 +1361,20 @@ def forward_order_to_monta(order_id):
     except Exception as e:
         logger.error(f"Onverwachte fout bij doorsturen order: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/subscription_update')
+def subscription_update():
+    """Toon de pagina met bevestiging van de abonnement update."""
+    subscription_id = request.args.get('subscription_id')
+    changes = request.args.get('changes')
+    
+    if changes:
+        try:
+            changes = json.loads(changes)
+        except json.JSONDecodeError:
+            changes = None
+    
+    return render_template('subscription_update.html', subscription_id=subscription_id, changes=changes)
 
 if __name__ == '__main__':
     # Gebruik de standaard poort 5000
