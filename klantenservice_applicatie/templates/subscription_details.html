@@ -1081,6 +1081,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     old: currentStatus,
                     new: newStatus
                 };
+                await updateSubscriptionField('status', { status: newStatus });
             }
             
             // Volgende betaaldatum wijziging
@@ -1091,6 +1092,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     old: currentNextPayment,
                     new: newNextPayment
                 };
+                await updateSubscriptionField('next_payment', {
+                    next_payment_date: nextPaymentDate,
+                    next_payment_time: nextPaymentTime
+                });
             }
             
             // Vervaldatum wijziging
@@ -1101,6 +1106,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     old: currentExpiry,
                     new: newExpiry
                 };
+                await updateSubscriptionField('expiry_date', {
+                    expiry_date: expiryDate,
+                    expiry_time: expiryTime
+                });
             }
             
             // Betalingsinterval wijziging
@@ -1114,6 +1123,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     old: `${currentInterval} ${currentPeriod}`,
                     new: `${newInterval} ${newPeriod}`
                 };
+                await updateSubscriptionField('interval', {
+                    billing_interval: newInterval,
+                    billing_period: newPeriod
+                });
             }
             
             // Adres wijzigingen
