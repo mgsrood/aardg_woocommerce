@@ -3224,3 +3224,24 @@ Job ID: bf5de2f8-16f3-4f2d-a60e-e6973bb64a71
 2025-03-12 14:46:27 - INFO - Update succesvol uitgevoerd voor subscription 65381
 2025-03-12 14:46:29 - INFO - Update succesvol uitgevoerd voor subscription 67811
 2025-03-12 14:46:32 - INFO - Update succesvol uitgevoerd voor subscription 75045
+2025-03-26 13:59:38 - INFO - Logboek is geconfigureerd.
+2025-03-26 13:59:38 - INFO - Webhook Order Verwerking is al actief
+2025-03-26 13:59:38 - INFO - Webhook Abonnement Verwerking is al actief
+2025-03-26 13:59:38 - INFO - Webhook Facebook Audience is al actief
+2025-03-26 13:59:39 - INFO - Webhook Product Velden is al actief
+2025-03-26 13:59:39 - INFO - Webhook Product Tags is al actief
+2025-03-26 13:59:39 - INFO - Webhook Abonnements Tag is al actief
+2025-03-26 13:59:39 - INFO - Webhook Abonnements Veld is al actief
+2025-03-26 13:59:39 - INFO - Webhook Besteldatum is al actief
+2025-03-26 13:59:39 - INFO - Script ended in 0:00:02
+2025-03-26 14:00:25 - INFO - Logboek is geconfigureerd.
+2025-03-26 14:00:31 - INFO - Webhook Order Verwerking is al actief
+2025-03-26 14:00:31 - INFO - Webhook Abonnement Verwerking is al actief
+2025-03-26 14:00:31 - INFO - Webhook Facebook Audience is al actief
+2025-03-26 14:00:31 - INFO - Webhook Product Velden is al actief
+2025-03-26 14:00:32 - INFO - Webhook Product Tags is al actief
+2025-03-26 14:00:32 - INFO - Webhook Abonnements Tag is al actief
+2025-03-26 14:00:32 - INFO - Webhook Abonnements Veld is al actief
+2025-03-26 14:00:33 - INFO - Heractiveren webhook: Besteldatum
+2025-03-26 14:00:33 - INFO - Webhook Besteldatum succesvol geheractiveerd
+2025-03-26 14:00:33 - INFO - Script ended in 0:00:08
