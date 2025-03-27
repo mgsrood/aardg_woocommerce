@@ -315,7 +315,11 @@
                         <tbody>
                             {% for order in orders %}
                             <tr>
-                                <td>{{ order.id }}</td>
+                                <td>
+                                    <a href="{{ url_for('order_details', order_id=order.id) }}">
+                                        {{ order.id }}
+                                    </a>
+                                </td>
                                 <td>{{ order.billing_first_name }} {{ order.billing_last_name }}</td>
                                 <td>{{ order.billing_email }}</td>
                                 <td>€{{ order.total }}</td>

@@ -217,7 +217,8 @@ document.getElementById('forwardToMontaBtn')?.addEventListener('click', async fu
         const response = await fetch(`/order/{{ order.id }}/forward_to_monta`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'  // Voeg CSRF token toe
             },
             body: JSON.stringify({
                 shipment_date: shipmentDate
@@ -226,7 +227,7 @@ document.getElementById('forwardToMontaBtn')?.addEventListener('click', async fu
         
         const result = await response.json();
         
-        if (result.success) {
+        if (response.ok) {
             // Stuur door naar de order_forwarded pagina
             window.location.href = '/order_forwarded';
         } else {
@@ -236,7 +237,8 @@ document.getElementById('forwardToMontaBtn')?.addEventListener('click', async fu
             button.innerHTML = originalText;
         }
     } catch (error) {
-        showAlert('danger', 'Er is een fout opgetreden bij het doorsturen van de order');
+        console.error('Error:', error);
+        showAlert('danger', 'Er is een fout opgetreden bij het doorsturen van de order. Probeer het opnieuw.');
         // Reset de knop
         button.disabled = false;
         button.innerHTML = originalText;
@@ -245,14 +247,27 @@ document.getElementById('forwardToMontaBtn')?.addEventListener('click', async fu
 
 // Functie om alerts te tonen
 function showAlert(type, message) {
-    const alertsContainer = document.getElementById('alertsContainer');
+    const alertsContainer = document.createElement('div');
+    alertsContainer.id = 'alertsContainer';
+    alertsContainer.className = 'mb-3';
+    
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
     alertDiv.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
+    
     alertsContainer.appendChild(alertDiv);
+    
+    // Voeg de alert toe aan de pagina
+    const container = document.querySelector('.container');
+    container.insertBefore(alertsContainer, container.firstChild);
+    
+    // Verwijder de alert na 5 seconden
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
 }
 </script>
 {% endblock %} 
