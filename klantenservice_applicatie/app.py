@@ -1390,8 +1390,9 @@ def subscription_update():
     return render_template('subscription_update.html', subscription_id=subscription_id, changes=changes)
 
 @app.route('/order_forwarded')
+@login_required
 def order_forwarded():
-    """Toon de bevestigingspagina voor het doorsturen van een order naar Monta"""
+    """Toon de bevestigingspagina na het doorsturen van een order naar Monta."""
     return render_template('order_forwarded.html')
 
 if __name__ == '__main__':

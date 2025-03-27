@@ -229,7 +229,7 @@ document.getElementById('forwardToMontaBtn')?.addEventListener('click', async fu
         
         if (response.ok) {
             // Stuur door naar de order_forwarded pagina
-            window.location.href = '/order_forwarded';
+            window.location.href = '{{ url_for("order_forwarded") }}';
         } else {
             showAlert('danger', result.error || 'Er is een fout opgetreden bij het doorsturen van de order');
             // Reset de knop
