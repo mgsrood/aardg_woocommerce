@@ -15,15 +15,26 @@ def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campa
 
 def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token):
     url = active_campaign_api_url + f"contacts?email={email}"
-    logging.info(active_campaign_api_token)
+    logging.info(f"ActiveCampaign API URL: {url}")
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
     
     try:
         response = requests.get(url, headers=headers, timeout=120)
-        return response.json()
+        response.raise_for_status()  # Dit zal een exception gooien bij HTTP fouten
+        
+        data = response.json()
+        if not data.get('contacts'):
+            logging.error(f"Geen contact gevonden voor email: {email}")
+            return None
+            
+        return data
+    except requests.exceptions.RequestException as e:
+        logging.error(f"HTTP fout bij het ophalen van ActiveCampaign data: {e}")
+        if hasattr(e.response, 'content'):
+            logging.error(f"Response content: {e.response.content}")
+        return None
     except Exception as e:
-        logging.error(response.content)
-        logging.error(f"Fout bij het ophalen van ActiveCampaign data: {e}")
+        logging.error(f"Onverwachte fout bij het ophalen van ActiveCampaign data: {e}")
         return None
     
 def get_active_campaign_tag_data(active_campaign_api_url, active_campaign_api_token, search_key=None):

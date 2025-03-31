@@ -12,14 +12,24 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
     logging.info("Active Campaign contact ophalen voor: " + email)
     try:
         ac_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
+        
+        if not ac_data or not ac_data.get('contacts'):
+            logging.error(f"Geen contact gevonden voor email: {email}")
+            return
 
         # ActiveCampaign ID extraheren
         ac_id = ac_data['contacts'][0]['id']
 
         # Veld waarden ophalen
         field_values = get_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token)
+        
+        if not field_values:
+            logging.error(f"Geen veldwaarden gevonden voor contact ID: {ac_id}")
+            return
+
     except Exception as e:
         logging.error(f"Fout bij het ophalen van ActiveCampaign data: {e}")
+        return  # Stop de functie als er een fout optreedt
 
     # Huidige waarden ophalen
     logging.info("Bepalen of abonnementstag is ingesteld voor: " + email)
@@ -70,22 +80,31 @@ def update_ac_abo_field(data, active_campaign_api_url, active_campaign_api_token
 
 def update_ac_abo_tag(woocommerce_data, active_campaign_api_url, active_campaign_api_token):
     
-    logging.info("Starten met bijwerken ActiveCampaign abonnement veld")
+    logging.info("Starten met bijwerken ActiveCampaign abonnement tag")
     
     # Gewenste datapunten uit data halen
     email = woocommerce_data.get('billing', {}).get('email')
 
     # Active Campaign data ophalen
     logging.info("Active Campaign contact ophalen voor: " + email)
-    active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
-    active_campaign_id = active_campaign_data['contacts'][0]['id']
-
-    # Abonnemetns tag toevoegen
-    abo_tag_id = 115
-    tags = [{"contact": active_campaign_id, "tag": abo_tag_id}]
-
     try:
-        add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
-        logging.info("Abonnements tag toegevoegd voor: " + email)
+        active_campaign_data = get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token)
+        
+        if not active_campaign_data or not active_campaign_data.get('contacts'):
+            logging.error(f"Geen contact gevonden voor email: {email}")
+            return
+
+        active_campaign_id = active_campaign_data['contacts'][0]['id']
+
+        # Abonnemetns tag toevoegen
+        abo_tag_id = 115
+        tags = [{"contact": active_campaign_id, "tag": abo_tag_id}]
+
+        try:
+            add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
+            logging.info("Abonnements tag toegevoegd voor: " + email)
+        except Exception as e:
+            logging.error("Fout bij het bijwerken van ActiveCampaign abonnement tag: " + str(e))
     except Exception as e:
-        logging.error("Fout bij het bijwerken van ActiveCampaign abonnement tag: " + str(e))
+        logging.error(f"Fout bij het ophalen van ActiveCampaign data: {e}")
+        return
