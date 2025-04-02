@@ -3,7 +3,6 @@ from facebook_business.api import FacebookAdsApi
 import logging
 import hashlib
 
-
 def add_new_customers_to_facebook_audience(customer_data, my_app_id, my_app_secret, long_term_token, custom_audience_id):
     # Account to add
     users = [

@@ -51,9 +51,7 @@ def subscription_payment_date_mover(greit_connection_string, klant, secret_key, 
         db_handler.flush_logs()
         logging.shutdown()
         
-        return jsonify({'status': 'error'}), 500
-
-    
+        return jsonify({'status': 'error'}), 500    
 
 def bigquery_subscription_processor(greit_connection_string, klant, secret_key):
     
