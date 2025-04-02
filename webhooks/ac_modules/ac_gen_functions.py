@@ -9,6 +9,7 @@ def update_active_campaign_product_fields(order_data, active_campaign_api_url, a
     
     # Gewenste datapunten uit order data halen
     line_items = order_data['line_items']
+    logging.info(f"Line items: {line_items}")
     email = order_data.get('billing', {}).get('email')
 
     # De gewenste dictionaries ophalen
@@ -23,30 +24,45 @@ def update_active_campaign_product_fields(order_data, active_campaign_api_url, a
     # Verwerken van de lineitems    
     logging.info(f"Ophalen order informatie voor: {email} / order_id {order_data['id']}")
     try:
-        product_line_fields = [
-            {"field": product_to_field_map[get_key_from_product_id(item['product_id'], sku_dict)], "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
-            for item in line_items if get_key_from_product_id(item['product_id'], sku_dict) in product_to_field_map
-        ]
+        try:
+            product_line_fields = [
+                {"field": product_to_field_map[get_key_from_product_id(item['product_id'], sku_dict)], "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
+                for item in line_items if get_key_from_product_id(item['product_id'], sku_dict) in product_to_field_map
+            ]
+        except Exception as e:
+            logging.error(f"Fout bij het verwerken van de product line fields: {e}")
 
-        discount_line_fields = [
-            {"field": '11', "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
-            for item in line_items if get_key_from_product_id(item['product_id'], discount_dict) in category_to_field_map
-        ]
+        try:
+            discount_line_fields = [
+                {"field": '11', "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
+                for item in line_items if get_key_from_product_id(item['product_id'], discount_dict) in category_to_field_map
+            ]
+        except Exception as e:
+            logging.error(f"Fout bij het verwerken van de discount line fields: {e}")
 
-        orderbump_line_fields = [
-            {"field": '12', "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
-            for item in line_items 
-            if any(meta['key'] == '_bump_purchase' for meta in item.get('meta_data', []))
-        ]
+        try:
+            orderbump_line_fields = [
+                {"field": '12', "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
+                for item in line_items 
+                if any(meta['key'] == '_bump_purchase' for meta in item.get('meta_data', []))
+            ]
+        except Exception as e:
+            logging.error(f"Fout bij het verwerken van de orderbump line fields: {e}")
 
-        fkcart_upsell_line_fields = [
-            {"field": '22', "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
-            for item in line_items 
-            if any(meta['key'] == '_fkcart_upsell' for meta in item.get('meta_data', []))
-        ]
-
-        last_ordered_item = ["P_" + get_key_from_product_id(item['product_id'], sku_dict) for item in line_items]
-        last_ordered_item = ','.join(last_ordered_item)
+        try:
+            fkcart_upsell_line_fields = [
+                {"field": '22', "value": int(float(get_key_from_product_id(item['product_id'], base_unit_values_dict)) * float(item['quantity']))}
+                for item in line_items 
+                if any(meta['key'] == '_fkcart_upsell' for meta in item.get('meta_data', []))
+            ]
+        except Exception as e:
+            logging.error(f"Fout bij het verwerken van de fkcart upsell line fields: {e}")
+        
+        try:
+            last_ordered_item = ["P_" + get_key_from_product_id(item['product_id'], sku_dict) for item in line_items]
+            last_ordered_item = ','.join(last_ordered_item)
+        except Exception as e:
+            logging.error(f"Fout bij het verwerken van de last ordered item: {e}")
         
     except Exception as e:
         logging.error("Fout bij het verwerken van de lineitems: " + str(e))
@@ -88,6 +104,7 @@ def add_product_tag_ac(order_data, active_campaign_api_url, active_campaign_api_
     
     # Gewenste datapunten uit order data halen
     line_items = order_data['line_items']
+    logging.info(f"Line items: {line_items}")
     email = order_data.get('billing', {}).get('email')
 
     # ActiveCampaign ID ophalen
