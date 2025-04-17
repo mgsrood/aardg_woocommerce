@@ -96,7 +96,6 @@ def new_customers_to_facebook_audience_route():
 
 @app.route('/active_campaign/test', methods=['POST'])
 def test_route():
-    data = request.form
     # Configuratie
     script = "Product Velden"
     bron = "Active Campaign"
@@ -106,13 +105,37 @@ def test_route():
     
     # Set up logging (met database logging)
     db_handler = setup_logging(greit_connection_string, klant, bron, script, script_id)
-    logging.info(request.json)
-    logging.info(data)
     
-    # Logging afhandelen
+    # Loggeer het type van de inhoud (Content-Type)
+    content_type = request.headers.get('Content-Type')
+    logging.info(f"Content-Type: {content_type}")
+    
+    # Start de payload logging
+    if content_type == 'application/json':
+        # Als de payload JSON is, lees de JSON-gegevens
+        data = request.get_json()
+        logging.info(f"JSON Payload ontvangen: {data}")
+    elif content_type == 'application/x-www-form-urlencoded':
+        # Als de payload form-encoded is (bijv. formuliergegevens)
+        data = request.form
+        logging.info(f"Form-encoded Payload ontvangen: {data}")
+    else:
+        logging.info("Onbekende Content-Type ontvangen.")
+        data = None
+    
+    # Controleer of query parameters aanwezig zijn
+    if request.args:
+        logging.info(f"Query Parameters ontvangen: {request.args}")
+    
+    # Als er geen gegevens zijn gevonden in JSON of form, loggen
+    if not data:
+        logging.warning("Geen geldige payload ontvangen (JSON of Form-encoded).")
+    
+    # Logging afhandelen (met database logging)
     db_handler.flush_logs()
     
-    return jsonify(request.json)
+    # Teruggeven van de ontvangen data (als JSON)
+    return jsonify(data)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8443)
