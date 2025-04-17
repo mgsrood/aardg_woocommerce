@@ -65,7 +65,7 @@ def process_ac_abonnement_velden():
 def process_ac_abonnement_tags():
     pass"""
 
-@app.route('/active_campaign/add_dummy_product', methods=['POST'])
+@app.route('/active_campaign/add_product', methods=['POST'])
 @initialize_route(
     campaign_config, 
     bron='Active Campaign', 
