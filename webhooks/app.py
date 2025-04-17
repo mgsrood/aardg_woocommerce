@@ -92,7 +92,7 @@ def new_customers_to_facebook_audience_route():
 
 @app.route('/active_campaign/test', methods=['POST'])
 def test_route():
-    # Return payload
+    print(request.json)
     return jsonify(request.json)
 
 if __name__ == '__main__':
