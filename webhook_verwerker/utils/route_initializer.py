@@ -7,7 +7,7 @@ from utils.config import get_and_use_next_script_id
 import os
 
 # Default connection string
-DEFAULT_CONN_STR = f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={os.getenv('SERVER')};DATABASE={os.getenv('DATABASE')};UID={os.getenv('GEBRUIKERSNAAM')};PWD={os.getenv('PASSWORD')}"
+DEFAULT_CONN_STR = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv('SERVER')};DATABASE={os.getenv('DATABASE')};UID={os.getenv('GEBRUIKERSNAAM')};PWD={os.getenv('PASSWORD')}"
 
 class RouteConfig:
     """Configuratie object voor route initialisatie"""
