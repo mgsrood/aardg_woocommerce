@@ -96,6 +96,7 @@ def new_customers_to_facebook_audience_route():
 
 @app.route('/active_campaign/test', methods=['POST'])
 def test_route():
+    data = request.form
     # Configuratie
     script = "Product Velden"
     bron = "Active Campaign"
@@ -105,7 +106,8 @@ def test_route():
     
     # Set up logging (met database logging)
     db_handler = setup_logging(greit_connection_string, klant, bron, script, script_id)
-    logging.error(request.json)
+    logging.info(request.json)
+    logging.info(data)
     
     # Logging afhandelen
     db_handler.flush_logs()
