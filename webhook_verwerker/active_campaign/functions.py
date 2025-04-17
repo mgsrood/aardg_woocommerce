@@ -3,6 +3,7 @@ from utils.products import get_discount_dict, get_category_one_dict, get_base_un
 from active_campaign.utils import update_field_values, add_or_update_last_ordered_item
 from woocommerce import API
 import os
+from flask import request
 
 def _get_required_dicts():
     """Haalt alle benodigde dictionaries op in één keer."""
@@ -317,7 +318,9 @@ def add_originals_dummy_product(data):
         timeout=60
     )
     
-    PRODUCT_ID = 107586
+    # Haal product ID op uit de request parameters
+    product_id = request.args.get('product_id')
+    PRODUCT_ID = int(product_id) if product_id else 107586
     
     try:
         contact = data.get('contact', {})
