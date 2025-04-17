@@ -3,9 +3,13 @@ from ac_modules.ac_gen_routes import ac_product_field_updater, ac_product_tag_ad
 from ac_modules.ac_sub_routes import ac_abo_tag_adder, ac_abo_field_updater
 from f_modules.facebook_routes import facebook_audience_customer_adder
 from w_modules.wc_gen_routes import bigquery_order_processor
+from g_modules.config import determine_script_id
+from g_modules.log import end_log, setup_logging
 from flask import Flask, request, jsonify
 from g_modules.env_tool import env_check
 from woocommerce import API
+import logging
+import time
 import os
 
 # Check uitvoering: lokaal of productie
@@ -92,7 +96,20 @@ def new_customers_to_facebook_audience_route():
 
 @app.route('/active_campaign/test', methods=['POST'])
 def test_route():
-    print(request.json)
+    # Configuratie
+    script = "Product Velden"
+    bron = "Active Campaign"
+    
+    # Script ID bepalen
+    script_id = determine_script_id(greit_connection_string)
+    
+    # Set up logging (met database logging)
+    db_handler = setup_logging(greit_connection_string, klant, bron, script, script_id)
+    logging.error(request.json)
+    
+    # Logging afhandelen
+    db_handler.flush_logs()
+    
     return jsonify(request.json)
 
 if __name__ == '__main__':
