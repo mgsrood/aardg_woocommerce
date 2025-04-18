@@ -6,6 +6,11 @@ from utils.log import start_log, end_log, setup_logging
 from utils.config import get_and_use_next_script_id
 import os
 
+print("SERVER =", os.getenv("SERVER"))
+print("DATABASE =", os.getenv("DATABASE"))
+print("GEBRUIKERSNAAM =", os.getenv("GEBRUIKERSNAAM"))
+print("PASSWORD =", os.getenv("PASSWORD"))
+
 # Default connection string
 DEFAULT_CONN_STR = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv('SERVER')};DATABASE={os.getenv('DATABASE')};UID={os.getenv('GEBRUIKERSNAAM')};PWD={os.getenv('PASSWORD')}"
 
