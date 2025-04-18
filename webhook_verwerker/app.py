@@ -7,13 +7,8 @@ from active_campaign.functions import (
 )
 from utils.route_initializer import RouteConfig, initialize_route
 from flask import Flask, request, jsonify
-from utils.env_tool import env_check
 from flask_cors import CORS
 import os
-
-
-# Load environment variables
-env_check()
 
 app = Flask(__name__)
 
