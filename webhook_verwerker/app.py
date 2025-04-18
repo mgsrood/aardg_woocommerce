@@ -9,6 +9,10 @@ from utils.route_initializer import RouteConfig, initialize_route
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+from utils.env_tool import env_check
+
+# Load environment variables
+env_check()
 
 app = Flask(__name__)
 CORS(app)
