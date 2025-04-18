@@ -8,23 +8,12 @@ from active_campaign.functions import (
 from utils.route_initializer import RouteConfig, initialize_route
 from flask import Flask, request, jsonify
 from utils.env_tool import env_check
-from utils.log import setup_logging
 from flask_cors import CORS
 import os
-import logging
+
 
 # Load environment variables
 env_check()
-
-# Configureer logging alleen als deze nog niet is geconfigureerd
-if not logging.getLogger().handlers:
-    setup_logging(
-        conn_str=f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv('SERVER')};DATABASE={os.getenv('DATABASE')};UID={os.getenv('GEBRUIKERSNAAM')};PWD={os.getenv('PASSWORD')}",
-        klant="Aardg",
-        bron="Webhook Verwerker",
-        script="Startup"
-    )
-    logging.info(f"Logging geïnitialiseerd voor worker {os.getpid()}")
 
 app = Flask(__name__)
 
