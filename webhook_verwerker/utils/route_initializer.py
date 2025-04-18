@@ -2,7 +2,7 @@ from functools import wraps
 from flask import request, jsonify
 import logging
 from utils.request_check import validate_signature, parse_request_data
-from utils.log import start_log, end_log, setup_logging
+from utils.log import start_log, end_log
 from utils.config import get_and_use_next_script_id
 import os
 
@@ -41,14 +41,6 @@ def initialize_route(config: RouteConfig, bron: str, script: str = 'Webhook Verw
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            # Configureer logging voor deze route
-            setup_logging(
-                conn_str=conn_str,
-                klant="Aardg",
-                bron=bron,
-                script=script
-            )
-            
             # Start logging
             start_time = start_log()
             

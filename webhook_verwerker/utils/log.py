@@ -30,9 +30,11 @@ class DatabaseLogHandler(logging.Handler):
             
             # Haal script_id op uit de request context
             script_id = getattr(request, 'script_id', None)
+            
+            # Als er geen script_id is, gebruik dan een default waarde
             if script_id is None:
-                print("Geen script_id gevonden in request context")
-                return
+                script_id = 0  # Default waarde voor startup logs
+                logging.debug("Geen script_id gevonden in request context, gebruik default waarde")
 
             with pyodbc.connect(self.conn_str) as conn:
                 with conn.cursor() as cursor:

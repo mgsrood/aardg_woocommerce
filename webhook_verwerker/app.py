@@ -16,13 +16,15 @@ import logging
 # Load environment variables
 env_check()
 
-# Configureer logging
-setup_logging(
-    conn_str=f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv('SERVER')};DATABASE={os.getenv('DATABASE')};UID={os.getenv('GEBRUIKERSNAAM')};PWD={os.getenv('PASSWORD')}",
-    klant="Aardg",
-    bron="Webhook Verwerker",
-    script="Startup"
-)
+# Configureer logging alleen als deze nog niet is geconfigureerd
+if not logging.getLogger().handlers:
+    setup_logging(
+        conn_str=f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={os.getenv('SERVER')};DATABASE={os.getenv('DATABASE')};UID={os.getenv('GEBRUIKERSNAAM')};PWD={os.getenv('PASSWORD')}",
+        klant="Aardg",
+        bron="Webhook Verwerker",
+        script="Startup"
+    )
+    logging.info(f"Logging geïnitialiseerd voor worker {os.getpid()}")
 
 app = Flask(__name__)
 
