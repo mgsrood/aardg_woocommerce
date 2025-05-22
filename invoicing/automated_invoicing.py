@@ -48,8 +48,14 @@ def main():
     greit_connection_string = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
 
     # Email configuratie
-    recipient_mail = os.environ.get('MAIL', 'mgsrood@gmail.com')
-    customer_mail = "mariarood@me.com"
+    order_email = os.environ.get('ORDER_EMAIL')
+    invoice_email = os.environ.get('INVOICE_EMAIL')
+
+    if not order_email or not invoice_email:
+        error_msg = "De environment variabelen ORDER_EMAIL en INVOICE_EMAIL moeten beide ingesteld zijn."
+        logging.error(error_msg)
+        raise ValueError(error_msg)
+        
     smtp_server = os.environ.get('MAIL_SMTP_SERVER')
     smtp_port = os.environ.get('MAIL_SMTP_PORT')
     sender_email = os.environ.get('MAIL_SENDER_EMAIL')
@@ -69,13 +75,13 @@ def main():
         start_date, end_date = get_first_and_last_day_of_last_month()
         
         # Order IDs ophalen
-        order_ids = get_order_ids(customer_mail, start_date, end_date, wcapi)
+        order_ids = get_order_ids(order_email, start_date, end_date, wcapi)
         
         # Facturen genereren
         all_invoices, order_details = single_invoice(order_ids, monta_api_url, monta_username, monta_password, wcapi, logo)
 
         # Facturen versturen
-        send_email_with_attachment(all_invoices, recipient_mail, order_details, smtp_server, smtp_port, sender_email, sender_password)
+        send_email_with_attachment(all_invoices, invoice_email, order_details, smtp_server, smtp_port, sender_email, sender_password)
         
     except Exception as e:
         logging.error(f"Error: {e}")
