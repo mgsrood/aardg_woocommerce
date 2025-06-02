@@ -147,4 +147,4 @@ if __name__ == '__main__':
     print("APScheduler started. Catalog generation job scheduled every day at 03:00.")
     
     use_reloader = app.debug 
-    app.run(debug=app.debug, port=5010, use_reloader=not use_reloader)
+    app.run(debug=app.debug, port=8443, use_reloader=not use_reloader)
