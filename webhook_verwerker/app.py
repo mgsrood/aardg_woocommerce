@@ -107,7 +107,7 @@ def process_originals_dummy_product():
 def process_move_next_payment_date():
     pass
 
-@app.route('/woocommerce/sync_subscription_to_bigquery', methods=['POST'])
+@app.route('/woocommerce/update_or_add_subscription_to_bigquery', methods=['POST'])
 @initialize_route(
     woo_config, 
     bron='BigQuery', 
@@ -116,7 +116,7 @@ def process_move_next_payment_date():
 def process_sync_subscription_to_bigquery():
     pass
 
-@app.route('/woocommerce/sync_order_to_bigquery', methods=['POST'])
+@app.route('/woocommerce/update_or_add_order_to_bigquery', methods=['POST'])
 @initialize_route(
     woo_config, 
     bron='BigQuery', 
@@ -129,7 +129,7 @@ def process_sync_order_to_bigquery():
 @initialize_route(
     facebook_config,
     bron='Facebook',
-    script='Facebook Audience Update',
+    script='Facebook Audience',
     process_func=add_new_customers_to_facebook_audience)
 def process_facebook_audience_update():
     pass

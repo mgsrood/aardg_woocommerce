@@ -1,24 +1,165 @@
 # Webhook Verwerker
 
-Webhook verwerker voor Active Campaign integratie met WooCommerce.
+Een Flask-gebaseerde webhook verwerker voor het verwerken van webhooks van verschillende bronnen (WooCommerce, Active Campaign, Facebook).
 
-## Setup
+## Functionaliteiten
 
-1. Environment variables instellen:
+- Gestandaardiseerde webhook verwerking voor verschillende bronnen
+- Automatische retry logica met exponentiële backoff
+- Geïntegreerde logging naar SQL Server
+- BigQuery logging voor route verwerking
+- Signature validatie voor beveiligde webhooks
+- Gestandaardiseerde error handling
+
+## Configuratie
+
+### Omgevingsvariabelen
+
+De volgende omgevingsvariabelen moeten worden ingesteld:
+
 ```bash
-export SECRET_KEY="jouw_secret_key"
-export ACTIVE_CAMPAIGN_API_URL="https://jouw-account.api-us1.com/api/3/"
-export ACTIVE_CAMPAIGN_API_TOKEN="jouw_token"
-export GEBRUIKERSNAAM="db_gebruiker"
-export DATABASE="db_naam"
-export PASSWORD="db_wachtwoord"
-export SERVER="db_server"
+# Database configuratie
+SERVER=your_server
+DATABASE=your_database
+GEBRUIKERSNAAM=your_username
+PASSWORD=your_password
+
+# Active Campaign configuratie
+AC_API_KEY=your_api_key
+AC_BASE_URL=your_base_url
+
+# WooCommerce configuratie
+WC_CONSUMER_KEY=your_consumer_key
+WC_CONSUMER_SECRET=your_consumer_secret
+WC_STORE_URL=your_store_url
+
+# Facebook configuratie
+FACEBOOK_TOKENS_PATH=/path/to/tokens.json
+FACEBOOK_CUSTOM_AUDIENCE_ID=your_audience_id
+FACEBOOK_AD_ACCOUNT_ID=your_account_id
+FACEBOOK_APP_SECRET=your_app_secret
+FACEBOOK_APP_ID=your_app_id
+
+# Algemene configuratie
+ENVIRONMENT=development  # of 'production'
 ```
 
-2. Flask app starten:
+### BigQuery Tabel
+
+De webhook verwerking wordt gelogd in een BigQuery tabel met de volgende structuur:
+
+```sql
+CREATE TABLE `webhook_verwerker.route_processing_logs` (
+  `timestamp` TIMESTAMP,
+  `route` STRING,
+  `source` STRING,
+  `script_name` STRING,
+  `status` STRING,
+  `message` STRING,
+  `processing_time_ms` INTEGER,
+  `request_id` STRING,
+  `payload` STRING,  -- Gehashte payload voor privacy
+  `error_details` JSON,
+  `retry_count` INTEGER,
+  `environment` STRING
+)
+PARTITION BY DATE(timestamp)
+CLUSTER BY route, source, status
+```
+
+## Gebruik
+
+### Route Initialisatie
+
+Routes worden geïnitialiseerd met de `initialize_route` decorator:
+
+```python
+from utils.route_initializer import initialize_route, RouteConfig
+
+@app.route('/woocommerce/update_order', methods=['POST'])
+@initialize_route(
+    config=RouteConfig(
+        verify_signature=True,
+        parse_data=True,
+        secret_key=os.getenv('WC_WEBHOOK_SECRET'),
+        retry_config={
+            'max_retries': 5,
+            'initial_backoff': 5,
+            'max_backoff': 300
+        }
+    ),
+    bron="WooCommerce",
+    script="Order Update",
+    process_func=process_order_update
+)
+def update_order():
+    pass
+```
+
+### Logging
+
+De webhook verwerker logt automatisch:
+
+1. Naar SQL Server voor gedetailleerde logging
+2. Naar BigQuery voor route verwerking statistieken
+3. Naar stdout voor debugging
+
+## Ontwikkeling
+
+### Installatie
+
+```bash
+pip install -r requirements.txt
+```
+
+### Lokaal draaien
+
 ```bash
 python app.py
 ```
+
+### Productie
+
+De applicatie draait als een service op de server. Gebruik het restart script om de service te herstarten:
+
+```bash
+./restart_app.sh
+```
+
+## Structuur
+
+```
+webhook_verwerker/
+├── active_campaign/
+│   └── functions.py
+├── facebook/
+│   └── functions.py
+├── utils/
+│   ├── config.py
+│   ├── log.py
+│   ├── request_check.py
+│   └── route_initializer.py
+├── woocommerce_/
+│   └── functions.py
+├── app.py
+├── requirements.txt
+└── restart_app.sh
+```
+
+## Monitoring
+
+De webhook verwerking kan worden gemonitord via:
+
+1. BigQuery dashboard voor route statistieken
+2. SQL Server logging tabel voor gedetailleerde logs
+3. Server logs voor real-time monitoring
+
+## Beveiliging
+
+- Webhook signatures worden gevalideerd waar nodig
+- Payloads worden gehashed voordat ze worden gelogd
+- Retry logica voorkomt overbelasting bij fouten
+- Environment-specifieke configuratie
 
 ## Routes
 

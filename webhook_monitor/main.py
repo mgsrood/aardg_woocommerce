@@ -26,7 +26,8 @@ def main():
         "Product Velden",
         "Product Tags",
         "Abonnements Tag",
-        "Abonnements Veld",
+        "Abonnements Veld Ophogen",
+        "Abonnements Veld Verlagen",
         "Besteldatum"
     ]
 
