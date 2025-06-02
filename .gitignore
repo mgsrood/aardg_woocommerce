@@ -12,6 +12,7 @@ sub_venv
 venv/
 __pycache__/
 *.pyc
+tokens.json
 
 # Python bytecode
 __pycache__/
