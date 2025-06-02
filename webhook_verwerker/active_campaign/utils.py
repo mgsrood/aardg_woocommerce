@@ -1,5 +1,6 @@
 import requests
 import json
+import logging
 
 # Constants
 TIMEOUT = 120
@@ -45,31 +46,45 @@ def update_field_values(current_fields, updates):
     """Update bestaande velden en voeg nieuwe toe."""
     updated_fields_dict = {field['field']: field for field in current_fields}
     new_fields_dict = {}
+    changed_fields = 0
 
     for update in updates:
         field_id = update['field']
         value_to_add = int(update['value'])
 
         if field_id in updated_fields_dict:
-            updated_fields_dict[field_id]['value'] = int(updated_fields_dict[field_id]['value']) + value_to_add
+            old_value = int(updated_fields_dict[field_id]['value'])
+            new_value = old_value + value_to_add
+            if new_value != old_value:  # Alleen tellen als de waarde is veranderd
+                updated_fields_dict[field_id]['value'] = new_value
+                changed_fields += 1
         else:
             if field_id in new_fields_dict:
-                new_fields_dict[field_id]['value'] = int(new_fields_dict[field_id]['value']) + value_to_add
+                old_value = int(new_fields_dict[field_id]['value'])
+                new_value = old_value + value_to_add
+                if new_value != old_value:  # Alleen tellen als de waarde is veranderd
+                    new_fields_dict[field_id]['value'] = new_value
+                    changed_fields += 1
             else:
                 new_fields_dict[field_id] = {'field': field_id, 'value': value_to_add}
+                changed_fields += 1
 
-    return list(updated_fields_dict.values()), list(new_fields_dict.values())
+    return list(updated_fields_dict.values()), list(new_fields_dict.values()), changed_fields
 
 def add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_item):
     """Update of voeg last ordered item toe."""
+    changed = False
     for field in updated_fields:
         if field['field'] == '13':
-            field['value'] = last_ordered_item
+            if field['value'] != last_ordered_item:
+                field['value'] = last_ordered_item
+                changed = True
             break
     else:
         new_fields.append({'field': '13', 'value': last_ordered_item})
+        changed = True
 
-    return updated_fields, new_fields
+    return updated_fields, new_fields, changed
 
 def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token):
     """Haal velden op voor een contact."""

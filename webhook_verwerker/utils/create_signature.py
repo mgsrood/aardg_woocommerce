@@ -11,88 +11,70 @@ def generate_wc_signature(secret, payload):
 
 secret = "1234"
 payload = """{
-  "id": 123,
-  "parent_id": 0,
-  "status": "active",
-  "billing_period": "month",
-  "billing_interval": 1,
-  "start_date": "2025-04-01T00:00:00",
-  "next_payment_date": "2025-05-01T00:00:00",
-  "end_date": "2026-04-01T00:00:00",
-  "payment_method": "stripe",
-  "payment_method_title": "Credit Card",
-  "customer_id": 456,
-  "order_id": 789,
-  "total": "30.00",
-  "currency": "EUR",
-  "subtotal": "25.00",
-  "total_tax": "5.00",
-  "subscription_key": "sub_abcdef123456",
-  "user_id": 456,
-  "billing": {
-    "first_name": "John",
-    "last_name": "Doe",
-    "company": "",
-    "address_1": "123 Main Street",
-    "address_2": "Apt 101",
-    "city": "Amsterdam",
-    "state": "NH",
-    "postcode": "1000AB",
-    "country": "NL",
-    "email": "john.doe@example.com",
-    "phone": "+31 6 12345678"
-  },
-  "shipping": {
-    "first_name": "John",
-    "last_name": "Doe",
-    "company": "",
-    "address_1": "123 Main Street",
-    "address_2": "Apt 101",
-    "city": "Amsterdam",
-    "state": "NH",
-    "postcode": "1000AB",
-    "country": "NL"
-  },
-  "line_items": [
-    {
-      "id": 1,
-      "name": "Premium Subscription Plan",
-      "product_id": 101,
-      "variation_id": 0,
-      "quantity": 1,
-      "subtotal": "25.00",
-      "total": "25.00",
-      "tax": "5.00",
-      "sku": "sub-premium",
-      "price": "25.00"
-    }
-  ],
-  "meta_data": [
-    {
-      "id": 1,
-      "key": "_subscription_start_date",
-      "value": "2025-04-01"
+    "id": 54321,
+    "status": "processing",
+    "currency": "EUR",
+    "total": "49.99",
+    "billing": {
+        "company": "Voorbeeld Corp",
+        "city": "Utrecht",
+        "state": "UT",
+        "postcode": "3511 AA",
+        "country": "NL",
+        "email": "besteller@example.com",
+        "first_name": "Petra",
+        "last_name": "de Vries",
+        "address_1": "Pleinweg 50",
+        "address_2": "Appartement 3B"
     },
-    {
-      "id": 2,
-      "key": "_subscription_end_date",
-      "value": "2026-04-01"
-    }
-  ],
-  "date_created": "2025-04-01T00:00:00",
-  "date_modified": "2025-04-02T12:00:00",
-  "date_completed": null,
-  "date_paid": "2025-04-01T00:00:00",
-  "status_changes": [
-    {
-      "status": "active",
-      "date": "2025-04-01T00:00:00"
+    "shipping": {
+        "company": "",
+        "city": "Utrecht",
+        "state": "UT",
+        "postcode": "3511 AA",
+        "country": "NL",
+        "first_name": "Petra",
+        "last_name": "de Vries",
+        "address_1": "Pleinweg 50",
+        "address_2": "Appartement 3B"
     },
-    {
-      "status": "on-hold",
-      "date": "2025-04-05T00:00:00"
-    }
-  ]
+    "order_number": "ORD-54321-XYZ",
+    "date_created": "2024-06-20T14:30:00",
+    "date_modified": "2024-06-20T14:35:00",
+    "discount_total": "10.00",
+    "customer_id": 77,
+    "order_key": "wc_order_abc123xyz",
+    "payment_method": "bacs",
+    "payment_method_title": "Direct Bank Transfer",
+    "transaction_id": "",
+    "customer_ip_address": "213.213.213.213",
+    "customer_user_agent": "Chrome/90.0...",
+    "created_via": "website",
+    "customer_note": "",
+    "date_completed": null,
+    "date_paid": null,
+    "cart_hash": "ch_jkl456",
+    "line_items": [
+        {
+            "id": 301,
+            "name": "Premium Widget",
+            "product_id": 1001,
+            "quantity": 1,
+            "subtotal": "59.99",
+            "total": "49.99",
+            "price": 59.99
+        }
+    ],
+    "coupon_lines": [
+        {
+            "id": 45,
+            "code": "ZOMER10",
+            "discount": "10.00"
+        }
+    ],
+    "payment_url": "https://jousite.nl/checkout/order-pay/54321/?pay_for_order=true&key=wc_order_abc123xyz",
+    "currency_symbol": "€",
+    "shipping_total": "0.00"
 }"""
 
 signature = generate_wc_signature(secret, payload)

@@ -4,7 +4,7 @@ import os
 
 def determine_base_dir():
     if "Users" in os.path.expanduser("~"):  # Specifiek voor je MacBook
-            return "/Users/maxrood/werk/greit/klanten/aardg/"
+            return "/Users/maxrood/werk/greit/klanten/aardg/projecten/woocommerce/webhook_verwerker"
     else:  # Voor je VM
         return "/home/maxrood/aardg/"
 

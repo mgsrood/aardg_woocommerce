@@ -1,6 +1,7 @@
 import json
 import os
 from functools import lru_cache
+import logging
 
 # Constants voor product categorieën
 CATEGORIES = {
@@ -95,9 +96,14 @@ def get_sku_dict():
 
 def get_key_from_product_id(product_id, category_dict):
     """Vindt de categorie key voor een gegeven product ID."""
-    for key, product_ids in category_dict.items():
-        if product_id in product_ids:
-            return key
+    try:
+        product_id = int(product_id)
+        for key, product_ids in category_dict.items():
+            if product_id in product_ids:
+                logging.info(f"Product ID {product_id} gevonden in categorie {key}")
+                return key
+    except (ValueError, TypeError):
+        logging.warning(f"Ongeldig product ID formaat: {product_id}")
     return None
 
 def determine_base_product(sku):
