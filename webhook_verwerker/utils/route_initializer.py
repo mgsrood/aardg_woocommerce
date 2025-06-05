@@ -41,6 +41,13 @@ def log_to_bigquery(route, source, script_name, status, message, processing_time
         # Hash de payload voor privacy
         hashed_payload = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest() if payload else None
         
+        # Extra informatie uit payload halen
+        order_id = payload.get('id') if payload else None
+        subscription_id = payload.get('id') if payload else None
+        billing_email = payload.get('billing', {}).get('email') if payload else None
+        first_name = payload.get('billing', {}).get('first_name') if payload else None
+        last_name = payload.get('billing', {}).get('last_name') if payload else None
+        
         # Bereid de rij voor
         row = {
             "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -54,7 +61,13 @@ def log_to_bigquery(route, source, script_name, status, message, processing_time
             "payload": hashed_payload,
             "error_details": error_details,
             "retry_count": retry_count,
-            "environment": os.getenv('ENVIRONMENT', 'development')
+            "environment": os.getenv('ENVIRONMENT', 'development'),
+            # Nieuwe velden
+            "order_id": order_id,
+            "subscription_id": subscription_id,
+            "billing_email": billing_email,
+            "first_name": first_name,
+            "last_name": last_name
         }
         
         # Voeg de rij toe aan BigQuery
