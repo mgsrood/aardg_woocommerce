@@ -44,15 +44,28 @@ if [ ! -f "app.py" ]; then
     exit 1
 fi
 
-# Laad environment variabelen (gebruik bestaande .env)
+# Bepaal de .env locatie op basis van waar we draaien
+ENV_FILE=""
 if [ -f ".env" ]; then
-    log_info "Laden van environment variabelen uit .env..."
-    export $(cat .env | grep -v '^#' | xargs)
+    # Lokaal: gebruik .env in huidige directory
+    ENV_FILE=".env"
+    log_info "Lokale omgeving gedetecteerd - laden van environment variabelen uit lokale .env..."
+elif [ -f "/home/maxrood/aardg/.env" ]; then
+    # VM: gebruik .env in /home/maxrood/aardg/
+    ENV_FILE="/home/maxrood/aardg/.env"
+    log_info "VM omgeving gedetecteerd - laden van environment variabelen uit /home/maxrood/aardg/.env..."
 elif [ -f ".env.test" ]; then
-    log_info "Laden van test environment variabelen uit .env.test..."
-    export $(cat .env.test | grep -v '^#' | xargs)
+    # Fallback: gebruik .env.test in huidige directory
+    ENV_FILE=".env.test"
+    log_info "Geen productie .env gevonden - laden van test environment variabelen uit .env.test..."
 else
     log_warning "Geen .env bestand gevonden. Gebruik default test waardes."
+fi
+
+# Laad de environment variabelen als een bestand is gevonden
+if [ ! -z "$ENV_FILE" ]; then
+    export $(cat "$ENV_FILE" | grep -v '^#' | grep -v '^$' | xargs)
+    log_success "Environment variabelen geladen uit: $ENV_FILE"
 fi
 
 # Installeer dependencies als requirements.txt bestaat
