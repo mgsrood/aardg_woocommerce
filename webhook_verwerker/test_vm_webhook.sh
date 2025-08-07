@@ -3,10 +3,10 @@
 # VM Webhook Test Script
 # Test webhook endpoints op je VM
 
-# Configuratie - PAS DIT AAN VOOR JOUW VM
-VM_HOST="your-vm-ip-or-domain"  # Vervang met jouw VM IP of domein
-PORT="8443"
-SECRET_KEY="your-secret-key"    # Vervang met jouw WooCommerce webhook secret
+# Configuratie
+VM_HOST="aardg-wh.ngrok.io"
+PORT=""  # Geen poort nodig voor ngrok
+SECRET_KEY="1234"    # Vervang met jouw WooCommerce webhook secret
 
 # Kleuren voor output
 RED='\033[0;31m'
@@ -17,7 +17,11 @@ NC='\033[0m' # No Color
 
 echo "🧪 VM Webhook Test Suite"
 echo "========================"
-echo "VM Host: $VM_HOST:$PORT"
+if [ -n "$PORT" ]; then
+    echo "VM Host: $VM_HOST:$PORT"
+else
+    echo "VM Host: $VM_HOST"
+fi
 echo ""
 
 # Test payload - WooCommerce Order
@@ -69,7 +73,7 @@ PAYLOAD='{
     {
       "id": 1,
       "name": "Aardg W4 Supplement",
-      "product_id": 100,
+      "product_id": 8580,
       "variation_id": 0,
       "quantity": 2,
       "tax_class": "",
@@ -113,9 +117,15 @@ test_endpoint() {
     echo ""
     
     # Verstuur request
+    if [ -n "$PORT" ]; then
+        url="https://$VM_HOST:$PORT$endpoint"
+    else
+        url="https://$VM_HOST$endpoint"
+    fi
+    
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
-        "http://$VM_HOST:$PORT$endpoint" \
+        "$url" \
         "${headers[@]}" \
         -d "$PAYLOAD" \
         --connect-timeout 10 \
@@ -152,17 +162,32 @@ fi
 echo "🧪 Testing webhook endpoints..."
 echo ""
 
-# Test 1: Health check (geen signature)
-test_endpoint "/" false "Health Check"
+# Test 1: WooCommerce - Update AC Product Fields
+test_endpoint "/woocommerce/update_ac_product_fields" true "WooCommerce - Update AC Product Fields"
 
-# Test 2: WooCommerce Order (met signature)
-test_endpoint "/woocommerce/order" true "WooCommerce Order Webhook"
+# Test 2: WooCommerce - Add AC Product Tag
+test_endpoint "/woocommerce/add_ac_product_tag" true "WooCommerce - Add AC Product Tag"
 
-# Test 3: WooCommerce Subscription (met signature)  
-test_endpoint "/woocommerce/subscription" true "WooCommerce Subscription Webhook"
+# Test 3: WooCommerce - Increase AC Abo Field
+test_endpoint "/woocommerce/increase_ac_abo_field" true "WooCommerce - Increase AC Abo Field"
 
-# Test 4: ActiveCampaign (geen signature meestal)
-test_endpoint "/activecampaign/deal" false "ActiveCampaign Deal Webhook"
+# Test 4: WooCommerce - Decrease AC Abo Field
+test_endpoint "/woocommerce/decrease_ac_abo_field" true "WooCommerce - Decrease AC Abo Field"
+
+# Test 5: WooCommerce - Add Abo Tag
+test_endpoint "/woocommerce/add_abo_tag" true "WooCommerce - Add Abo Tag"
+
+# Test 6: WooCommerce - Move Next Payment Date
+test_endpoint "/woocommerce/move_next_payment_date" true "WooCommerce - Move Next Payment Date"
+
+# Test 7: WooCommerce - Update/Add Subscription to BigQuery
+test_endpoint "/woocommerce/update_or_add_subscription_to_bigquery" true "WooCommerce - Sync Subscription to BigQuery"
+
+# Test 8: WooCommerce - Update/Add Order to BigQuery
+test_endpoint "/woocommerce/update_or_add_order_to_bigquery" true "WooCommerce - Sync Order to BigQuery"
+
+# Test 9: WooCommerce - Add New Customers to Facebook Audience
+test_endpoint "/woocommerce/add_new_customers_to_facebook_audience" true "WooCommerce - Facebook Audience Update"
 
 echo -e "${GREEN}🎉 Test suite voltooid!${NC}"
 echo ""
