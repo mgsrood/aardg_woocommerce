@@ -6,7 +6,7 @@
 # Configuratie
 VM_HOST="aardg-wh.ngrok.io"
 PORT=""  # Geen poort nodig voor ngrok
-SECRET_KEY="1234"    # Vervang met jouw WooCommerce webhook secret
+SECRET_KEY="aardg_webhook_key"    # Vervang met jouw WooCommerce webhook secret
 
 # Kleuren voor output
 RED='\033[0;31m'
