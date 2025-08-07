@@ -18,6 +18,10 @@ from utils.route_initializer import RouteConfig, initialize_route
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+from dotenv import load_dotenv
+
+# Laad environment variabelen uit .env bestand
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -146,5 +150,6 @@ if __name__ == '__main__':
     scheduler.start()
     print("APScheduler started. Catalog generation job scheduled every day at 03:00.")
     
-    use_reloader = app.debug 
-    app.run(debug=app.debug, port=8443, use_reloader=not use_reloader)
+    # Disable reloader voor tests om duplicatie te voorkomen
+    use_reloader = False  # app.debug 
+    app.run(debug=False, port=8443, use_reloader=use_reloader)

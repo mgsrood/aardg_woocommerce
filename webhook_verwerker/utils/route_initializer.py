@@ -35,6 +35,24 @@ def log_to_bigquery(route, source, script_name, status, message, processing_time
     Logt de route verwerking naar BigQuery.
     """
     try:
+        # Check of BigQuery logging uitgeschakeld is voor tests
+        if os.getenv('SKIP_BIGQUERY_LOGGING', '').lower() in ['true', '1', 'yes']:
+            logging.info("BigQuery logging overgeslagen (SKIP_BIGQUERY_LOGGING=true)")
+            return
+            
+        # Check of BigQuery credentials beschikbaar zijn
+        credentials_path = os.getenv('AARDG_GOOGLE_CREDENTIALS')
+        if not credentials_path:
+            logging.warning("AARDG_GOOGLE_CREDENTIALS niet ingesteld - BigQuery logging overgeslagen")
+            return
+            
+        # Check of credentials bestand bestaat
+        if not os.path.exists(credentials_path):
+            logging.warning(f"Google Cloud credentials bestand niet gevonden: {credentials_path}")
+            return
+            
+        # Stel credentials in
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
         client = bigquery.Client()
         table_id = "webhook_verwerker.route_processing_logs"
         

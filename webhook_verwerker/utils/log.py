@@ -55,6 +55,10 @@ def setup_logging(conn_str, klant, bron, script):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
+    # Verwijder alle bestaande handlers om duplicatie te voorkomen
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+
     # Maak en configureer de database handler
     db_handler = DatabaseLogHandler(conn_str, klant, bron, script)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', 
