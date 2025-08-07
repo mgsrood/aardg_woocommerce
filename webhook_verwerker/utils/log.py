@@ -31,7 +31,7 @@ class DatabaseLogHandler(logging.Handler):
             # Haal script_id op uit de request context
             script_id = getattr(request, 'script_id', None)
             if script_id is None:
-                print("Geen script_id gevonden in request context")
+                # Stil falen - script_id wordt later in de request gegenereerd
                 return
 
             with pyodbc.connect(self.conn_str) as conn:
