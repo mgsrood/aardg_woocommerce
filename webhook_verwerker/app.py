@@ -15,13 +15,13 @@ from facebook.functions import add_new_customers_to_facebook_audience
 from scripts.catalog_generator import main as generate_catalog_main 
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.route_initializer import RouteConfig, initialize_route
+from utils.env_tool import env_check
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-from dotenv import load_dotenv
 
 # Laad environment variabelen uit .env bestand
-load_dotenv()
+env_check()
 
 app = Flask(__name__)
 CORS(app)
