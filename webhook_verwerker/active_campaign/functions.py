@@ -94,12 +94,7 @@ def _process_line_items(line_items, dicts):
 def update_active_campaign_product_fields(data):
     """
     Verwerkt de webhook data voor het updaten van Active Campaign product velden.
-    
-    Args:
-        data: De geparsede webhook data
-        
-    Returns:
-        Dict met status en resultaten
+    Geoptimaliseerd om alleen daadwerkelijk gewijzigde fields te updaten.
     """
     try:
         # Configuratie
@@ -154,16 +149,46 @@ def update_active_campaign_product_fields(data):
             processed_data['last_ordered']
         )
         
+        # NIEUWE LOGICA: Filter alleen daadwerkelijk gewijzigde fields
+        actually_changed_fields = []
+        
+        # Voor updated fields: check welke daadwerkelijk zijn veranderd
+        current_field_dict = {field['field']: field for field in current_fields}
+        
+        for updated_field in updated_fields:
+            field_id = updated_field['field']
+            new_value = updated_field['value']
+            
+            # Voor last_ordered (field 13) - altijd updaten als het veranderd is
+            if field_id == '13':
+                if last_ordered_changed:
+                    actually_changed_fields.append(updated_field)
+                    logging.info(f"Field 13 (last ordered) will be updated to: {new_value}")
+                else:
+                    logging.info(f"Field 13 (last ordered) unchanged, skipping")
+            else:
+                # Voor andere fields - check of de waarde werkelijk is veranderd
+                if field_id in current_field_dict:
+                    old_value = current_field_dict[field_id]['value']
+                    if str(new_value) != str(old_value):
+                        actually_changed_fields.append(updated_field)
+                        logging.info(f"Field {field_id} changed: {old_value} -> {new_value}")
+                    else:
+                        logging.info(f"Field {field_id} unchanged ({old_value}), skipping")
+        
+        # Log wat er gaat gebeuren
+        logging.info(f"Summary: {len(actually_changed_fields)} existing fields to update, {len(new_fields)} new fields to create")
+        
         # Alleen updaten als er daadwerkelijk iets is veranderd
-        if changed_fields > 0 or last_ordered_changed:
+        if len(actually_changed_fields) > 0 or len(new_fields) > 0:
             # Push updates naar Active Campaign
-            update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, updated_fields, new_fields)
+            update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, actually_changed_fields, new_fields)
             
             return {
                 'status': 'success',
                 'message': f"Product velden bijgewerkt voor {email}",
-                'velden_geupdatet': changed_fields,
-                'last_ordered_geupdatet': last_ordered_changed
+                'existing_fields_updated': len(actually_changed_fields),
+                'new_fields_created': len(new_fields)
             }
         else:
             return {
