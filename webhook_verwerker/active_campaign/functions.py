@@ -365,6 +365,15 @@ def increase_ac_abo_field(data):
 def decrease_ac_abo_field(data):
     """Verlaagt het abonnements veld in Active Campaign met 1."""
     try:
+        # Status controle toevoegen
+        subscription_status = data.get('status')
+        if subscription_status not in ['expired', 'cancelled', 'pending-cancel']:
+            logging.info(f"Subscription status '{subscription_status}' vereist geen verlaging van abo veld")
+            return {
+                'status': 'info',
+                'message': f"Geen actie nodig voor status: {subscription_status}"
+            }
+        
         # Configuratie
         ac_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
         ac_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
