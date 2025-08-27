@@ -6,8 +6,7 @@ Een Flask-gebaseerde webhook verwerker voor het verwerken van webhooks van versc
 
 - Gestandaardiseerde webhook verwerking voor verschillende bronnen
 - Automatische retry logica met exponentiële backoff
-- Geïntegreerde logging naar SQL Server
-
+- Geïntegreerde logging naar Azure SQL Database
 - Signature validatie voor beveiligde webhooks
 - Gestandaardiseerde error handling
 
@@ -48,6 +47,21 @@ ENVIRONMENT=development  # of 'production'
 
 
 
+### Azure SQL Database Setup
+
+Voer het SQL script uit om de webhook logging tabel aan te maken:
+
+```sql
+-- Voer dit uit in je Azure SQL Database
+-- Zie sql/create_webhook_logs.sql voor het volledige script
+```
+
+De `WebhookLogs` tabel bevat de volgende informatie:
+- **Basis logging**: Route, bron, status, verwerkingstijd
+- **Webhook data**: Email, order/subscription ID, product arrays
+- **Error details**: Error type en details bij fouten
+- **Performance**: Verwerkingstijd en retry count
+
 ## Gebruik
 
 ### Route Initialisatie
@@ -81,8 +95,9 @@ def update_order():
 
 De webhook verwerker logt automatisch:
 
-1. Naar SQL Server voor gedetailleerde logging
-2. Naar stdout voor debugging
+1. Naar Azure SQL Database voor gedetailleerde webhook logging
+2. Naar SQL Server voor gedetailleerde logging (legacy)
+3. Naar stdout voor debugging
 
 ## Ontwikkeling
 
@@ -130,8 +145,9 @@ webhook_verwerker/
 
 De webhook verwerking kan worden gemonitord via:
 
-1. SQL Server logging tabel voor gedetailleerde logs
-2. Server logs voor real-time monitoring
+1. Azure SQL Database `WebhookLogs` tabel voor webhook specifieke logs
+2. SQL Server logging tabel voor gedetailleerde logs (legacy)
+3. Server logs voor real-time monitoring
 
 ## Beveiliging
 

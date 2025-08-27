@@ -1,6 +1,7 @@
 from utils.request_check import validate_signature, parse_request_data
 from utils.log import start_log, end_log, setup_logging
 from utils.config import get_and_use_next_script_id
+from utils.azure_sql_logger import log_to_azure_sql
 from flask import request, jsonify
 from functools import wraps
 import logging
@@ -88,6 +89,21 @@ def initialize_route(config: RouteConfig, bron: str, script: str = 'Webhook Verw
                     
                     # Voer de process functie uit met de data
                     resultaat = process_func(data)
+                    
+                    # Log succes naar Azure SQL
+                    processing_time_ms = int((time.time() - start_time) * 1000)
+                    log_to_azure_sql(
+                        route=request.path,
+                        source=bron,
+                        script_name=script,
+                        status="success",
+                        message="Webhook succesvol verwerkt",
+                        processing_time_ms=processing_time_ms,
+                        request_id=script_id,
+                        payload=data,
+                        error_details=None,
+                        retry_count=retry_count
+                    )
             
                     # Geef het resultaat terug
                     return jsonify({
@@ -100,6 +116,21 @@ def initialize_route(config: RouteConfig, bron: str, script: str = 'Webhook Verw
                     error_msg = str(e)
                     logging.error(f"Validatie fout: {error_msg}")
                     
+                    # Log validatie fout naar Azure SQL
+                    processing_time_ms = int((time.time() - start_time) * 1000)
+                    log_to_azure_sql(
+                        route=request.path,
+                        source=bron,
+                        script_name=script,
+                        status="error",
+                        message=error_msg,
+                        processing_time_ms=processing_time_ms,
+                        request_id=getattr(request, 'script_id', None),
+                        payload=data if 'data' in locals() else None,
+                        error_details={"type": "ValueError"},
+                        retry_count=retry_count
+                    )
+                    
                     return jsonify({
                         "error": error_msg,
                         "script_id": getattr(request, 'script_id', None)
@@ -109,7 +140,20 @@ def initialize_route(config: RouteConfig, bron: str, script: str = 'Webhook Verw
                     error_msg = str(e)
                     logging.error(f"Authenticatie fout: {error_msg}")
                     
-
+                    # Log authenticatie fout naar Azure SQL
+                    processing_time_ms = int((time.time() - start_time) * 1000)
+                    log_to_azure_sql(
+                        route=request.path,
+                        source=bron,
+                        script_name=script,
+                        status="error",
+                        message=error_msg,
+                        processing_time_ms=processing_time_ms,
+                        request_id=getattr(request, 'script_id', None),
+                        payload=data if 'data' in locals() else None,
+                        error_details={"type": "PermissionError"},
+                        retry_count=retry_count
+                    )
                     
                     return jsonify({
                         "error": error_msg,
@@ -120,6 +164,21 @@ def initialize_route(config: RouteConfig, bron: str, script: str = 'Webhook Verw
                     error_msg = str(e)
                     if retry_count == config.retry_config['max_retries']:
                         logging.error(f"Maximaal aantal pogingen ({config.retry_config['max_retries']}) bereikt voor route {request.path}")
+                        
+                        # Log max retries fout naar Azure SQL
+                        processing_time_ms = int((time.time() - start_time) * 1000)
+                        log_to_azure_sql(
+                            route=request.path,
+                            source=bron,
+                            script_name=script,
+                            status="error",
+                            message=f"Maximaal aantal pogingen ({config.retry_config['max_retries']}) bereikt",
+                            processing_time_ms=processing_time_ms,
+                            request_id=getattr(request, 'script_id', None),
+                            payload=data if 'data' in locals() else None,
+                            error_details={"type": type(e).__name__, "message": error_msg},
+                            retry_count=retry_count
+                        )
                      
                         return jsonify({
                             "error": "Service tijdelijk niet beschikbaar. Probeer het later opnieuw.",
