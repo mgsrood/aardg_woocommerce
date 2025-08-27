@@ -7,9 +7,7 @@ from active_campaign.functions import (
     add_originals_dummy_product
 )
 from woocommerce_.functions import (
-    move_next_payment_date,
-    update_or_insert_sub_to_bigquery,
-    update_or_insert_order_to_bigquery
+    move_next_payment_date
 )
 from facebook.functions import add_new_customers_to_facebook_audience
 from scripts.catalog_generator import main as generate_catalog_main 
@@ -109,24 +107,6 @@ def process_originals_dummy_product():
     script='Betaaldatum Verplaatsen', 
     process_func=move_next_payment_date)
 def process_move_next_payment_date():
-    pass
-
-@app.route('/woocommerce/update_or_add_subscription_to_bigquery', methods=['POST'])
-@initialize_route(
-    woo_config, 
-    bron='BigQuery', 
-    script='Synchroniseer Abonnement', 
-    process_func=update_or_insert_sub_to_bigquery)
-def process_sync_subscription_to_bigquery():
-    pass
-
-@app.route('/woocommerce/update_or_add_order_to_bigquery', methods=['POST'])
-@initialize_route(
-    woo_config, 
-    bron='BigQuery', 
-    script='Synchroniseer Order', 
-    process_func=update_or_insert_order_to_bigquery)
-def process_sync_order_to_bigquery():
     pass
 
 @app.route('/woocommerce/add_new_customers_to_facebook_audience', methods=['POST'])

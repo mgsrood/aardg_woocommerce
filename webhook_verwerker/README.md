@@ -7,7 +7,7 @@ Een Flask-gebaseerde webhook verwerker voor het verwerken van webhooks van versc
 - Gestandaardiseerde webhook verwerking voor verschillende bronnen
 - Automatische retry logica met exponentiële backoff
 - Geïntegreerde logging naar SQL Server
-- BigQuery logging voor route verwerking
+
 - Signature validatie voor beveiligde webhooks
 - Gestandaardiseerde error handling
 
@@ -44,28 +44,9 @@ FACEBOOK_APP_ID=your_app_id
 ENVIRONMENT=development  # of 'production'
 ```
 
-### BigQuery Tabel
 
-De webhook verwerking wordt gelogd in een BigQuery tabel met de volgende structuur:
 
-```sql
-CREATE TABLE `webhook_verwerker.route_processing_logs` (
-  `timestamp` TIMESTAMP,
-  `route` STRING,
-  `source` STRING,
-  `script_name` STRING,
-  `status` STRING,
-  `message` STRING,
-  `processing_time_ms` INTEGER,
-  `request_id` STRING,
-  `payload` STRING,  -- Gehashte payload voor privacy
-  `error_details` JSON,
-  `retry_count` INTEGER,
-  `environment` STRING
-)
-PARTITION BY DATE(timestamp)
-CLUSTER BY route, source, status
-```
+
 
 ## Gebruik
 
@@ -101,8 +82,7 @@ def update_order():
 De webhook verwerker logt automatisch:
 
 1. Naar SQL Server voor gedetailleerde logging
-2. Naar BigQuery voor route verwerking statistieken
-3. Naar stdout voor debugging
+2. Naar stdout voor debugging
 
 ## Ontwikkeling
 
@@ -150,14 +130,13 @@ webhook_verwerker/
 
 De webhook verwerking kan worden gemonitord via:
 
-1. BigQuery dashboard voor route statistieken
-2. SQL Server logging tabel voor gedetailleerde logs
-3. Server logs voor real-time monitoring
+1. SQL Server logging tabel voor gedetailleerde logs
+2. Server logs voor real-time monitoring
 
 ## Beveiliging
 
 - Webhook signatures worden gevalideerd waar nodig
-- Payloads worden gehashed voordat ze worden gelogd
+
 - Retry logica voorkomt overbelasting bij fouten
 - Environment-specifieke configuratie
 
