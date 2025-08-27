@@ -141,7 +141,7 @@ def update_active_campaign_product_fields(data):
         ]
         current_fields = sorted(current_fields, key=lambda x: int(x['field']))
         
-        # Update velden
+        # Update velden - deze functie retourneert nu alleen daadwerkelijk gewijzigde velden
         updated_fields, new_fields, changed_fields = update_field_values(current_fields, all_new_fields)
         updated_fields, new_fields, last_ordered_changed = add_or_update_last_ordered_item(
             updated_fields, 
@@ -149,45 +149,24 @@ def update_active_campaign_product_fields(data):
             processed_data['last_ordered']
         )
         
-        # NIEUWE LOGICA: Filter alleen daadwerkelijk gewijzigde fields
-        actually_changed_fields = []
-        
-        # Voor updated fields: check welke daadwerkelijk zijn veranderd
-        current_field_dict = {field['field']: field for field in current_fields}
-        
-        for updated_field in updated_fields:
-            field_id = updated_field['field']
-            new_value = updated_field['value']
-            
-            # Voor last_ordered (field 13) - altijd updaten als het veranderd is
-            if field_id == '13':
-                if last_ordered_changed:
-                    actually_changed_fields.append(updated_field)
-                    logging.info(f"Field 13 (last ordered) will be updated to: {new_value}")
-                else:
-                    logging.info(f"Field 13 (last ordered) unchanged, skipping")
-            else:
-                # Voor andere fields - check of de waarde werkelijk is veranderd
-                if field_id in current_field_dict:
-                    old_value = current_field_dict[field_id]['value']
-                    if str(new_value) != str(old_value):
-                        actually_changed_fields.append(updated_field)
-                        logging.info(f"Field {field_id} changed: {old_value} -> {new_value}")
-                    else:
-                        logging.info(f"Field {field_id} unchanged ({old_value}), skipping")
-        
         # Log wat er gaat gebeuren
-        logging.info(f"Summary: {len(actually_changed_fields)} existing fields to update, {len(new_fields)} new fields to create")
+        logging.info(f"Summary: {len(updated_fields)} existing fields to update, {len(new_fields)} new fields to create")
+        
+        # Debug: log welke velden worden bijgewerkt
+        for field in updated_fields:
+            logging.info(f"Will update field {field['field']} (ID: {field['id']}) to value: {field['value']}")
+        for field in new_fields:
+            logging.info(f"Will create new field {field['field']} with value: {field['value']}")
         
         # Alleen updaten als er daadwerkelijk iets is veranderd
-        if len(actually_changed_fields) > 0 or len(new_fields) > 0:
+        if len(updated_fields) > 0 or len(new_fields) > 0:
             # Push updates naar Active Campaign
-            update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, actually_changed_fields, new_fields)
+            update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, updated_fields, new_fields)
             
             return {
                 'status': 'success',
                 'message': f"Product velden bijgewerkt voor {email}",
-                'existing_fields_updated': len(actually_changed_fields),
+                'existing_fields_updated': len(updated_fields),
                 'new_fields_created': len(new_fields)
             }
         else:
