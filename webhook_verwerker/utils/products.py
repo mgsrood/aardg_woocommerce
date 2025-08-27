@@ -98,10 +98,14 @@ def get_key_from_product_id(product_id, category_dict):
     """Vindt de categorie key voor een gegeven product ID."""
     try:
         product_id = int(product_id)
+        logging.info(f"Zoek categorie voor product ID: {product_id}")
+        logging.info(f"Beschikbare categorieën: {list(category_dict.keys())}")
         for key, product_ids in category_dict.items():
+            logging.info(f"Categorie {key} bevat product IDs: {product_ids}")
             if product_id in product_ids:
                 logging.info(f"Product ID {product_id} gevonden in categorie {key}")
                 return key
+        logging.warning(f"Product ID {product_id} niet gevonden in category_dict")
     except (ValueError, TypeError):
         logging.warning(f"Ongeldig product ID formaat: {product_id}")
     return None

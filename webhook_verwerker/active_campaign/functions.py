@@ -490,7 +490,12 @@ def add_ac_abo_tag(data):
         # Abonnements tag toevoegen
         abo_tag_id = 115
         tags = [{"contact": ac_id, "tag": abo_tag_id}]
-        add_tag_to_contact(tags, ac_api_url, ac_api_token)
+        try:
+            add_tag_to_contact(tags, ac_api_url, ac_api_token)
+            logging.info(f"Abonnements tag toegevoegd voor {email}")
+        except Exception as e:
+            logging.error(f"Fout bij toevoegen abonnements tag: {str(e)}")
+            return {'status': 'error', 'message': str(e)}
         
         return {
             'status': 'success',
