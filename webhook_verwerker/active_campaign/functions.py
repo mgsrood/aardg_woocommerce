@@ -457,31 +457,48 @@ def decrease_ac_abo_field(data):
 
 def add_ac_abo_tag(data):
     """Voegt een abonnements tag toe in Active Campaign."""
-    # Configuratie
-    ac_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
-    ac_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
-    
-    if not all([ac_api_url, ac_api_token]):
-        raise ValueError("Ontbrekende Active Campaign configuratie")
-    
-    # Gewenste datapunten uit data halen
-    email = data.get('billing', {}).get('email')
-    if not email:
-        raise ValueError("Geen email gevonden in data")
+    try:
+        # Status controle toevoegen
+        subscription_status = data.get('status')
+        if subscription_status not in ['active', 'processing']:
+            logging.info(f"Subscription status '{subscription_status}' vereist geen abonnements tag")
+            return {
+                'status': 'info',
+                'message': f"Geen abonnements tag toegevoegd voor status: {subscription_status}"
+            }
+        
+        # Configuratie
+        ac_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
+        ac_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
+        
+        if not all([ac_api_url, ac_api_token]):
+            raise ValueError("Ontbrekende Active Campaign configuratie")
+        
+        # Gewenste datapunten uit data halen
+        email = data.get('billing', {}).get('email')
+        if not email:
+            raise ValueError("Geen email gevonden in data")
 
-    # Active Campaign data ophalen
-    ac_data = get_active_campaign_data(email, ac_api_url, ac_api_token)
-    ac_id = ac_data['contacts'][0]['id']
+        # Active Campaign data ophalen
+        ac_data = get_active_campaign_data(email, ac_api_url, ac_api_token)
+        if not ac_data.get('contacts'):
+            logging.warning(f"Geen contact gevonden voor email: {email}")
+            return {'status': 'error', 'message': 'Geen contact gevonden'}
+            
+        ac_id = ac_data['contacts'][0]['id']
 
-    # Abonnements tag toevoegen
-    abo_tag_id = 115
-    tags = [{"contact": ac_id, "tag": abo_tag_id}]
-    add_tag_to_contact(tags, ac_api_url, ac_api_token)
-    
-    return {
-        'status': 'success',
-        'message': f"Abonnements tag toegevoegd voor {email}"
-    }
+        # Abonnements tag toevoegen
+        abo_tag_id = 115
+        tags = [{"contact": ac_id, "tag": abo_tag_id}]
+        add_tag_to_contact(tags, ac_api_url, ac_api_token)
+        
+        return {
+            'status': 'success',
+            'message': f"Abonnements tag toegevoegd voor {email}"
+        }
+    except Exception as e:
+        logging.error(f"Fout in add_ac_abo_tag: {str(e)}")
+        return {'status': 'error', 'message': str(e)}
 
 def add_originals_dummy_product(data):
     """Voegt een dummy product toe in WooCommerce."""
