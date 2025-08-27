@@ -290,6 +290,15 @@ def add_product_tag_ac(data):
 def increase_ac_abo_field(data):
     """Update het abonnements veld in Active Campaign."""
     try:
+        # Status controle toevoegen
+        subscription_status = data.get('status')
+        if subscription_status not in ['active', 'processing', 'on-hold']:
+            logging.info(f"Subscription status '{subscription_status}' vereist geen verhoging van abo veld")
+            return {
+                'status': 'info',
+                'message': f"Geen actie nodig voor status: {subscription_status}"
+            }
+            
         # Configuratie
         ac_api_url = os.getenv('ACTIVE_CAMPAIGN_API_URL')
         ac_api_token = os.getenv('ACTIVE_CAMPAIGN_API_TOKEN')
