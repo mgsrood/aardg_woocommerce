@@ -43,8 +43,12 @@ def _make_request(method, url, headers, payload=None, timeout=TIMEOUT):
         raise Exception("Ongeldige JSON response")
 
 def update_field_values(current_fields, updates):
-    """Update bestaande velden en voeg nieuwe toe."""
-    updated_fields_dict = {field['field']: field for field in current_fields}
+    """Update bestaande velden en voeg nieuwe toe - retourneer alleen gewijzigde velden."""
+    # Maak een dict voor snelle lookup van bestaande velden
+    current_fields_dict = {field['field']: field for field in current_fields}
+    
+    # Track alleen de daadwerkelijk gewijzigde velden
+    changed_existing_fields = []
     new_fields_dict = {}
     changed_fields = 0
 
@@ -52,24 +56,30 @@ def update_field_values(current_fields, updates):
         field_id = update['field']
         value_to_add = int(update['value'])
 
-        if field_id in updated_fields_dict:
-            old_value = int(updated_fields_dict[field_id]['value'])
+        if field_id in current_fields_dict:
+            # Bestaand veld - update alleen als waarde daadwerkelijk verandert
+            existing_field = current_fields_dict[field_id].copy()  # Maak een kopie
+            old_value = int(existing_field['value'])
             new_value = old_value + value_to_add
-            if new_value != old_value:  # Alleen tellen als de waarde is veranderd
-                updated_fields_dict[field_id]['value'] = new_value
+            
+            if new_value != old_value:  # Alleen als waarde daadwerkelijk verandert
+                existing_field['value'] = new_value
+                changed_existing_fields.append(existing_field)  # Voeg alleen gewijzigde toe
                 changed_fields += 1
+                
         else:
+            # Nieuw veld
             if field_id in new_fields_dict:
                 old_value = int(new_fields_dict[field_id]['value'])
                 new_value = old_value + value_to_add
-                if new_value != old_value:  # Alleen tellen als de waarde is veranderd
+                if new_value != old_value:
                     new_fields_dict[field_id]['value'] = new_value
                     changed_fields += 1
             else:
                 new_fields_dict[field_id] = {'field': field_id, 'value': value_to_add}
                 changed_fields += 1
 
-    return list(updated_fields_dict.values()), list(new_fields_dict.values()), changed_fields
+    return changed_existing_fields, list(new_fields_dict.values()), changed_fields
 
 def add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_item):
     """Update of voeg last ordered item toe."""

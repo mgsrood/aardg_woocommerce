@@ -94,12 +94,6 @@ def _process_line_items(line_items, dicts):
 def update_active_campaign_product_fields(data):
     """
     Verwerkt de webhook data voor het updaten van Active Campaign product velden.
-    
-    Args:
-        data: De geparsede webhook data
-        
-    Returns:
-        Dict met status en resultaten
     """
     try:
         # Configuratie
@@ -146,7 +140,7 @@ def update_active_campaign_product_fields(data):
         ]
         current_fields = sorted(current_fields, key=lambda x: int(x['field']))
         
-        # Update velden
+        # Update velden - deze functie retourneert nu alleen daadwerkelijk gewijzigde velden
         updated_fields, new_fields, changed_fields = update_field_values(current_fields, all_new_fields)
         updated_fields, new_fields, last_ordered_changed = add_or_update_last_ordered_item(
             updated_fields, 
@@ -154,16 +148,19 @@ def update_active_campaign_product_fields(data):
             processed_data['last_ordered']
         )
         
+        # Log wat er gaat gebeuren
+        logging.info(f"Summary: {len(updated_fields)} existing fields to update, {len(new_fields)} new fields to create")
+        
         # Alleen updaten als er daadwerkelijk iets is veranderd
-        if changed_fields > 0 or last_ordered_changed:
+        if len(updated_fields) > 0 or len(new_fields) > 0:
             # Push updates naar Active Campaign
             update_active_campaign_fields(ac_id, active_campaign_api_url, active_campaign_api_token, updated_fields, new_fields)
             
             return {
                 'status': 'success',
                 'message': f"Product velden bijgewerkt voor {email}",
-                'velden_geupdatet': changed_fields,
-                'last_ordered_geupdatet': last_ordered_changed
+                'existing_fields_updated': len(updated_fields),
+                'new_fields_created': len(new_fields)
             }
         else:
             return {
