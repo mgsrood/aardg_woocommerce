@@ -1,4 +1,5 @@
 from m_modules.webhook_monitor import check_and_reactivate_webhooks
+from m_modules.azure_sql_monitor import monitor_all_systems
 from m_modules.config import determine_script_id
 from m_modules.log import end_log, setup_logging
 from m_modules.env_tool import env_check
@@ -60,7 +61,20 @@ def main():
     setup_logging(greit_connection_string, klant, bron, script, script_id)
 
     try:
+        # Webhook monitoring
+        logging.info("Starting webhook monitoring...")
         check_and_reactivate_webhooks(wcapi, required_webhooks)
+        
+        # System monitoring (VM, App health, etc.)
+        logging.info("Starting system monitoring...")
+        system_results = monitor_all_systems()
+        
+        # Log resultaten
+        for monitor_type, result in system_results.items():
+            if result.get('status') == 'healthy':
+                logging.info(f"{monitor_type}: {result['status']}")
+            else:
+                logging.warning(f"{monitor_type}: {result}")
 
     except Exception as e:
         logging.error(f"Script mislukt: {e}")
