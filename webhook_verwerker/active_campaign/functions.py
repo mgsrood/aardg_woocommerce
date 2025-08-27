@@ -206,11 +206,11 @@ def _process_categories(category_list):
             category_list.remove('Frisdrank')
             category_list.append('a3_extra_frisdrank')
     
-    if 'a14_extra_frisdrank' and 'Frisdrank' in category_list:
+    if 'a14_extra_frisdrank' in category_list and 'Frisdrank' in category_list:
         category_list.remove('Frisdrank')
-    if 'a3_extra_frisdrank' and 'Frisdrank' in category_list:
+    if 'a3_extra_frisdrank' in category_list and 'Frisdrank' in category_list:
         category_list.remove('Frisdrank')
-    if 'a14_extra_starter' and 'Starter' in category_list:
+    if 'a14_extra_starter' in category_list and 'Starter' in category_list:
         category_list.remove('Starter')
 
     return list(set(category_list))
