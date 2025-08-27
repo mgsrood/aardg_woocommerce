@@ -95,7 +95,7 @@ def process_ac_abonnement_tags_add():
 @initialize_route(
     campaign_config, 
     bron='Active Campaign', 
-    script='Originals', 
+    script='Dummy Product Toevoegen', 
     process_func=add_originals_dummy_product)
 def process_originals_dummy_product():
     pass
