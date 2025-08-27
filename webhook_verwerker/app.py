@@ -50,7 +50,7 @@ facebook_config = RouteConfig(
 @initialize_route(
     woo_config, 
     bron='Active Campaign', 
-    script='AC Product Fields Update', 
+    script="Product Velden", 
     process_func=update_active_campaign_product_fields)
 def process_ac_product_fields():
     pass
@@ -59,7 +59,7 @@ def process_ac_product_fields():
 @initialize_route(
     woo_config, 
     bron='Active Campaign', 
-    script='AC Product Tags Update', 
+    script="Product Tags", 
     process_func=add_product_tag_ac)
 def process_ac_product_tags():
     pass
@@ -86,7 +86,7 @@ def process_ac_abonnement_velden_verlagen():
 @initialize_route(
     woo_config, 
     bron='Active Campaign', 
-    script='AC Abonnement Tags Update', 
+    script="Abonnements Tag", 
     process_func=add_ac_abo_tag)
 def process_ac_abonnement_tags_add():
     pass
@@ -104,7 +104,7 @@ def process_originals_dummy_product():
 @initialize_route(
     woo_config, 
     bron='WooCommerce', 
-    script='Betaaldatum Verplaatsen', 
+    script='Betaaldatum', 
     process_func=move_next_payment_date)
 def process_move_next_payment_date():
     pass
