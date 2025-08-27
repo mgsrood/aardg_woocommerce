@@ -32,7 +32,7 @@ default_args = {
     'email_on_retry': False,
     'retries': 1,
     'retry_delay': timedelta(minutes=2),
-    'email': ['admin@aardg.nl'],  # Pas aan
+    'email': ['max@aardg.nl'],  # Pas aan
 }
 
 # =================================
@@ -276,7 +276,7 @@ check_issues_task = PythonOperator(
 # Conditionele email
 send_alert_email = EmailOperator(
     task_id='send_alert_email',
-    to=['admin@aardg.nl'],  # Pas aan
+    to=['max@aardg.nl'],  # Pas aan
     subject='AARDG Health Report - Issues Detected',
     html_content="{{ task_instance.xcom_pull(task_ids='check_issues')['content'] }}",
     trigger_rule=TriggerRule.NONE_FAILED,
