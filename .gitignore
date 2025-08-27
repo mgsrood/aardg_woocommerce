@@ -30,3 +30,5 @@ klantenservice_applicatie/woocommerce.db
 klantenservice_applicatie/subscriptions.db
 klantenservice_applicatie/users.db
 klantenservice_applicatie/data/users.db
+
+.DS_Store

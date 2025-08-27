@@ -317,9 +317,15 @@ def update_or_insert_sub_to_bigquery(customer_data):
                     # Voor totaal discount: gebruik FLOAT64 scalar
                     final_params.append(bigquery.ScalarQueryParameter(param_name, "FLOAT64", value))
             elif key == "transaction_id":
-                 # Converteer transaction_id naar STRING, gebruik lege string als het leeg is
-                 transaction_value = str(value) if value and str(value).strip() else ""
-                 final_params.append(bigquery.ScalarQueryParameter(param_name, "STRING", transaction_value))
+                # Converteer transaction_id naar INT64, gebruik None als het leeg is
+                if value and str(value).strip():
+                    try:
+                        transaction_value = int(value)
+                    except (ValueError, TypeError):
+                        transaction_value = None
+                else:
+                    transaction_value = None
+                final_params.append(bigquery.ScalarQueryParameter(param_name, "INT64", transaction_value))
             elif key in ["subscription_id", "parent_id", "customer_id", "number"]:
                  final_params.append(bigquery.ScalarQueryParameter(param_name, "INT64", value))
             elif key in ["discount_total", "total", "shipping_total"]:
