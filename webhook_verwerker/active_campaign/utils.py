@@ -87,16 +87,43 @@ def add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_ite
     return updated_fields, new_fields, changed
 
 def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token):
-    """Haal velden op voor een contact."""
+    """Haal velden op voor een contact. Handelt 404 errors af voor contacten zonder custom fields."""
     url = f"{active_campaign_api_url}contacts/{contact_id}/fieldValues"
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
-    return _make_request('GET', url, headers)
+    
+    logging.info(f"Getting AC field values from: {url}")
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=TIMEOUT)
+        
+        # Als contact geen custom fields heeft, geeft AC vaak 404 terug
+        if response.status_code == 404:
+            logging.info(f"No field values found for contact {contact_id} (404) - contact probably has no custom fields yet")
+            return {"fieldValues": []}  # Retourneer lege field values
+        
+        response.raise_for_status()
+        result = response.json()
+        logging.info(f"Found {len(result.get('fieldValues', []))} field values for contact {contact_id}")
+        return result
+        
+    except requests.exceptions.RequestException as e:
+        # Als het een 404 is, behandel het als een leeg contact
+        if hasattr(e, 'response') and e.response.status_code == 404:
+            logging.info(f"Contact {contact_id} has no field values (404)")
+            return {"fieldValues": []}
+        raise Exception(f"Request fout: {str(e)}")
+    except json.JSONDecodeError:
+        raise Exception("Ongeldige JSON response")
 
 def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token):
     """Haal contact data op."""
     url = f"{active_campaign_api_url}contacts?email={email}"
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
-    return _make_request('GET', url, headers)
+    
+    logging.info(f"Getting AC contact data for email: {email}")
+    result = _make_request('GET', url, headers)
+    logging.info(f"Found {len(result.get('contacts', []))} contacts for {email}")
+    return result
 
 def get_active_campaign_tag_data(active_campaign_api_url, active_campaign_api_token, search_key=None):
     """Haal tag data op."""
@@ -122,9 +149,19 @@ def add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
 
 def update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=None, new_fields=None):
     """Update bestaande velden en voeg nieuwe toe."""
-    url = f"{active_campaign_api_url}contacts/{contact_id}/fieldValues"
-    print(f"DEBUG: Gebouwde URL: {url}")
+    url = f"{active_campaign_api_url}fieldValues"
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
+
+    # Debug logging
+    logging.info(f"Updating AC fields for contact {contact_id}")
+    if updated_fields:
+        logging.info(f"Updated fields to process: {len(updated_fields)}")
+        for update in updated_fields:
+            logging.info(f"  - Field {update['field']} (ID: {update['id']}) -> value: {update['value']}")
+    if new_fields:
+        logging.info(f"New fields to create: {len(new_fields)}")
+        for new in new_fields:
+            logging.info(f"  - Field {new['field']} -> value: {new['value']}")
 
     # Update bestaande velden
     if updated_fields:
@@ -138,6 +175,7 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
                 },
                 "useDefaults": False
             }
+            logging.info(f"PUT request to: {specific_url}")
             _make_request('PUT', specific_url, headers, payload)
 
     # Voeg nieuwe velden toe
@@ -151,4 +189,5 @@ def update_active_campaign_fields(contact_id, active_campaign_api_url, active_ca
                 },
                 "useDefaults": False
             }
+            logging.info(f"POST request to: {url}")
             _make_request('POST', url, headers, payload)
