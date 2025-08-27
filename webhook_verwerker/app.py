@@ -31,7 +31,7 @@ secret_key = os.getenv('SECRET_KEY')
 
 # Route configuraties
 woo_config = RouteConfig(
-    verify_signature=True,
+    verify_signature=False,
     parse_data=True,
     secret_key=secret_key
 )
