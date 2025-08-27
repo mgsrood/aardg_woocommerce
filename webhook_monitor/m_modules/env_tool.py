@@ -13,7 +13,7 @@ def env_check():
     env_path = os.path.join(base_dir, '.env')
     
     if os.path.exists(env_path):
-            load_dotenv()
-            logging.info("Lokaal draaien: .env bestand gevonden en geladen.")
+            load_dotenv(env_path)
+            logging.info(f"Environment bestand geladen van: {env_path}")
     else:
-        logging.info("Draaien in productieomgeving: .env bestand niet gevonden.")
+        logging.info(f"Draaien in productieomgeving: .env bestand niet gevonden op {env_path}")

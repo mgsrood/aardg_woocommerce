@@ -21,8 +21,6 @@ def main():
 
     # Webhook namen die we willen monitoren
     required_webhooks = [
-        "Order Verwerking",
-        "Abonnement Verwerking",
         "Facebook Audience",
         "Product Velden",
         "Product Tags",
