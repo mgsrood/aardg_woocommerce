@@ -87,29 +87,10 @@ def add_or_update_last_ordered_item(updated_fields, new_fields, last_ordered_ite
     return updated_fields, new_fields, changed
 
 def get_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token):
-    """Haal velden op voor een contact. Handelt 404 errors af voor contacten zonder custom fields."""
+    """Haal velden op voor een contact."""
     url = f"{active_campaign_api_url}contacts/{contact_id}/fieldValues"
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=TIMEOUT)
-        
-        # Als contact geen custom fields heeft, geeft AC vaak 404 terug
-        if response.status_code == 404:
-            logging.info(f"Geen field values gevonden voor contact {contact_id} (404) - contact heeft waarschijnlijk nog geen custom fields")
-            return {"fieldValues": []}  # Retourneer lege field values
-        
-        response.raise_for_status()
-        return response.json()
-        
-    except requests.exceptions.RequestException as e:
-        # Als het een 404 is, behandel het als een leeg contact
-        if hasattr(e, 'response') and e.response.status_code == 404:
-            logging.info(f"Contact {contact_id} heeft geen field values (404)")
-            return {"fieldValues": []}
-        raise Exception(f"Request fout: {str(e)}")
-    except json.JSONDecodeError:
-        raise Exception("Ongeldige JSON response")
+    return _make_request('GET', url, headers)
 
 def get_active_campaign_data(email, active_campaign_api_url, active_campaign_api_token):
     """Haal contact data op."""
@@ -141,7 +122,8 @@ def add_tag_to_contact(tags, active_campaign_api_url, active_campaign_api_token)
 
 def update_active_campaign_fields(contact_id, active_campaign_api_url, active_campaign_api_token, updated_fields=None, new_fields=None):
     """Update bestaande velden en voeg nieuwe toe."""
-    url = f"{active_campaign_api_url}fieldValues"
+    url = f"{active_campaign_api_url}contacts/{contact_id}/fieldValues"
+    print(f"DEBUG: Gebouwde URL: {url}")
     headers = {"accept": "application/json", "Api-Token": active_campaign_api_token}
 
     # Update bestaande velden
