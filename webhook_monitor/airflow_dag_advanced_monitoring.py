@@ -17,8 +17,8 @@ import sys
 import os
 
 # Configuratie
-WEBHOOK_MONITOR_PATH = "/home/aardg/projecten/woocommerce/webhook_monitor"
-ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+WEBHOOK_MONITOR_PATH = "/home/maxrood/aardg/projecten/woocommerce/webhook_monitor"
+ENVIRONMENT = 'production'
 
 # Voeg pad toe
 sys.path.insert(0, WEBHOOK_MONITOR_PATH)
@@ -74,7 +74,7 @@ def webhook_check():
     )
     
     required_webhooks = [
-        "Order Verwerking", "Abonnement Verwerking", "Facebook Audience",
+        "Facebook Audience",
         "Product Velden", "Product Tags", "Abonnements Tag",
         "Abonnements Veld Ophogen", "Abonnements Veld Verlagen", "Besteldatum"
     ]
@@ -107,7 +107,10 @@ def system_health_check():
     os.chdir(WEBHOOK_MONITOR_PATH)
     
     from m_modules.azure_sql_monitor import monitor_all_systems, create_alert
+    from m_modules.env_tool import env_check
     import logging
+    
+    env_check()
     
     logging.basicConfig(level=logging.INFO)
     
@@ -151,7 +154,10 @@ def generate_daily_report():
     os.chdir(WEBHOOK_MONITOR_PATH)
     
     from m_modules.azure_sql_monitor import get_config_from_env, connect_azuresql
+    from m_modules.env_tool import env_check
     import json
+    
+    env_check()
     
     try:
         cfg = get_config_from_env()
