@@ -49,6 +49,8 @@ webhook_dag = DAG(
     tags=['monitoring', 'webhooks', 'frequent']
 )
 
+
+
 def webhook_check():
     """Alleen webhook monitoring."""
     os.chdir(WEBHOOK_MONITOR_PATH)
@@ -59,6 +61,8 @@ def webhook_check():
     import logging
     
     logging.basicConfig(level=logging.INFO)
+    
+    env_check()
     
     # API setup
     wcapi = API(
