@@ -1,0 +1,38 @@
+IF OBJECT_ID(N'[dbo].[Orders]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[Orders] (
+        [OrderID] INT NOT NULL,
+        [OrderDate] DATETIME2(0) NOT NULL,
+        [OrderModified] DATETIME2(0) NOT NULL,
+        [OrderStatus] NVARCHAR(100) NOT NULL,
+        [CustomerID] INT NULL,
+        [OrderKey] NVARCHAR(255) NULL,
+        [OrderNumber] NVARCHAR(50) NULL,
+        [Currency] NVARCHAR(10) NOT NULL,
+        [PaymentMethod] NVARCHAR(100) NULL,
+        [OrderTotal] DECIMAL(18,2) NOT NULL,
+        [OrderTax] DECIMAL(18,2) NOT NULL,
+        [OrderShipping] DECIMAL(18,2) NOT NULL,
+        [OrderShippingTax] DECIMAL(18,2) NOT NULL,
+        [DateCompleted] DATETIME2(0) NULL,
+        [DatePaid] DATETIME2(0) NULL,
+        [BillingFirstName] NVARCHAR(255) NULL,
+        [BillingLastName] NVARCHAR(255) NULL,
+        [BillingEmail] NVARCHAR(320) NULL,
+        [BillingPhone] NVARCHAR(64) NULL,
+        [BillingCompany] NVARCHAR(255) NULL,
+        [BillingAddress1] NVARCHAR(255) NULL,
+        [BillingAddress2] NVARCHAR(255) NULL,
+        [BillingCity] NVARCHAR(255) NULL,
+        [BillingPostcode] NVARCHAR(32) NULL,
+        [BillingCountry] NVARCHAR(64) NULL,
+        [ShippingFirstName] NVARCHAR(255) NULL,
+        [ShippingLastName] NVARCHAR(255) NULL,
+        [ShippingCompany] NVARCHAR(255) NULL,
+        [ShippingAddress1] NVARCHAR(255) NULL,
+        [ShippingAddress2] NVARCHAR(255) NULL,
+        [ShippingCity] NVARCHAR(255) NULL,
+        [ShippingPostcode] NVARCHAR(32) NULL,
+        [ShippingCountry] NVARCHAR(64) NULL
+    );
+END;
