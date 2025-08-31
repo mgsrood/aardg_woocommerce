@@ -58,14 +58,23 @@ def extract_webhook_data(payload: Dict[str, Any]) -> Dict[str, Any]:
     billing_first_name = billing.get('first_name') if billing else None
     billing_last_name = billing.get('last_name') if billing else None
     
-    # Order/Subscription ID
-    order_id = payload.get('id') if payload.get('id') else None
+    # Customer ID - voor customer.created webhooks
+    customer_id = payload.get('id') if payload.get('id') else None
+    
+    # Order/Subscription ID - alleen voor order-gerelateerde webhooks
+    order_id = None
     subscription_id = None
     
-    # Bepaal of het een subscription is
-    if payload.get('billing_period') or payload.get('next_payment_date'):
-        subscription_id = order_id
-        order_id = None
+    # Bepaal of het een order/subscription is door te kijken naar order-specifieke velden
+    if payload.get('line_items') or payload.get('total') or payload.get('currency'):
+        # Dit is een order, gebruik id als order_id
+        order_id = payload.get('id')
+        # Bepaal of het een subscription is
+        if payload.get('billing_period') or payload.get('next_payment_date'):
+            subscription_id = order_id
+            order_id = None
+        # Als het een order is, reset customer_id
+        customer_id = None
     
     # Product informatie
     line_items = payload.get('line_items', [])
@@ -93,6 +102,7 @@ def extract_webhook_data(payload: Dict[str, Any]) -> Dict[str, Any]:
         'billing_email': billing_email,
         'billing_first_name': billing_first_name,
         'billing_last_name': billing_last_name,
+        'customer_id': customer_id,
         'order_id': order_id,
         'subscription_id': subscription_id,
         'product_ids': json.dumps(product_ids) if product_ids else None,
@@ -164,10 +174,10 @@ def log_to_azure_sql(
                     [Route], [Source], [ScriptName], [Status], [Message],
                     [ProcessingTimeMs], [RequestID], [RetryCount],
                     [BillingEmail], [BillingFirstName], [BillingLastName],
-                    [OrderID], [SubscriptionID], [ProductIDs], [ProductNames],
+                    [CustomerID], [OrderID], [SubscriptionID], [ProductIDs], [ProductNames],
                     [OrderTotal], [Currency], [PaymentMethod],
                     [ErrorType], [ErrorDetails], [Environment]
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
                 
                 cursor.execute(sql, (
@@ -182,6 +192,7 @@ def log_to_azure_sql(
                     webhook_data.get('billing_email'),
                     webhook_data.get('billing_first_name'),
                     webhook_data.get('billing_last_name'),
+                    webhook_data.get('customer_id'),
                     webhook_data.get('order_id'),
                     webhook_data.get('subscription_id'),
                     webhook_data.get('product_ids'),
